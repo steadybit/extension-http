@@ -1,6 +1,6 @@
-module github.com/steadybit/extension-scaffold
+module github.com/steadybit/extension-http
 
-go 1.19
+go 1.20
 
 require (
 	github.com/kelseyhightower/envconfig v1.4.0
