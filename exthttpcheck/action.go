@@ -13,8 +13,11 @@ import (
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extutil"
+	"golang.org/x/exp/slices"
+	"io"
 	"math"
 	"net/http"
+	"net/http/httptrace"
 	"strconv"
 	"strings"
 	"time"
@@ -29,18 +32,19 @@ var (
 
 	_ action_kit_sdk.ActionWithStop[HttpCheckState] = (*httpCheckAction)(nil)
 
-	jobs    = map[uuid.UUID]chan time.Time{}             // stores the jobs for each execution
-	tickers = map[uuid.UUID]*time.Ticker{}               // stores the tickers for each execution, to be able to stop them
-	metrics = map[uuid.UUID]chan action_kit_api.Metric{} // stores the metrics for each execution
+	stopTicker = map[uuid.UUID]chan bool{}                  // stores the stop channels for each execution
+	jobs       = map[uuid.UUID]chan time.Time{}             // stores the jobs for each execution
+	tickers    = map[uuid.UUID]*time.Ticker{}               // stores the tickers for each execution, to be able to stop them
+	metrics    = map[uuid.UUID]chan action_kit_api.Metric{} // stores the metrics for each execution
 
 )
 
 type HttpCheckState struct {
 	ExpectedStatusCodes  []int
-	DelayBetweenRequests int
+	DelayBetweenRequests int64
 	Timeout              time.Time
 	ResponsesContains    string
-	SuccessRate          float64
+	SuccessRate          int
 	MaxConcurrent        int
 	NumberOfRequests     int
 	RequestsPerSecond    int
@@ -64,8 +68,12 @@ func (l *httpCheckAction) Describe() action_kit_api.ActionDescription {
 		Description: "calls a http endpoint and checks the response",
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:        extutil.Ptr(targetIcon),
-		// The target type this action is for
-		//TargetType: extutil.Ptr(targetID),
+		Widgets: extutil.Ptr([]action_kit_api.Widget{
+			action_kit_api.PredefinedWidget{
+				Type:               action_kit_api.ComSteadybitWidgetPredefined,
+				PredefinedWidgetId: "com.steadybit.widget.predefined.DeploymentReadinessWidget",
+			},
+		}),
 
 		// Category for the targets to appear in
 		Category: extutil.Ptr("checks"),
@@ -78,7 +86,7 @@ func (l *httpCheckAction) Describe() action_kit_api.ActionDescription {
 		//   External: The agent takes care and calls stop then the time has passed. Requires a duration parameter. Use this when the duration is known in advance.
 		//   Internal: The action has to implement the status endpoint to signal when the action is done. Use this when the duration is not known in advance.
 		//   Instantaneous: The action is done immediately. Use this for actions that happen immediately, e.g. a reboot.
-		TimeControl: action_kit_api.Internal,
+		TimeControl: action_kit_api.External,
 
 		// The parameters for the action
 		Parameters: []action_kit_api.ActionParameter{
@@ -253,13 +261,13 @@ func (l *httpCheckAction) Prepare(_ context.Context, state *HttpCheckState, requ
 		return nil, err
 	}
 	state.ExpectedStatusCodes = expectedStatusCodes
-	state.DelayBetweenRequests = getDelayBetweenRequests(request.Config["duration"].(int), request.Config["requestsPerSecond"].(int), request.Config["numberOfRequests"].(int))
-	state.ResponsesContains = request.Config["responsesContains"].(string)
-	state.SuccessRate = request.Config["successRate"].(float64)
-	state.MaxConcurrent = int(request.Config["maxConcurrent"].(float64))
-	state.NumberOfRequests = int(request.Config["numberOfRequests"].(float64))
-	state.RequestsPerSecond = int(request.Config["requestsPerSecond"].(float64))
-	state.ReadTimeout = time.Duration(request.Config["readTimeout"].(float64)) * time.Second
+	state.DelayBetweenRequests = getDelayBetweenRequests(toInt64(request.Config["duration"]), toInt64(request.Config["requestsPerSecond"]), toInt64(request.Config["numberOfRequests"]))
+	state.ResponsesContains = toString(request.Config["responsesContains"])
+	state.SuccessRate = toInt(request.Config["successRate"])
+	state.MaxConcurrent = toInt(request.Config["maxConcurrent"])
+	state.NumberOfRequests = toInt(request.Config["numberOfRequests"])
+	state.RequestsPerSecond = toInt(request.Config["requestsPerSecond"])
+	state.ReadTimeout = time.Duration(toInt64(request.Config["readTimeout"])) * time.Second
 	state.ExecutionId = request.ExecutionId
 
 	metrics[state.ExecutionId] = make(chan action_kit_api.Metric, state.MaxConcurrent)
@@ -269,94 +277,84 @@ func (l *httpCheckAction) Prepare(_ context.Context, state *HttpCheckState, requ
 	jobs[state.ExecutionId] = make(chan time.Time, state.MaxConcurrent)
 	metrics[state.ExecutionId] = make(chan action_kit_api.Metric, state.MaxConcurrent)
 	for w := 1; w <= state.MaxConcurrent; w++ {
-		go requestWorker(req, jobs[state.ExecutionId], metrics[state.ExecutionId])
+		go requestWorker(req, jobs[state.ExecutionId], metrics[state.ExecutionId], state)
 	}
 
 	return nil, nil
 }
 
-func requestWorker(req *http.Request, jobs chan time.Time, results chan action_kit_api.Metric) {
+func requestWorker(req *http.Request, jobs chan time.Time, results chan action_kit_api.Metric, state *HttpCheckState) {
 	for range jobs {
-		//start := time.Now()
-		resp, err := http.DefaultClient.Do(req)
+		var start = time.Now()
+		var elapsed time.Duration
+
+		trace := &httptrace.ClientTrace{
+			WroteRequest: func(info httptrace.WroteRequestInfo) {
+				start = time.Now()
+			},
+			GotFirstResponseByte: func() {
+				elapsed = time.Since(start)
+			},
+		}
+		req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
+		log.Debug().Msgf("Requesting %s", req.URL.String())
+		response, err := http.DefaultTransport.RoundTrip(req)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to execute request")
-		}
-		log.Info().Msgf("Response: %v", resp)
-		//elapsed := time.Since(start)
-		results <- action_kit_api.Metric{
-			Metric: map[string]string{
-				"__name__": "latency",
-			},
-			Value: 42,
-		}
-	}
-}
-
-func getDelayBetweenRequests(duration int, requestsPerSecond int, numberOfRequests int) int {
-	if duration > 0 && numberOfRequests > 0 {
-		return duration / numberOfRequests
-	} else {
-		if requestsPerSecond > 0 {
-			return 1000 / requestsPerSecond
-		} else {
-			return 1000 / 1
-		}
-	}
-}
-
-// resolveStatusCodeExpression resolves the given status code expression into a list of status codes
-func resolveStatusCodeExpression(statusCodes string) ([]int, error) {
-	result := make([]int, 0)
-	for _, code := range strings.Split(strings.Trim(statusCodes, " "), ";") {
-		if strings.Contains(code, "-") {
-			rangeParts := strings.Split(code, "-")
-			if len(rangeParts) != 2 {
-				log.Warn().Msgf("Invalid status code range '%s'", code)
-				continue
+			results <- action_kit_api.Metric{
+				Metric: map[string]string{
+					"url":   req.URL.String(),
+					"error": err.Error(),
+				},
+				Value:     float64(time.Since(start).Milliseconds()),
+				Timestamp: time.Now(),
 			}
-			start, err := strconv.Atoi(rangeParts[0])
-			if err != nil {
-				log.Warn().Msgf("Invalid status code range '%s'", code)
-				continue
-			}
-			end, err := strconv.Atoi(rangeParts[1])
-			if err != nil {
-				log.Warn().Msgf("Invalid status code range '%s'", code)
-				continue
-			}
-			for i := start; i <= end; i++ {
-				if i > 599 {
-					log.Warn().Msgf("Invalid status code '%d'", i)
-					return nil, fmt.Errorf("invalid status code '%d'", i)
+			return
+		}
+		log.Debug().Msgf("Got response %s", response.Status)
+		metricMap := map[string]string{
+			"url":                  req.URL.String(),
+			"http_status":          strconv.Itoa(response.StatusCode),
+			"expected_http_status": strconv.FormatBool(slices.Contains(state.ExpectedStatusCodes, response.StatusCode)),
+		}
+		if state.ResponsesContains != "" {
+			if response.Body == nil {
+				metricMap["response_constraints_fulfilled"] = strconv.FormatBool(false)
+			} else {
+				bodyBytes, err := io.ReadAll(response.Body)
+				if err != nil {
+					log.Error().Err(err).Msg("Failed to read response body")
+					metricMap["response_constraints_fulfilled"] = strconv.FormatBool(false)
+				} else {
+					bodyString := string(bodyBytes)
+					metricMap["response_constraints_fulfilled"] = strconv.FormatBool(strings.Contains(bodyString, state.ResponsesContains))
 				}
-				result = append(result, i)
 			}
-		} else {
-			code, err := strconv.Atoi(code)
-			if err != nil {
-				log.Warn().Msgf("Invalid status code '%s'", code)
-				continue
-			}
-			if code > 599 {
-				log.Warn().Msgf("Invalid status code '%d'", code)
-				return nil, fmt.Errorf("invalid status code '%d'", code)
-			}
-			result = append(result, code)
 		}
+		metric := action_kit_api.Metric{
+			Metric:    metricMap,
+			Value:     float64(elapsed.Milliseconds()),
+			Timestamp: time.Now(),
+		}
+		results <- metric
 	}
-	return result, nil
 }
 
 // Start is called to start the action
 // You can mutate the state here.
 // You can use the result to return messages/errors/metrics or artifacts
 func (l *httpCheckAction) Start(_ context.Context, state *HttpCheckState) (*action_kit_api.StartResult, error) {
-	ticker := tickers[state.ExecutionId]
-	ticker = time.NewTicker(time.Duration(state.DelayBetweenRequests) * time.Second)
+	tickers[state.ExecutionId] = time.NewTicker(time.Duration(state.DelayBetweenRequests) * time.Millisecond)
+	stopTicker[state.ExecutionId] = make(chan bool)
 	go func() {
-		for t := range ticker.C {
-			jobs[state.ExecutionId] <- t
+		for {
+			select {
+			case <-stopTicker[state.ExecutionId]:
+				return
+			case t := <-tickers[state.ExecutionId].C:
+				log.Debug().Msgf("Schedule Request at %v", t)
+				jobs[state.ExecutionId] <- t
+			}
 		}
 	}()
 
@@ -365,24 +363,30 @@ func (l *httpCheckAction) Start(_ context.Context, state *HttpCheckState) (*acti
 
 // Status is called to get the current status of the action
 func (l *httpCheckAction) Status(_ context.Context, state *HttpCheckState) (*action_kit_api.StatusResult, error) {
+	statusMetrics := make([]action_kit_api.Metric, 0, len(metrics[state.ExecutionId]))
+	select {
+	case metric, ok := <-metrics[state.ExecutionId]:
+		if ok {
+			log.Debug().Msgf("Status Metric: %v", metric)
+			statusMetrics = append(statusMetrics, metric)
+		} else {
+			log.Debug().Msg("Channel closed")
+		}
+	default:
+		log.Debug().Msg("No metrics available")
+	}
 
 	return &action_kit_api.StatusResult{
-		//indicate that the action is still running
 		Completed: false,
-		Metrics: extutil.Ptr([]action_kit_api.Metric{
-			{
-				Timestamp: time.Now(),
-				Metric: map[string]string{
-					"__name__": "latency",
-				},
-				Value: 42,
-			},
-		}),
+		Metrics:   extutil.Ptr(statusMetrics),
 	}, nil
 }
 
 func (l *httpCheckAction) Stop(ctx context.Context, state *HttpCheckState) (*action_kit_api.StopResult, error) {
 	ticker := tickers[state.ExecutionId]
-	ticker.Stop()
+	if ticker != nil {
+		ticker.Stop()
+	}
+	stopTicker[state.ExecutionId] <- true // stop the ticker
 	return nil, nil
 }
