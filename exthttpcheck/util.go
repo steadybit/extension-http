@@ -7,6 +7,7 @@ package exthttpcheck
 import (
   "fmt"
   "github.com/rs/zerolog/log"
+  "github.com/steadybit/action-kit/go/action_kit_api/v2"
   "strconv"
   "strings"
 )
@@ -106,4 +107,28 @@ func getDelayBetweenRequests(duration int64, requestsPerSecond int64, numberOfRe
       return 1000 / 1
     }
   }
+}
+
+func toBool(val interface{}) bool {
+  if val == nil {
+    return false
+  }
+  return val.(bool)
+}
+func toKeyValue(request action_kit_api.PrepareActionRequestBody, configName string) (map[string]string, error) {
+  kv, ok := request.Config[configName].([]any)
+  if !ok {
+    return nil, fmt.Errorf("failed to interpret config value for %s as a key/value array", configName)
+  }
+
+  result := make(map[string]string, len(kv))
+  for _, rawEntry := range kv {
+    entry, ok := rawEntry.(map[string]any)
+    if !ok {
+      return nil, fmt.Errorf("failed to interpret config value for %s as a key/value array", configName)
+    }
+    result[entry["key"].(string)] = entry["value"].(string)
+  }
+
+  return result, nil
 }
