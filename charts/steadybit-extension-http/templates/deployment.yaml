@@ -32,6 +32,14 @@ spec:
             {{- include "extensionlib.deployment.env" (list .) | nindent 12 }}
           volumeMounts:
             {{- include "extensionlib.deployment.volumeMounts" (list .) | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /health/liveness
+              port: 8081
+          readinessProbe:
+            httpGet:
+              path: /health/readiness
+              port: 8081
       volumes:
         {{- include "extensionlib.deployment.volumes" (list .) | nindent 8 }}
       {{- with .Values.nodeSelector }}

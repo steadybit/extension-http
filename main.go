@@ -12,6 +12,7 @@ import (
 	"github.com/steadybit/extension-http/config"
 	"github.com/steadybit/extension-http/exthttpcheck"
 	"github.com/steadybit/extension-kit/extbuild"
+	"github.com/steadybit/extension-kit/exthealth"
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extlogging"
 )
@@ -40,6 +41,13 @@ func main() {
 	exthttp.RegisterHttpHandler("/", exthttp.GetterAsHandler(getExtensionList))
 
 	action_kit_sdk.RegisterAction(exthttpcheck.NewHttpCheckAction())
+
+	//This will install a signal handlder, that will stop active actions when receiving a SIGURS1, SIGTERM or SIGINT
+	action_kit_sdk.InstallSignalHandler()
+
+	//This will start /health/liveness and /health/readiness endpoints on port 8081 for use with kubernetes
+	//The port can be configured using the STEADYBIT_EXTENSION_HEALTH_PORT environment variable
+	exthealth.StartProbes(8081)
 
 	exthttp.Listen(exthttp.ListenOpts{
 		// This is the default port under which your extension is accessible.
