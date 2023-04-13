@@ -111,7 +111,7 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 				Name:        "url",
 				Label:       "Target URL",
 				Description: extutil.Ptr("The URL to check."),
-				Type:        action_kit_api.EnvVarOrUri,
+				Type:        action_kit_api.Url,
 				Required:    extutil.Ptr(true),
 				Order:       extutil.Ptr(2),
 			},
@@ -280,7 +280,8 @@ func (l *httpCheckActionFixedAmount) Start(_ context.Context, state *HttpCheckSt
 func (l *httpCheckActionFixedAmount) Status(_ context.Context, state *HttpCheckState) (*action_kit_api.StatusResult, error) {
 	now := time.Now()
 	latestMetrics := retrieveLatestMetrics(state.ExecutionId)
-	completed := now.After(state.Timeout) || requestCounter[state.ExecutionId] >= state.NumberOfRequests
+	rc, _ := requestCounter.Load(state.ExecutionId)
+	completed := now.After(state.Timeout) || rc.(int) >= state.NumberOfRequests
 
 	if completed {
 		stop(state)

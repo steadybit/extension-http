@@ -109,7 +109,7 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 				Name:        "url",
 				Label:       "Target URL",
 				Description: extutil.Ptr("The URL to check."),
-				Type:        action_kit_api.EnvVarOrUri,
+				Type:        action_kit_api.Url,
 				Required:    extutil.Ptr(true),
 				Order:       extutil.Ptr(2),
 			},

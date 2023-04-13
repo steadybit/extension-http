@@ -17,18 +17,19 @@ import (
 	"net/http/httptrace"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 // Make sure Action implements all required interfaces
 var (
-	stopTicker = map[uuid.UUID]chan bool{}                  // stores the stop channels for each execution
-	jobs       = map[uuid.UUID]chan time.Time{}             // stores the jobs for each execution
-	tickers    = map[uuid.UUID]*time.Ticker{}               // stores the tickers for each execution, to be able to stop them
-	metrics    = map[uuid.UUID]chan action_kit_api.Metric{} // stores the metrics for each execution
+	stopTicker = sync.Map{} //map[uuid.UUID]chan bool{}                  // stores the stop channels for each execution
+	jobs       = sync.Map{} //map[uuid.UUID]chan time.Time{}             // stores the jobs for each execution
+	tickers    = sync.Map{} //map[uuid.UUID]*time.Ticker{}               // stores the tickers for each execution, to be able to stop them
+	metrics    = sync.Map{} //map[uuid.UUID]chan action_kit_api.Metric{} // stores the metrics for each execution
 
-	requestCounter        = map[uuid.UUID]int{} // stores the number of requests for each execution
-	requestSuccessCounter = map[uuid.UUID]int{} // stores the number of successful requests for each execution
+	requestCounter        = sync.Map{} //map[uuid.UUID]int{} // stores the number of requests for each execution
+	requestSuccessCounter = sync.Map{} //map[uuid.UUID]int{} // stores the number of successful requests for each execution
 )
 
 type HttpCheckState struct {
@@ -77,17 +78,21 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HttpCheckSt
 		return nil, err
 	}
 
-	metrics[state.ExecutionId] = make(chan action_kit_api.Metric, state.MaxConcurrent)
+	metrics.Store(state.ExecutionId, make(chan action_kit_api.Metric, state.MaxConcurrent))
 
 	req, err := createRequest(state)
 
 	// create job channel
-	jobs[state.ExecutionId] = make(chan time.Time, state.MaxConcurrent)
+	jobs.Store(state.ExecutionId, make(chan time.Time, state.MaxConcurrent))
 	// create metrics result channel
-	metrics[state.ExecutionId] = make(chan action_kit_api.Metric, state.MaxConcurrent)
+	metrics.Store(state.ExecutionId, make(chan action_kit_api.Metric, state.MaxConcurrent))
 	// create worker pool
 	for w := 1; w <= state.MaxConcurrent; w++ {
-		go requestWorker(req, jobs[state.ExecutionId], metrics[state.ExecutionId], state)
+		jobs, ok := jobs.Load(state.ExecutionId)
+		metrics, ok := metrics.Load(state.ExecutionId)
+		if ok {
+			go requestWorker(req, jobs.(chan time.Time), metrics.(chan action_kit_api.Metric), state)
+		}
 	}
 	return nil, nil
 }
@@ -142,7 +147,12 @@ func requestWorker(req *http.Request, jobs chan time.Time, results chan action_k
 		log.Debug().Msgf("Requesting %s", req.URL.String())
 		response, err := client.Do(req)
 
-		requestCounter[state.ExecutionId]++
+		cnt, ok := requestCounter.Load(state.ExecutionId)
+		if !ok {
+			cnt = toInt(cnt) + 1
+			requestCounter.Store(state.ExecutionId, cnt)
+		}
+
 		responseStatusWasExpected := false
 		responseBodyWasSuccessful := true
 
@@ -185,7 +195,8 @@ func requestWorker(req *http.Request, jobs chan time.Time, results chan action_k
 			}
 		}
 		if responseStatusWasExpected && responseBodyWasSuccessful {
-			requestSuccessCounter[state.ExecutionId]++
+			cnt, _ = requestSuccessCounter.Load(state.ExecutionId)
+			requestSuccessCounter.Store(state.ExecutionId, toInt(cnt)+1)
 		}
 		metric := action_kit_api.Metric{
 			Name:      extutil.Ptr("response_time"),
@@ -198,29 +209,39 @@ func requestWorker(req *http.Request, jobs chan time.Time, results chan action_k
 }
 
 func start(state *HttpCheckState) {
-	tickers[state.ExecutionId] = time.NewTicker(time.Duration(state.DelayBetweenRequestsInMS) * time.Millisecond)
-	stopTicker[state.ExecutionId] = make(chan bool)
+	tickers.Store(state.ExecutionId, time.NewTicker(time.Duration(state.DelayBetweenRequestsInMS)*time.Millisecond))
+	stopTicker.Store(state.ExecutionId, make(chan bool))
 	now := time.Now()
 	log.Debug().Msgf("Schedule first Request at %v", now)
-	jobs[state.ExecutionId] <- now
+	j, ok := jobs.Load(state.ExecutionId)
+	if ok {
+		j.(chan time.Time) <- now
+	}
 	go func() {
 		for {
+			st, _ := stopTicker.Load(state.ExecutionId)
+			tick, _ := tickers.Load(state.ExecutionId)
 			select {
-			case <-stopTicker[state.ExecutionId]:
+			case <-st.(chan bool):
 				return
-			case t := <-tickers[state.ExecutionId].C:
+			case t := <-tick.(*time.Ticker).C:
 				log.Debug().Msgf("Schedule Request at %v", t)
-				jobs[state.ExecutionId] <- t
+				j, ok := jobs.Load(state.ExecutionId)
+				if ok {
+					j.(chan time.Time) <- t
+				}
 			}
 		}
 	}()
 }
 
 func retrieveLatestMetrics(executionId uuid.UUID) []action_kit_api.Metric {
-	statusMetrics := make([]action_kit_api.Metric, 0, len(metrics[executionId]))
+	m, _ := metrics.Load(executionId)
+	statusMetrics := make([]action_kit_api.Metric, 0, len(m.(chan action_kit_api.Metric)))
 	for {
+		m, _ := metrics.Load(executionId)
 		select {
-		case metric, ok := <-metrics[executionId]:
+		case metric, ok := <-m.(chan action_kit_api.Metric):
 			if ok {
 				log.Debug().Msgf("Status Metric: %v", metric)
 				statusMetrics = append(statusMetrics, metric)
@@ -237,16 +258,19 @@ func retrieveLatestMetrics(executionId uuid.UUID) []action_kit_api.Metric {
 }
 
 func stop(state *HttpCheckState) (*action_kit_api.StopResult, error) {
-	ticker := tickers[state.ExecutionId]
-	if ticker != nil {
-		ticker.Stop()
+	t, _ := tickers.Load(state.ExecutionId)
+	if t != nil {
+		t.(*time.Ticker).Stop()
 	}
-	stopTicker[state.ExecutionId] <- true // stop the ticker
+	s, _ := stopTicker.Load(state.ExecutionId)
+	s.(chan bool) <- true // stop the ticker
 
 	//get latest metrics
 	latestMetrics := retrieveLatestMetrics(state.ExecutionId)
 	// calculate the success rate
-	successRate := float64(requestSuccessCounter[state.ExecutionId]) / float64(requestCounter[state.ExecutionId]) * 100
+	rsc, _ := requestSuccessCounter.Load(state.ExecutionId)
+	rc, _ := requestCounter.Load(state.ExecutionId)
+	successRate := float64(rsc.(int)) / float64(rc.(int)) * 100
 	log.Debug().Msgf("Success Rate: %f", successRate)
 	if successRate < float64(state.SuccessRate) {
 		return extutil.Ptr(action_kit_api.StopResult{
