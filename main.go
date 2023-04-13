@@ -40,7 +40,8 @@ func main() {
 	// by the Steadybit agent to obtain the extension's capabilities.
 	exthttp.RegisterHttpHandler("/", exthttp.GetterAsHandler(getExtensionList))
 
-	action_kit_sdk.RegisterAction(exthttpcheck.NewHttpCheckAction())
+	action_kit_sdk.RegisterAction(exthttpcheck.NewHttpCheckActionFixedAmount())
+	action_kit_sdk.RegisterAction(exthttpcheck.NewHttpCheckActionPeriodically())
 
 	//This will install a signal handlder, that will stop active actions when receiving a SIGURS1, SIGTERM or SIGINT
 	action_kit_sdk.InstallSignalHandler()

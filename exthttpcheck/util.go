@@ -96,19 +96,6 @@ func resolveStatusCodeExpression(statusCodes string) ([]int, error) {
 	return result, nil
 }
 
-func getDelayBetweenRequestsInMs(duration int64, requestsPerSecond int64, numberOfRequests int64) int64 {
-
-	if duration > 0 && numberOfRequests > 0 {
-		return duration / (numberOfRequests)
-	} else {
-		if requestsPerSecond > 0 {
-			return 1000 / requestsPerSecond
-		} else {
-			return 1000 / 1
-		}
-	}
-}
-
 func toBool(val interface{}) bool {
 	if val == nil {
 		return false
