@@ -279,12 +279,12 @@ func (l *httpCheckActionFixedAmount) Start(_ context.Context, state *HttpCheckSt
 // Status is called to get the current status of the action
 func (l *httpCheckActionFixedAmount) Status(_ context.Context, state *HttpCheckState) (*action_kit_api.StatusResult, error) {
 	now := time.Now()
-	latestMetrics := retrieveLatestMetrics(state.ExecutionId)
 	executionRunData, err := loadExecutionRunData(state.ExecutionId)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to load execution run data")
 		return nil, err
 	}
+	latestMetrics := retrieveLatestMetrics(executionRunData.metrics)
 	completed := now.After(state.Timeout) || executionRunData.requestCounter >= state.NumberOfRequests
 
 	if completed {

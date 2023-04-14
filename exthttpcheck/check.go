@@ -91,7 +91,7 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HttpCheckSt
 
 	// create worker pool
 	for w := 1; w <= state.MaxConcurrent; w++ {
-		go requestWorker(req, executionRunData.jobs, executionRunData.metrics, state)
+		go requestWorker(req, executionRunData, state)
 	}
 	return nil, nil
 }
@@ -134,7 +134,7 @@ func createRequest(state *HttpCheckState) (*http.Request, error) {
 	return request, err
 }
 
-func requestWorker(req *http.Request, jobs chan time.Time, results chan action_kit_api.Metric, state *HttpCheckState) {
+func requestWorker(req *http.Request, executionRunData *ExecutionRunData, state *HttpCheckState) {
 	transport := &http.Transport{
 		DialContext: (&net.Dialer{
 			Timeout: state.ConnectionTimeout,
@@ -148,7 +148,7 @@ func requestWorker(req *http.Request, jobs chan time.Time, results chan action_k
 		}
 	}
 
-	for range jobs {
+	for range executionRunData.jobs {
 		var start = time.Now()
 		var elapsed time.Duration
 
@@ -165,11 +165,6 @@ func requestWorker(req *http.Request, jobs chan time.Time, results chan action_k
 		log.Debug().Msgf("Requesting %s", req.URL.String())
 		response, err := client.Do(req)
 
-		executionRunData, err := loadExecutionRunData(state.ExecutionId)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to load execution run data")
-			return
-		}
 		executionRunData.requestCounter++
 		ExecutionRunDataMap.Store(state.ExecutionId, executionRunData)
 
@@ -178,7 +173,7 @@ func requestWorker(req *http.Request, jobs chan time.Time, results chan action_k
 
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to execute request")
-			results <- action_kit_api.Metric{
+      executionRunData.metrics <- action_kit_api.Metric{
 				Metric: map[string]string{
 					"url":   req.URL.String(),
 					"error": err.Error(),
@@ -225,7 +220,7 @@ func requestWorker(req *http.Request, jobs chan time.Time, results chan action_k
 			Value:     float64(elapsed.Milliseconds()),
 			Timestamp: time.Now(),
 		}
-		results <- metric
+    executionRunData.metrics <- metric
 	}
 }
 
@@ -255,17 +250,12 @@ func start(state *HttpCheckState) {
 	ExecutionRunDataMap.Store(state.ExecutionId, executionRunData)
 }
 
-func retrieveLatestMetrics(executionId uuid.UUID) []action_kit_api.Metric {
-	executionRunData, err := loadExecutionRunData(executionId)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to load execution run data")
-		return []action_kit_api.Metric{}
-	}
+func retrieveLatestMetrics(metrics chan action_kit_api.Metric) []action_kit_api.Metric {
 
-	statusMetrics := make([]action_kit_api.Metric, 0, len(executionRunData.metrics))
+	statusMetrics := make([]action_kit_api.Metric, 0, len(metrics))
 	for {
 		select {
-		case metric, ok := <-executionRunData.metrics:
+		case metric, ok := <-metrics:
 			if ok {
 				log.Debug().Msgf("Status Metric: %v", metric)
 				statusMetrics = append(statusMetrics, metric)
@@ -299,7 +289,7 @@ func stop(state *HttpCheckState) (*action_kit_api.StopResult, error) {
 	}
 
 	//get latest metrics
-	latestMetrics := retrieveLatestMetrics(state.ExecutionId)
+	latestMetrics := retrieveLatestMetrics(executionRunData.metrics)
 	// calculate the success rate
 	successRate := float64(executionRunData.requestSuccessCounter) / float64(executionRunData.requestCounter) * 100
 	log.Debug().Msgf("Success Rate: %f", successRate)
