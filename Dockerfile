@@ -3,7 +3,7 @@
 ##
 ## Build
 ##
-FROM golang:1.19-alpine AS build
+FROM golang:1.20-alpine AS build
 
 ARG NAME
 ARG VERSION
@@ -28,7 +28,7 @@ RUN go build \
 ##
 ## Runtime
 ##
-FROM alpine:3.16
+FROM alpine:3.17
 
 ARG USERNAME=steadybit
 ARG USER_UID=1000
