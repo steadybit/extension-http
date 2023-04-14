@@ -83,27 +83,27 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 				Options: extutil.Ptr([]action_kit_api.ParameterOption{
 					action_kit_api.ExplicitParameterOption{
 						Label: "GET",
-						Value: "get",
+						Value: "GET",
 					},
 					action_kit_api.ExplicitParameterOption{
 						Label: "POST",
-						Value: "post",
+						Value: "POST",
 					},
 					action_kit_api.ExplicitParameterOption{
 						Label: "PUT",
-						Value: "put",
+						Value: "PUT",
 					},
 					action_kit_api.ExplicitParameterOption{
 						Label: "PATCH",
-						Value: "patch",
+						Value: "PATCH",
 					},
 					action_kit_api.ExplicitParameterOption{
 						Label: "HEAD",
-						Value: "head",
+						Value: "HEAD",
 					},
 					action_kit_api.ExplicitParameterOption{
 						Label: "DELETE",
-						Value: "delete",
+						Value: "DELETE",
 					},
 				}),
 			},
@@ -280,8 +280,12 @@ func (l *httpCheckActionFixedAmount) Start(_ context.Context, state *HttpCheckSt
 func (l *httpCheckActionFixedAmount) Status(_ context.Context, state *HttpCheckState) (*action_kit_api.StatusResult, error) {
 	now := time.Now()
 	latestMetrics := retrieveLatestMetrics(state.ExecutionId)
-	rc, _ := requestCounter.Load(state.ExecutionId)
-	completed := now.After(state.Timeout) || rc.(int) >= state.NumberOfRequests
+	executionRunData, err := loadExecutionRunData(state.ExecutionId)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to load execution run data")
+		return nil, err
+	}
+	completed := now.After(state.Timeout) || executionRunData.requestCounter >= state.NumberOfRequests
 
 	if completed {
 		stop(state)

@@ -81,27 +81,27 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 				Options: extutil.Ptr([]action_kit_api.ParameterOption{
 					action_kit_api.ExplicitParameterOption{
 						Label: "GET",
-						Value: "get",
+						Value: "GET",
 					},
 					action_kit_api.ExplicitParameterOption{
 						Label: "POST",
-						Value: "post",
+						Value: "POST",
 					},
 					action_kit_api.ExplicitParameterOption{
 						Label: "PUT",
-						Value: "put",
+						Value: "PUT",
 					},
 					action_kit_api.ExplicitParameterOption{
 						Label: "PATCH",
-						Value: "patch",
+						Value: "PATCH",
 					},
 					action_kit_api.ExplicitParameterOption{
 						Label: "HEAD",
-						Value: "head",
+						Value: "HEAD",
 					},
 					action_kit_api.ExplicitParameterOption{
 						Label: "DELETE",
-						Value: "delete",
+						Value: "DELETE",
 					},
 				}),
 			},
