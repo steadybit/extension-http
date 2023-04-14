@@ -32,7 +32,7 @@ audit:
 charttesting:
 	for dir in charts/steadybit-extension-*; do \
     echo "Unit Testing $$dir"; \
-    helm unittest --helm3 $$dir; \
+    helm unittest $$dir; \
   done
 
 # ==================================================================================== #
