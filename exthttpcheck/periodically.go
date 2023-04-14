@@ -6,7 +6,6 @@ package exthttpcheck
 
 import (
 	"context"
-	"fmt"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
@@ -18,24 +17,24 @@ type httpCheckActionPeriodically struct{}
 
 // Make sure Action implements all required interfaces
 var (
-	_ action_kit_sdk.Action[HttpCheckState]           = (*httpCheckActionPeriodically)(nil)
-	_ action_kit_sdk.ActionWithStatus[HttpCheckState] = (*httpCheckActionPeriodically)(nil)
+	_ action_kit_sdk.Action[HTTPCheckState]           = (*httpCheckActionPeriodically)(nil)
+	_ action_kit_sdk.ActionWithStatus[HTTPCheckState] = (*httpCheckActionPeriodically)(nil)
 
-	_ action_kit_sdk.ActionWithStop[HttpCheckState] = (*httpCheckActionPeriodically)(nil)
+	_ action_kit_sdk.ActionWithStop[HTTPCheckState] = (*httpCheckActionPeriodically)(nil)
 )
 
-func NewHttpCheckActionPeriodically() action_kit_sdk.Action[HttpCheckState] {
+func NewHTTPCheckActionPeriodically() action_kit_sdk.Action[HTTPCheckState] {
 	return &httpCheckActionPeriodically{}
 }
 
-func (l *httpCheckActionPeriodically) NewEmptyState() HttpCheckState {
-	return HttpCheckState{}
+func (l *httpCheckActionPeriodically) NewEmptyState() HTTPCheckState {
+	return HTTPCheckState{}
 }
 
 // Describe returns the action description for the platform with all required information.
 func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescription {
 	return action_kit_api.ActionDescription{
-		Id:          fmt.Sprintf("%s", targetIDPeriodically),
+		Id:          targetIDPeriodically,
 		Label:       "HTTP Periodically",
 		Description: "Calls a http endpoint periodically and checks the response",
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
@@ -266,7 +265,7 @@ func getDelayBetweenRequestsInMsPeriodically(duration int64, requestsPerSecond i
 	}
 }
 
-func (l *httpCheckActionPeriodically) Prepare(_ context.Context, state *HttpCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
+func (l *httpCheckActionPeriodically) Prepare(_ context.Context, state *HTTPCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	state.DelayBetweenRequestsInMS = getDelayBetweenRequestsInMsPeriodically(toInt64(request.Config["duration"]), toInt64(request.Config["requestsPerSecond"]))
 
 	result, err := prepare(request, state)
@@ -279,14 +278,14 @@ func (l *httpCheckActionPeriodically) Prepare(_ context.Context, state *HttpChec
 // Start is called to start the action
 // You can mutate the state here.
 // You can use the result to return messages/errors/metrics or artifacts
-func (l *httpCheckActionPeriodically) Start(_ context.Context, state *HttpCheckState) (*action_kit_api.StartResult, error) {
+func (l *httpCheckActionPeriodically) Start(_ context.Context, state *HTTPCheckState) (*action_kit_api.StartResult, error) {
 	start(state)
 	return nil, nil
 }
 
 // Status is called to get the current status of the action
-func (l *httpCheckActionPeriodically) Status(_ context.Context, state *HttpCheckState) (*action_kit_api.StatusResult, error) {
-	executionRunData, err := loadExecutionRunData(state.ExecutionId)
+func (l *httpCheckActionPeriodically) Status(_ context.Context, state *HTTPCheckState) (*action_kit_api.StatusResult, error) {
+	executionRunData, err := loadExecutionRunData(state.ExecutionID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to load execution run data")
 		return nil, err
@@ -298,6 +297,6 @@ func (l *httpCheckActionPeriodically) Status(_ context.Context, state *HttpCheck
 	}, nil
 }
 
-func (l *httpCheckActionPeriodically) Stop(_ context.Context, state *HttpCheckState) (*action_kit_api.StopResult, error) {
+func (l *httpCheckActionPeriodically) Stop(_ context.Context, state *HTTPCheckState) (*action_kit_api.StopResult, error) {
 	return stop(state)
 }

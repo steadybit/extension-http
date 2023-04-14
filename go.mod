@@ -14,6 +14,10 @@ require (
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
 )
 
+replace github.com/steadybit/action-kit/go/action_kit_api/v2 v2.5.0 => /Users/atze/Workspaces/steadybit/repos/action-kit/go/action_kit_api
+
+replace github.com/steadybit/action-kit/go/action_kit_sdk v1.0.3-0.20230414112622-69f7bad81f31 => /Users/atze/Workspaces/steadybit/repos/action-kit/go/action_kit_sdk
+
 require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.18 // indirect

@@ -13,34 +13,34 @@ import (
 )
 
 func toInt64(val interface{}) int64 {
-	switch val.(type) {
+	switch val := val.(type) {
 	case int:
-		return int64(val.(int))
+		return int64(val)
 	case int32:
-		return int64(val.(int32))
+		return int64(val)
 	case int64:
-		return val.(int64)
+		return val
 	case float32:
-		return int64(val.(float32))
+		return int64(val)
 	case float64:
-		return int64(val.(float64))
+		return int64(val)
 	default:
 		return 0
 	}
 }
 
 func toInt(val interface{}) int {
-	switch val.(type) {
+	switch val := val.(type) {
 	case int:
-		return val.(int)
+		return val
 	case int32:
-		return int(val.(int32))
+		return int(val)
 	case int64:
-		return int(val.(int64))
+		return int(val)
 	case float32:
-		return int(val.(float32))
+		return int(val)
 	case float64:
-		return int(val.(float64))
+		return int(val)
 	default:
 		return 0
 	}
@@ -83,7 +83,7 @@ func resolveStatusCodeExpression(statusCodes string) ([]int, error) {
 		} else {
 			code, err := strconv.Atoi(code)
 			if err != nil {
-				log.Warn().Msgf("Invalid status code '%s'", code)
+				log.Warn().Msgf("Invalid status code '%d'", code)
 				continue
 			}
 			if code > 599 {

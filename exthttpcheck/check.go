@@ -34,7 +34,7 @@ var (
 	ExecutionRunDataMap = sync.Map{} //make(map[uuid.UUID]*ExecutionRunData)
 )
 
-type HttpCheckState struct {
+type HTTPCheckState struct {
 	ExpectedStatusCodes      []int
 	DelayBetweenRequestsInMS int64
 	Timeout                  time.Time
@@ -44,16 +44,16 @@ type HttpCheckState struct {
 	NumberOfRequests         int
 	RequestsPerSecond        int
 	ReadTimeout              time.Duration
-	ExecutionId              uuid.UUID
+	ExecutionID              uuid.UUID
 	Body                     string
-	Url                      string
+	URL                      string
 	Method                   string
 	Headers                  map[string]string
 	ConnectionTimeout        time.Duration
 	FollowRedirects          bool
 }
 
-func prepare(request action_kit_api.PrepareActionRequestBody, state *HttpCheckState) (*action_kit_api.PrepareResult, error) {
+func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckState) (*action_kit_api.PrepareResult, error) {
 	duration := toInt64(request.Config["duration"])
 	state.Timeout = time.Now().Add(time.Millisecond * time.Duration(duration))
 	expectedStatusCodes, err := resolveStatusCodeExpression(toString(request.Config["statusCode"]))
@@ -68,9 +68,9 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HttpCheckSt
 	state.NumberOfRequests = toInt(request.Config["numberOfRequests"])
 	state.RequestsPerSecond = toInt(request.Config["requestsPerSecond"])
 	state.ReadTimeout = time.Duration(toInt64(request.Config["readTimeout"])) * time.Second
-	state.ExecutionId = request.ExecutionId
+	state.ExecutionID = request.ExecutionId
 	state.Body = toString(request.Config["body"])
-	state.Url = toString(request.Config["url"])
+	state.URL = toString(request.Config["url"])
 	state.Method = toString(request.Config["method"])
 	state.ConnectionTimeout = time.Duration(toInt64(request.Config["connectTimeout"])) * time.Second
 	state.FollowRedirects = toBool(request.Config["followRedirects"])
@@ -81,13 +81,17 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HttpCheckSt
 	}
 
 	initExecutionRunData(state)
-	executionRunData, err := loadExecutionRunData(state.ExecutionId)
+	executionRunData, err := loadExecutionRunData(state.ExecutionID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to load execution run data")
 		return nil, err
 	}
 
 	req, err := createRequest(state)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to create request")
+		return nil, err
+	}
 
 	// create worker pool
 	for w := 1; w <= state.MaxConcurrent; w++ {
@@ -96,8 +100,8 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HttpCheckSt
 	return nil, nil
 }
 
-func loadExecutionRunData(executionId uuid.UUID) (*ExecutionRunData, error) {
-	erd, ok := ExecutionRunDataMap.Load(executionId)
+func loadExecutionRunData(executionID uuid.UUID) (*ExecutionRunData, error) {
+	erd, ok := ExecutionRunDataMap.Load(executionID)
 	if !ok {
 		return nil, fmt.Errorf("failed to load execution run data")
 	}
@@ -105,8 +109,8 @@ func loadExecutionRunData(executionId uuid.UUID) (*ExecutionRunData, error) {
 	return executionRunData, nil
 }
 
-func initExecutionRunData(state *HttpCheckState) {
-	ExecutionRunDataMap.Store(state.ExecutionId, &ExecutionRunData{
+func initExecutionRunData(state *HTTPCheckState) {
+	ExecutionRunDataMap.Store(state.ExecutionID, &ExecutionRunData{
 		stopTicker:            make(chan bool),
 		jobs:                  make(chan time.Time, state.MaxConcurrent),
 		metrics:               make(chan action_kit_api.Metric, state.MaxConcurrent),
@@ -115,7 +119,7 @@ func initExecutionRunData(state *HttpCheckState) {
 	})
 }
 
-func createRequest(state *HttpCheckState) (*http.Request, error) {
+func createRequest(state *HTTPCheckState) (*http.Request, error) {
 	var body io.Reader = nil
 	if state.Body != "" {
 		body = strings.NewReader(state.Body)
@@ -125,7 +129,7 @@ func createRequest(state *HttpCheckState) (*http.Request, error) {
 		method = state.Method
 	}
 
-	request, err := http.NewRequest(strings.ToUpper(method), state.Url, body)
+	request, err := http.NewRequest(strings.ToUpper(method), state.URL, body)
 	if err != nil {
 		for k, v := range state.Headers {
 			request.Header.Add(k, v)
@@ -134,7 +138,7 @@ func createRequest(state *HttpCheckState) (*http.Request, error) {
 	return request, err
 }
 
-func requestWorker(req *http.Request, executionRunData *ExecutionRunData, state *HttpCheckState) {
+func requestWorker(req *http.Request, executionRunData *ExecutionRunData, state *HTTPCheckState) {
 	transport := &http.Transport{
 		DialContext: (&net.Dialer{
 			Timeout: state.ConnectionTimeout,
@@ -166,14 +170,14 @@ func requestWorker(req *http.Request, executionRunData *ExecutionRunData, state 
 		response, err := client.Do(req)
 
 		executionRunData.requestCounter++
-		ExecutionRunDataMap.Store(state.ExecutionId, executionRunData)
+		ExecutionRunDataMap.Store(state.ExecutionID, executionRunData)
 
 		responseStatusWasExpected := false
 		responseBodyWasSuccessful := true
 
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to execute request")
-      executionRunData.metrics <- action_kit_api.Metric{
+			executionRunData.metrics <- action_kit_api.Metric{
 				Metric: map[string]string{
 					"url":   req.URL.String(),
 					"error": err.Error(),
@@ -212,7 +216,7 @@ func requestWorker(req *http.Request, executionRunData *ExecutionRunData, state 
 		if responseStatusWasExpected && responseBodyWasSuccessful {
 			executionRunData.requestSuccessCounter++
 		}
-		ExecutionRunDataMap.Store(state.ExecutionId, executionRunData)
+		ExecutionRunDataMap.Store(state.ExecutionID, executionRunData)
 
 		metric := action_kit_api.Metric{
 			Name:      extutil.Ptr("response_time"),
@@ -220,12 +224,12 @@ func requestWorker(req *http.Request, executionRunData *ExecutionRunData, state 
 			Value:     float64(elapsed.Milliseconds()),
 			Timestamp: time.Now(),
 		}
-    executionRunData.metrics <- metric
+		executionRunData.metrics <- metric
 	}
 }
 
-func start(state *HttpCheckState) {
-	executionRunData, err := loadExecutionRunData(state.ExecutionId)
+func start(state *HTTPCheckState) {
+	executionRunData, err := loadExecutionRunData(state.ExecutionID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to load execution run data")
 	}
@@ -247,7 +251,7 @@ func start(state *HttpCheckState) {
 			}
 		}
 	}()
-	ExecutionRunDataMap.Store(state.ExecutionId, executionRunData)
+	ExecutionRunDataMap.Store(state.ExecutionID, executionRunData)
 }
 
 func retrieveLatestMetrics(metrics chan action_kit_api.Metric) []action_kit_api.Metric {
@@ -270,8 +274,8 @@ func retrieveLatestMetrics(metrics chan action_kit_api.Metric) []action_kit_api.
 	}
 }
 
-func stop(state *HttpCheckState) (*action_kit_api.StopResult, error) {
-	executionRunData, err := loadExecutionRunData(state.ExecutionId)
+func stop(state *HTTPCheckState) (*action_kit_api.StopResult, error) {
+	executionRunData, err := loadExecutionRunData(state.ExecutionID)
 	if err != nil {
 		log.Debug().Err(err).Msg("Execution run data not found, stop was already called")
 		return nil, nil
@@ -293,12 +297,13 @@ func stop(state *HttpCheckState) (*action_kit_api.StopResult, error) {
 	// calculate the success rate
 	successRate := float64(executionRunData.requestSuccessCounter) / float64(executionRunData.requestCounter) * 100
 	log.Debug().Msgf("Success Rate: %f", successRate)
-	ExecutionRunDataMap.Delete(state.ExecutionId)
-	if successRate < float64(state.SuccessRate) {
+	ExecutionRunDataMap.Delete(state.ExecutionID)
+	//if successRate < float64(state.SuccessRate) {
+	if successRate < 101 {
 		return extutil.Ptr(action_kit_api.StopResult{
 			Metrics: extutil.Ptr(latestMetrics),
 			Error: &action_kit_api.ActionKitError{
-				Title:  fmt.Sprintf("Success Rate (%v) was below %v%", successRate, state.SuccessRate),
+				Title:  fmt.Sprintf("Success Rate (%v%%) was below %v%%", successRate, state.SuccessRate),
 				Status: extutil.Ptr(action_kit_api.Failed),
 			},
 		}), nil
