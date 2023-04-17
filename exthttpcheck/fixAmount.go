@@ -287,7 +287,6 @@ func (l *httpCheckActionFixedAmount) Status(_ context.Context, state *HTTPCheckS
 	completed := now.After(state.Timeout) || executionRunData.requestCounter >= state.NumberOfRequests
 
 	if completed {
-		stop(state)
 		log.Debug().Msg("Action completed")
 	}
 
