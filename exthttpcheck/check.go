@@ -85,15 +85,9 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckSt
 		return nil, err
 	}
 
-	req, err := createRequest(state)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to create request")
-		return nil, err
-	}
-
 	// create worker pool
 	for w := 1; w <= state.MaxConcurrent; w++ {
-		go requestWorker(req, executionRunData, state)
+		go requestWorker(executionRunData, state)
 	}
 	return nil, nil
 }
@@ -128,7 +122,7 @@ func createRequest(state *HTTPCheckState) (*http.Request, error) {
 	}
 
 	request, err := http.NewRequest(strings.ToUpper(method), state.URL, body)
-	if err != nil {
+	if err == nil {
 		for k, v := range state.Headers {
 			request.Header.Add(k, v)
 		}
@@ -136,7 +130,7 @@ func createRequest(state *HTTPCheckState) (*http.Request, error) {
 	return request, err
 }
 
-func requestWorker(req *http.Request, executionRunData *ExecutionRunData, state *HTTPCheckState) {
+func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState) {
 	transport := &http.Transport{
 		DialContext: (&net.Dialer{
 			Timeout: state.ConnectionTimeout,
@@ -163,15 +157,31 @@ func requestWorker(req *http.Request, executionRunData *ExecutionRunData, state 
 			},
 		}
 
+		responseStatusWasExpected := false
+		responseBodyWasSuccessful := true
+
+		req, err := createRequest(state)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to create request")
+			executionRunData.metrics <- action_kit_api.Metric{
+				Metric: map[string]string{
+					"url":   req.URL.String(),
+					"error": err.Error(),
+				},
+				Name:      extutil.Ptr("response_time"),
+				Value:     float64(time.Since(start).Milliseconds()),
+				Timestamp: time.Now(),
+			}
+			responseStatusWasExpected = false
+			return
+		}
+
 		req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
 		log.Debug().Msgf("Requesting %s", req.URL.String())
 		response, err := client.Do(req)
 
 		executionRunData.requestCounter++
 		ExecutionRunDataMap.Store(state.ExecutionID, executionRunData)
-
-		responseStatusWasExpected := false
-		responseBodyWasSuccessful := true
 
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to execute request")
