@@ -4,15 +4,15 @@ manifest should match snapshot with TLS:
     kind: Service
     metadata:
       annotations:
-        steadybit.com/extension-auto-discovery: "{\n  \"extensions\": [\n    {\n      \"port\": 8080,\n      \"types\": [\"ACTION\",\"DISCOVERY\",\"EVENT\"],\n      \"tls\": {\n        \"server\": {\n          \"extraCertsFile\": \"/opt/steadybit/agent/etc/extension-mtls/server-cert/tls.crt\"\n        }\n        \n      }\n    }\n  ]\n}\n"
+        steadybit.com/extension-auto-discovery: "{\n  \"extensions\": [\n    {\n      \"port\": 8085,\n      \"types\": [\"ACTION\"],\n      \"tls\": {\n        \"server\": {\n          \"extraCertsFile\": \"/opt/steadybit/agent/etc/extension-mtls/server-cert/tls.crt\"\n        }\n        \n      }\n    }\n  ]\n}\n"
       labels: null
       name: RELEASE-NAME
       namespace: NAMESPACE
     spec:
       ports:
-        - port: 8080
+        - port: 8085
           protocol: TCP
-          targetPort: 8080
+          targetPort: 8085
       selector:
         app.kubernetes.io/name: RELEASE-NAME
 manifest should match snapshot with mutual TLS:
@@ -25,8 +25,8 @@ manifest should match snapshot with mutual TLS:
           {
             "extensions": [
               {
-                "port": 8080,
-                "types": ["ACTION","DISCOVERY","EVENT"],
+                "port": 8085,
+                "types": ["ACTION"],
                 "tls": {
                   "server": {
                     "extraCertsFile": "/opt/steadybit/agent/etc/extension-mtls/server-cert/tls.crt"
@@ -44,9 +44,9 @@ manifest should match snapshot with mutual TLS:
       namespace: NAMESPACE
     spec:
       ports:
-        - port: 8080
+        - port: 8085
           protocol: TCP
-          targetPort: 8080
+          targetPort: 8085
       selector:
         app.kubernetes.io/name: RELEASE-NAME
 manifest should match snapshot without TLS:
@@ -55,14 +55,14 @@ manifest should match snapshot without TLS:
     kind: Service
     metadata:
       annotations:
-        steadybit.com/extension-auto-discovery: "{\n  \"extensions\": [\n    {\n      \"port\": 8080,\n      \"types\": [\"ACTION\",\"DISCOVERY\",\"EVENT\"],\n      \"tls\": {\n        \n      }\n    }\n  ]\n}\n"
+        steadybit.com/extension-auto-discovery: "{\n  \"extensions\": [\n    {\n      \"port\": 8085,\n      \"types\": [\"ACTION\"],\n      \"tls\": {\n        \n      }\n    }\n  ]\n}\n"
       labels: null
       name: RELEASE-NAME
       namespace: NAMESPACE
     spec:
       ports:
-        - port: 8080
+        - port: 8085
           protocol: TCP
-          targetPort: 8080
+          targetPort: 8085
       selector:
         app.kubernetes.io/name: RELEASE-NAME
