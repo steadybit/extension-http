@@ -55,13 +55,13 @@ func TestNewHTTPCheckActionPeriodically_Prepare(t *testing.T) {
 				SuccessRate:              100,
 				MaxConcurrent:            10,
 				NumberOfRequests:         0,
-				ReadTimeoutMS:            time.Second * 5,
+				ReadTimeout:              time.Second * 5,
 				ExecutionID:              uuid.New(),
 				Body:                     "test",
 				URL:                      "https://steadybit.com",
 				Method:                   "GET",
 				Headers:                  map[string]string{"test": "test"},
-				ConnectionTimeoutMS:      time.Second * 5,
+				ConnectionTimeout:        time.Second * 5,
 				FollowRedirects:          true,
 			},
 		}, {
@@ -92,16 +92,16 @@ func TestNewHTTPCheckActionPeriodically_Prepare(t *testing.T) {
 			if tt.wantedState != nil {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.wantedState.FollowRedirects, state.FollowRedirects)
-				assert.Equal(t, tt.wantedState.ReadTimeoutMS, state.ReadTimeoutMS)
+				assert.Equal(t, tt.wantedState.ReadTimeout, state.ReadTimeout)
 				assert.Equal(t, tt.wantedState.FollowRedirects, state.FollowRedirects)
-				assert.Equal(t, tt.wantedState.ConnectionTimeoutMS, state.ConnectionTimeoutMS)
+				assert.Equal(t, tt.wantedState.ConnectionTimeout, state.ConnectionTimeout)
 				assert.Equal(t, tt.wantedState.DelayBetweenRequestsInMS, state.DelayBetweenRequestsInMS)
 				assert.Equal(t, tt.wantedState.ExpectedStatusCodes, state.ExpectedStatusCodes)
 				assert.Equal(t, tt.wantedState.Headers, state.Headers)
 				assert.Equal(t, tt.wantedState.MaxConcurrent, state.MaxConcurrent)
 				assert.Equal(t, tt.wantedState.Method, state.Method)
 				assert.Equal(t, tt.wantedState.NumberOfRequests, state.NumberOfRequests)
-				assert.Equal(t, tt.wantedState.ReadTimeoutMS, state.ReadTimeoutMS)
+				assert.Equal(t, tt.wantedState.ReadTimeout, state.ReadTimeout)
 				assert.Equal(t, tt.wantedState.ResponsesContains, state.ResponsesContains)
 				assert.Equal(t, tt.wantedState.SuccessRate, state.SuccessRate)
 				assert.Equal(t, tt.wantedState.URL, state.URL)

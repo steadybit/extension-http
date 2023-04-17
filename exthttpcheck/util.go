@@ -114,10 +114,7 @@ func toBool(val interface{}) bool {
 	}
 	// parse bool string
 	if val, ok := val.(string); ok {
-		if val == "true" {
-			return true
-		}
-		return false
+		return val == "true"
 	}
 	return val.(bool)
 }

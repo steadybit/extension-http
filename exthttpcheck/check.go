@@ -42,13 +42,13 @@ type HTTPCheckState struct {
 	SuccessRate              int
 	MaxConcurrent            int
 	NumberOfRequests         int
-	ReadTimeoutMS            time.Duration
+	ReadTimeout              time.Duration
 	ExecutionID              uuid.UUID
 	Body                     string
 	URL                      string
 	Method                   string
 	Headers                  map[string]string
-	ConnectionTimeoutMS      time.Duration
+	ConnectionTimeout        time.Duration
 	FollowRedirects          bool
 }
 
@@ -65,12 +65,12 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckSt
 	state.SuccessRate = toInt(request.Config["successRate"])
 	state.MaxConcurrent = toInt(request.Config["maxConcurrent"])
 	state.NumberOfRequests = toInt(request.Config["numberOfRequests"])
-	state.ReadTimeoutMS = time.Duration(toInt64(request.Config["readTimeout"])) * time.Millisecond
+	state.ReadTimeout = time.Duration(toInt64(request.Config["readTimeout"])) * time.Millisecond
 	state.ExecutionID = request.ExecutionId
 	state.Body = toString(request.Config["body"])
 	state.URL = toString(request.Config["url"])
 	state.Method = toString(request.Config["method"])
-	state.ConnectionTimeoutMS = time.Duration(toInt64(request.Config["connectTimeout"])) * time.Millisecond
+	state.ConnectionTimeout = time.Duration(toInt64(request.Config["connectTimeout"])) * time.Millisecond
 	state.FollowRedirects = toBool(request.Config["followRedirects"])
 	state.Headers, err = toKeyValue(request, "headers")
 	if err != nil {
@@ -139,10 +139,10 @@ func createRequest(state *HTTPCheckState) (*http.Request, error) {
 func requestWorker(req *http.Request, executionRunData *ExecutionRunData, state *HTTPCheckState) {
 	transport := &http.Transport{
 		DialContext: (&net.Dialer{
-			Timeout: state.ConnectionTimeoutMS,
+			Timeout: state.ConnectionTimeout,
 		}).DialContext,
 	}
-	client := http.Client{Timeout: state.ReadTimeoutMS, Transport: transport}
+	client := http.Client{Timeout: state.ReadTimeout, Transport: transport}
 
 	if !state.FollowRedirects {
 		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
