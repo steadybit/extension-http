@@ -7,6 +7,7 @@ package exthttpcheck
 import (
   "context"
   "github.com/google/uuid"
+  "github.com/steadybit/action-kit/go/action_kit_api/v2"
   extension_kit "github.com/steadybit/extension-kit"
   "github.com/steadybit/extension-kit/extutil"
   "github.com/stretchr/testify/assert"
