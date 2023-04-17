@@ -28,6 +28,7 @@ type ExecutionRunData struct {
 	metrics               chan action_kit_api.Metric // stores the metrics for each execution
 	requestCounter        int                        // stores the number of requests for each execution
 	requestSuccessCounter int                        // stores the number of successful requests for each execution
+	mutex                 sync.Mutex                 // mutex to lock the request counters
 }
 
 var (
@@ -52,7 +53,7 @@ type HTTPCheckState struct {
 	FollowRedirects          bool
 }
 
-func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckState) (*action_kit_api.PrepareResult, error) {
+func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckState, checkEnded func(executionRunData *ExecutionRunData, state *HTTPCheckState) bool) (*action_kit_api.PrepareResult, error) {
 	duration := toInt64(request.Config["duration"])
 	state.Timeout = time.Now().Add(time.Millisecond * time.Duration(duration))
 	expectedStatusCodes, err := resolveStatusCodeExpression(toString(request.Config["statusCode"]))
@@ -78,6 +79,10 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckSt
 		return nil, err
 	}
 
+	if state.URL == "" {
+		return nil, fmt.Errorf("URL is missing")
+	}
+
 	initExecutionRunData(state)
 	executionRunData, err := loadExecutionRunData(state.ExecutionID)
 	if err != nil {
@@ -87,7 +92,7 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckSt
 
 	// create worker pool
 	for w := 1; w <= state.MaxConcurrent; w++ {
-		go requestWorker(executionRunData, state)
+		go requestWorker(executionRunData, state, checkEnded)
 	}
 	return nil, nil
 }
@@ -130,7 +135,7 @@ func createRequest(state *HTTPCheckState) (*http.Request, error) {
 	return request, err
 }
 
-func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState) {
+func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, checkEnded func(executionRunData *ExecutionRunData, state *HTTPCheckState) bool) {
 	transport := &http.Transport{
 		DialContext: (&net.Dialer{
 			Timeout: state.ConnectionTimeout,
@@ -145,6 +150,9 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState) {
 	}
 
 	for range executionRunData.jobs {
+		if checkEnded(executionRunData, state) {
+			break // no need to continue
+		}
 		var start = time.Now()
 		var elapsed time.Duration
 
@@ -180,8 +188,10 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState) {
 		log.Debug().Msgf("Requesting %s", req.URL.String())
 		response, err := client.Do(req)
 
+		executionRunData.mutex.Lock()
 		executionRunData.requestCounter++
 		ExecutionRunDataMap.Store(state.ExecutionID, executionRunData)
+		executionRunData.mutex.Unlock()
 
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to execute request")
@@ -221,10 +231,12 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState) {
 				}
 			}
 		}
+		executionRunData.mutex.Lock()
 		if responseStatusWasExpected && responseBodyWasSuccessful {
 			executionRunData.requestSuccessCounter++
 		}
 		ExecutionRunDataMap.Store(state.ExecutionID, executionRunData)
+		executionRunData.mutex.Unlock()
 
 		metric := action_kit_api.Metric{
 			Name:      extutil.Ptr("response_time"),
@@ -288,22 +300,14 @@ func stop(state *HTTPCheckState) (*action_kit_api.StopResult, error) {
 		log.Debug().Err(err).Msg("Execution run data not found, stop was already called")
 		return nil, nil
 	}
-	ticker := executionRunData.tickers
-	if ticker != nil {
-		ticker.Stop()
-	}
-	// non-blocking send
-	select {
-	case executionRunData.stopTicker <- true: // stop the ticker
-		log.Trace().Msg("Stopped ticker")
-	default:
-		log.Debug().Msg("Ticker already stopped")
-	}
+	stopTickers(executionRunData)
 
 	//get latest metrics
 	latestMetrics := retrieveLatestMetrics(executionRunData.metrics)
 	// calculate the success rate
+	executionRunData.mutex.Lock()
 	successRate := float64(executionRunData.requestSuccessCounter) / float64(executionRunData.requestCounter) * 100
+	executionRunData.mutex.Unlock()
 	log.Debug().Msgf("Success Rate: %f", successRate)
 	ExecutionRunDataMap.Delete(state.ExecutionID)
 	//if successRate < float64(state.SuccessRate) {
@@ -319,4 +323,18 @@ func stop(state *HTTPCheckState) (*action_kit_api.StopResult, error) {
 	return extutil.Ptr(action_kit_api.StopResult{
 		Metrics: extutil.Ptr(latestMetrics),
 	}), nil
+}
+
+func stopTickers(executionRunData *ExecutionRunData) {
+	ticker := executionRunData.tickers
+	if ticker != nil {
+		ticker.Stop()
+	}
+	// non-blocking send
+	select {
+	case executionRunData.stopTicker <- true: // stop the ticker
+		log.Trace().Msg("Stopped ticker")
+	default:
+		log.Debug().Msg("Ticker already stopped")
+	}
 }

@@ -11,6 +11,8 @@ import (
 	extension_kit "github.com/steadybit/extension-kit"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/stretchr/testify/assert"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 )
@@ -111,4 +113,130 @@ func TestNewHTTPCheckActionPeriodically_Prepare(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestNewHTTPCheckActionPeriodically_All_Success(t *testing.T) {
+	// generate a test server so we can capture and inspect the request
+	testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		res.WriteHeader(200)
+	}))
+	defer func() { testServer.Close() }()
+
+	//prepare the action
+	action := httpCheckActionPeriodically{}
+	state := action.NewEmptyState()
+	prepareActionRequestBody := action_kit_api.PrepareActionRequestBody{
+		Config: map[string]interface{}{
+			"action":            "prepare",
+			"duration":          "1000",
+			"statusCode":        "200-209",
+			"responsesContains": "test",
+			"successRate":       "100",
+			"maxConcurrent":     "10",
+			"requestsPerSecond": "2",
+			"readTimeout":       "5000",
+			"body":              "test",
+			"url":               testServer.URL,
+			"method":            "GET",
+			"connectTimeout":    "5000",
+			"followRedirects":   "true",
+			"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+		},
+		ExecutionId: uuid.New(),
+	}
+
+	// Prepare
+	prepareResult, err := action.Prepare(context.Background(), &state, prepareActionRequestBody)
+	assert.NoError(t, err)
+	assert.Nil(t, prepareResult)
+	assert.Greater(t, state.DelayBetweenRequestsInMS, toInt64(0))
+
+	// Start
+	startResult, err := action.Start(context.Background(), &state)
+	assert.NoError(t, err)
+	assert.Nil(t, startResult)
+
+	// Status
+	statusResult, err := action.Status(context.Background(), &state)
+	assert.NoError(t, err)
+	assert.NotNil(t, statusResult.Metrics)
+	time.Sleep(1 * time.Second)
+	// Status completed
+	statusResult, err = action.Status(context.Background(), &state)
+	assert.NoError(t, err)
+	assert.Equal(t, statusResult.Completed, false)
+	assert.Greater(t, len(*statusResult.Metrics), 0)
+
+	executionRunData, err := action.getExecutionRunData(state.ExecutionID)
+	assert.NoError(t, err)
+	assert.Greater(t, executionRunData.requestCounter, 0)
+	// Stop
+	stopResult, err := action.Stop(context.Background(), &state)
+	assert.NoError(t, err)
+	assert.NotNil(t, stopResult.Metrics)
+	assert.Nil(t, stopResult.Error)
+	assert.Greater(t, executionRunData.requestSuccessCounter, 0)
+}
+
+func TestNewHTTPCheckActionPeriodically_All_Failure(t *testing.T) {
+	// generate a test server, so we can capture and inspect the request
+	testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		res.WriteHeader(404)
+	}))
+	defer func() { testServer.Close() }()
+
+	//prepare the action
+	action := httpCheckActionPeriodically{}
+	state := action.NewEmptyState()
+	prepareActionRequestBody := action_kit_api.PrepareActionRequestBody{
+		Config: map[string]interface{}{
+			"action":            "prepare",
+			"duration":          "1000",
+			"statusCode":        "200-209",
+			"responsesContains": "test",
+			"successRate":       "100",
+			"maxConcurrent":     "10",
+			"requestsPerSecond": "2",
+			"readTimeout":       "5000",
+			"body":              "test",
+			"url":               testServer.URL,
+			"method":            "GET",
+			"connectTimeout":    "5000",
+			"followRedirects":   "true",
+			"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+		},
+		ExecutionId: uuid.New(),
+	}
+
+	// Prepare
+	prepareResult, err := action.Prepare(context.Background(), &state, prepareActionRequestBody)
+	assert.NoError(t, err)
+	assert.Nil(t, prepareResult)
+	assert.Greater(t, state.DelayBetweenRequestsInMS, toInt64(0))
+
+	// Start
+	startResult, err := action.Start(context.Background(), &state)
+	assert.NoError(t, err)
+	assert.Nil(t, startResult)
+
+	// Status
+	statusResult, err := action.Status(context.Background(), &state)
+	assert.NoError(t, err)
+	assert.NotNil(t, statusResult.Metrics)
+	time.Sleep(1 * time.Second)
+	// Status completed
+	statusResult, err = action.Status(context.Background(), &state)
+	assert.NoError(t, err)
+	assert.Equal(t, statusResult.Completed, false)
+
+	executionRunData, err := action.getExecutionRunData(state.ExecutionID)
+	assert.NoError(t, err)
+	assert.Greater(t, executionRunData.requestCounter, 0)
+	// Stop
+	stopResult, err := action.Stop(context.Background(), &state)
+	assert.NoError(t, err)
+	assert.NotNil(t, stopResult.Metrics)
+	assert.NotNil(t, stopResult.Error)
+	assert.Equal(t, stopResult.Error.Title, "Success Rate (0%) was below 100%")
+	assert.Equal(t, executionRunData.requestSuccessCounter, 0)
 }

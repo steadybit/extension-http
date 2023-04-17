@@ -6,6 +6,7 @@ package exthttpcheck
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	action_kit_sdk "github.com/steadybit/action-kit/go/action_kit_sdk"
@@ -259,7 +260,7 @@ func getDelayBetweenRequestsInMsPeriodically(requestsPerSecond int64) int64 {
 func (l *httpCheckActionPeriodically) Prepare(_ context.Context, state *HTTPCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	state.DelayBetweenRequestsInMS = getDelayBetweenRequestsInMsPeriodically(toInt64(request.Config["requestsPerSecond"]))
 
-	result, err := prepare(request, state)
+	result, err := prepare(request, state, func(executionRunData *ExecutionRunData, state *HTTPCheckState) bool { return false })
 	if err != nil {
 		return result, err
 	}
@@ -290,4 +291,8 @@ func (l *httpCheckActionPeriodically) Status(_ context.Context, state *HTTPCheck
 
 func (l *httpCheckActionPeriodically) Stop(_ context.Context, state *HTTPCheckState) (*action_kit_api.StopResult, error) {
 	return stop(state)
+}
+
+func (l *httpCheckActionPeriodically) getExecutionRunData(executionID uuid.UUID) (*ExecutionRunData, error) {
+	return loadExecutionRunData(executionID)
 }

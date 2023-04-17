@@ -6,12 +6,13 @@ package exthttpcheck
 
 import (
 	"context"
+	"errors"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extutil"
-	"time"
 )
 
 type httpCheckActionFixedAmount struct{}
@@ -157,7 +158,7 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 				Description:  extutil.Ptr("In which timeframe should the specified requests be executed?"),
 				Type:         action_kit_api.Duration,
 				DefaultValue: extutil.Ptr("10s"),
-				Required:     extutil.Ptr(false),
+				Required:     extutil.Ptr(true),
 				Order:        extutil.Ptr(8),
 			},
 			{
@@ -258,13 +259,23 @@ func getDelayBetweenRequestsInMsFixedAmount(duration int64, numberOfRequests int
 }
 
 func (l *httpCheckActionFixedAmount) Prepare(_ context.Context, state *HTTPCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
+	if toInt64(request.Config["duration"]) == 0 {
+		return nil, errors.New("duration must be greater than 0")
+	}
 	state.DelayBetweenRequestsInMS = getDelayBetweenRequestsInMsFixedAmount(toInt64(request.Config["duration"]), toInt64(request.Config["numberOfRequests"]))
 
-	result, err := prepare(request, state)
+	result, err := prepare(request, state, checkEndedFixedAmount)
 	if err != nil {
 		return result, err
 	}
 	return nil, nil
+}
+
+func checkEndedFixedAmount(executionRunData *ExecutionRunData, state *HTTPCheckState) bool {
+	executionRunData.mutex.Lock()
+	result := executionRunData.requestCounter >= state.NumberOfRequests
+	executionRunData.mutex.Unlock()
+	return result
 }
 
 // Start is called to start the action
@@ -277,18 +288,18 @@ func (l *httpCheckActionFixedAmount) Start(_ context.Context, state *HTTPCheckSt
 
 // Status is called to get the current status of the action
 func (l *httpCheckActionFixedAmount) Status(_ context.Context, state *HTTPCheckState) (*action_kit_api.StatusResult, error) {
-	now := time.Now()
 	executionRunData, err := loadExecutionRunData(state.ExecutionID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to load execution run data")
 		return nil, err
 	}
-	latestMetrics := retrieveLatestMetrics(executionRunData.metrics)
-	completed := now.After(state.Timeout) || executionRunData.requestCounter >= state.NumberOfRequests
-
+	completed := checkEndedFixedAmount(executionRunData, state)
 	if completed {
+		stopTickers(executionRunData)
 		log.Debug().Msg("Action completed")
 	}
+
+	latestMetrics := retrieveLatestMetrics(executionRunData.metrics)
 
 	return &action_kit_api.StatusResult{
 		Completed: completed,
@@ -298,4 +309,8 @@ func (l *httpCheckActionFixedAmount) Status(_ context.Context, state *HTTPCheckS
 
 func (l *httpCheckActionFixedAmount) Stop(_ context.Context, state *HTTPCheckState) (*action_kit_api.StopResult, error) {
 	return stop(state)
+}
+
+func (l *httpCheckActionFixedAmount) getExecutionRunData(executionID uuid.UUID) (*ExecutionRunData, error) {
+	return loadExecutionRunData(executionID)
 }
