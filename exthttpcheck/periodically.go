@@ -47,7 +47,7 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 		}),
 
 		// Category for the targets to appear in
-		Category: extutil.Ptr("Http"),
+		Category: extutil.Ptr("HTTP"),
 
 		// To clarify the purpose of the action:
 		//   Check: Will perform checks on the targets
@@ -75,7 +75,7 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 				Label:        "HTTP Method",
 				Description:  extutil.Ptr("The HTTP method to use."),
 				Type:         action_kit_api.String,
-				DefaultValue: extutil.Ptr("get"),
+				DefaultValue: extutil.Ptr("GET"),
 				Required:     extutil.Ptr(true),
 				Order:        extutil.Ptr(1),
 				Options: extutil.Ptr([]action_kit_api.ParameterOption{
@@ -150,15 +150,6 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 				Required:     extutil.Ptr(true),
 				Order:        extutil.Ptr(7),
 			},
-			//{
-			//	Name:        "numberOfRequests",
-			//	Label:       "Number of Requests.",
-			//	Description: extutil.Ptr("Fixed number of Requests, distributed to given duration"),
-			//	Type:        action_kit_api.Integer,
-			//	Required:    extutil.Ptr(false),
-			//	Advanced:    extutil.Ptr(false),
-			//	Order:       extutil.Ptr(8),
-			//},
 			{
 				Name:         "duration",
 				Label:        "Duration",
@@ -257,7 +248,7 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 	}
 }
 
-func getDelayBetweenRequestsInMsPeriodically(duration int64, requestsPerSecond int64) int64 {
+func getDelayBetweenRequestsInMsPeriodically(requestsPerSecond int64) int64 {
 	if requestsPerSecond > 0 {
 		return 1000 / requestsPerSecond
 	} else {
@@ -266,7 +257,7 @@ func getDelayBetweenRequestsInMsPeriodically(duration int64, requestsPerSecond i
 }
 
 func (l *httpCheckActionPeriodically) Prepare(_ context.Context, state *HTTPCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
-	state.DelayBetweenRequestsInMS = getDelayBetweenRequestsInMsPeriodically(toInt64(request.Config["duration"]), toInt64(request.Config["requestsPerSecond"]))
+	state.DelayBetweenRequestsInMS = getDelayBetweenRequestsInMsPeriodically(toInt64(request.Config["requestsPerSecond"]))
 
 	result, err := prepare(request, state)
 	if err != nil {

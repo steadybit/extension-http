@@ -24,6 +24,12 @@ func toInt64(val interface{}) int64 {
 		return int64(val)
 	case float64:
 		return int64(val)
+	case string:
+		i, err := strconv.ParseInt(val, 10, 64)
+		if err != nil {
+			return 0
+		}
+		return i
 	default:
 		return 0
 	}
@@ -41,6 +47,12 @@ func toInt(val interface{}) int {
 		return int(val)
 	case float64:
 		return int(val)
+	case string:
+		i, err := strconv.ParseInt(val, 10, 64)
+		if err != nil {
+			return 0
+		}
+		return int(i)
 	default:
 		return 0
 	}
@@ -97,7 +109,14 @@ func resolveStatusCodeExpression(statusCodes string) ([]int, error) {
 }
 
 func toBool(val interface{}) bool {
-	if val == nil {
+	if val == nil || val == "" {
+		return false
+	}
+	// parse bool string
+	if val, ok := val.(string); ok {
+		if val == "true" {
+			return true
+		}
 		return false
 	}
 	return val.(bool)

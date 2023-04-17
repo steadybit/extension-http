@@ -48,7 +48,7 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 		}),
 
 		// Category for the targets to appear in
-		Category: extutil.Ptr("Http"),
+		Category: extutil.Ptr("HTTP"),
 
 		// To clarify the purpose of the action:
 		//   Check: Will perform checks on the targets
@@ -76,7 +76,7 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 				Label:        "HTTP Method",
 				Description:  extutil.Ptr("The HTTP method to use."),
 				Type:         action_kit_api.String,
-				DefaultValue: extutil.Ptr("get"),
+				DefaultValue: extutil.Ptr("GET"),
 				Required:     extutil.Ptr(true),
 				Order:        extutil.Ptr(1),
 				Options: extutil.Ptr([]action_kit_api.ParameterOption{

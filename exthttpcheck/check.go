@@ -42,14 +42,13 @@ type HTTPCheckState struct {
 	SuccessRate              int
 	MaxConcurrent            int
 	NumberOfRequests         int
-	RequestsPerSecond        int
-	ReadTimeout              time.Duration
+	ReadTimeoutMS            time.Duration
 	ExecutionID              uuid.UUID
 	Body                     string
 	URL                      string
 	Method                   string
 	Headers                  map[string]string
-	ConnectionTimeout        time.Duration
+	ConnectionTimeoutMS      time.Duration
 	FollowRedirects          bool
 }
 
@@ -66,13 +65,12 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckSt
 	state.SuccessRate = toInt(request.Config["successRate"])
 	state.MaxConcurrent = toInt(request.Config["maxConcurrent"])
 	state.NumberOfRequests = toInt(request.Config["numberOfRequests"])
-	state.RequestsPerSecond = toInt(request.Config["requestsPerSecond"])
-	state.ReadTimeout = time.Duration(toInt64(request.Config["readTimeout"])) * time.Second
+	state.ReadTimeoutMS = time.Duration(toInt64(request.Config["readTimeout"])) * time.Millisecond
 	state.ExecutionID = request.ExecutionId
 	state.Body = toString(request.Config["body"])
 	state.URL = toString(request.Config["url"])
 	state.Method = toString(request.Config["method"])
-	state.ConnectionTimeout = time.Duration(toInt64(request.Config["connectTimeout"])) * time.Second
+	state.ConnectionTimeoutMS = time.Duration(toInt64(request.Config["connectTimeout"])) * time.Millisecond
 	state.FollowRedirects = toBool(request.Config["followRedirects"])
 	state.Headers, err = toKeyValue(request, "headers")
 	if err != nil {
@@ -141,10 +139,10 @@ func createRequest(state *HTTPCheckState) (*http.Request, error) {
 func requestWorker(req *http.Request, executionRunData *ExecutionRunData, state *HTTPCheckState) {
 	transport := &http.Transport{
 		DialContext: (&net.Dialer{
-			Timeout: state.ConnectionTimeout,
+			Timeout: state.ConnectionTimeoutMS,
 		}).DialContext,
 	}
-	client := http.Client{Timeout: state.ReadTimeout, Transport: transport}
+	client := http.Client{Timeout: state.ReadTimeoutMS, Transport: transport}
 
 	if !state.FollowRedirects {
 		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
@@ -299,7 +297,7 @@ func stop(state *HTTPCheckState) (*action_kit_api.StopResult, error) {
 	log.Debug().Msgf("Success Rate: %f", successRate)
 	ExecutionRunDataMap.Delete(state.ExecutionID)
 	//if successRate < float64(state.SuccessRate) {
-	if successRate < 101 {
+	if successRate < 100 {
 		return extutil.Ptr(action_kit_api.StopResult{
 			Metrics: extutil.Ptr(latestMetrics),
 			Error: &action_kit_api.ActionKitError{
