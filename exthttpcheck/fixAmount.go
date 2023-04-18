@@ -293,10 +293,11 @@ func (l *httpCheckActionFixedAmount) Status(_ context.Context, state *HTTPCheckS
 		log.Error().Err(err).Msg("Failed to load execution run data")
 		return nil, err
 	}
+
 	completed := checkEndedFixedAmount(executionRunData, state)
 	if completed {
 		stopTickers(executionRunData)
-		log.Debug().Msg("Action completed")
+		log.Info().Msg("Action completed")
 	}
 
 	latestMetrics := retrieveLatestMetrics(executionRunData.metrics)

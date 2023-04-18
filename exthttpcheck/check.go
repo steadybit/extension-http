@@ -150,101 +150,100 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, ch
 	}
 
 	for range executionRunData.jobs {
-		if checkEnded(executionRunData, state) {
-			break // no need to continue
-		}
-		var start = time.Now()
-		var elapsed time.Duration
+		if !checkEnded(executionRunData, state) {
+			var start = time.Now()
+			var elapsed time.Duration
 
-		trace := &httptrace.ClientTrace{
-			WroteRequest: func(info httptrace.WroteRequestInfo) {
-				start = time.Now()
-			},
-			GotFirstResponseByte: func() {
-				elapsed = time.Since(start)
-			},
-		}
-
-		responseStatusWasExpected := false
-		responseBodyWasSuccessful := true
-
-		req, err := createRequest(state)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to create request")
-			executionRunData.metrics <- action_kit_api.Metric{
-				Metric: map[string]string{
-					"url":   req.URL.String(),
-					"error": err.Error(),
+			trace := &httptrace.ClientTrace{
+				WroteRequest: func(info httptrace.WroteRequestInfo) {
+					start = time.Now()
 				},
-				Name:      extutil.Ptr("response_time"),
-				Value:     float64(time.Since(start).Milliseconds()),
-				Timestamp: time.Now(),
-			}
-			responseStatusWasExpected = false
-			return
-		}
-
-		req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
-		log.Debug().Msgf("Requesting %s", req.URL.String())
-		response, err := client.Do(req)
-
-		executionRunData.mutex.Lock()
-		executionRunData.requestCounter++
-		ExecutionRunDataMap.Store(state.ExecutionID, executionRunData)
-		executionRunData.mutex.Unlock()
-
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to execute request")
-			executionRunData.metrics <- action_kit_api.Metric{
-				Metric: map[string]string{
-					"url":   req.URL.String(),
-					"error": err.Error(),
+				GotFirstResponseByte: func() {
+					elapsed = time.Since(start)
 				},
-				Name:      extutil.Ptr("response_time"),
-				Value:     float64(time.Since(start).Milliseconds()),
-				Timestamp: time.Now(),
 			}
-			responseStatusWasExpected = false
-			return
-		}
-		log.Debug().Msgf("Got response %s", response.Status)
-		responseStatusWasExpected = slices.Contains(state.ExpectedStatusCodes, response.StatusCode)
-		metricMap := map[string]string{
-			"url":                  req.URL.String(),
-			"http_status":          strconv.Itoa(response.StatusCode),
-			"expected_http_status": strconv.FormatBool(responseStatusWasExpected),
-		}
-		if state.ResponsesContains != "" {
-			if response.Body == nil {
-				metricMap["response_constraints_fulfilled"] = strconv.FormatBool(false)
-				responseBodyWasSuccessful = false
-			} else {
-				bodyBytes, err := io.ReadAll(response.Body)
-				if err != nil {
-					log.Error().Err(err).Msg("Failed to read response body")
-					metricMap["response_constraints_fulfilled"] = strconv.FormatBool(false)
-					responseBodyWasSuccessful = false
-				} else {
-					bodyString := string(bodyBytes)
-					metricMap["response_constraints_fulfilled"] = strconv.FormatBool(strings.Contains(bodyString, state.ResponsesContains))
-					responseBodyWasSuccessful = true
+
+			responseStatusWasExpected := false
+			responseBodyWasSuccessful := true
+
+			req, err := createRequest(state)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to create request")
+				executionRunData.metrics <- action_kit_api.Metric{
+					Metric: map[string]string{
+						"url":   req.URL.String(),
+						"error": err.Error(),
+					},
+					Name:      extutil.Ptr("response_time"),
+					Value:     float64(time.Since(start).Milliseconds()),
+					Timestamp: time.Now(),
 				}
+				responseStatusWasExpected = false
+				return
+			}
+
+			req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
+			log.Debug().Msgf("Requesting %s", req.URL.String())
+			response, err := client.Do(req)
+
+			executionRunData.mutex.Lock()
+			executionRunData.requestCounter++
+			ExecutionRunDataMap.Store(state.ExecutionID, executionRunData)
+			executionRunData.mutex.Unlock()
+
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to execute request")
+				executionRunData.metrics <- action_kit_api.Metric{
+					Metric: map[string]string{
+						"url":   req.URL.String(),
+						"error": err.Error(),
+					},
+					Name:      extutil.Ptr("response_time"),
+					Value:     float64(time.Since(start).Milliseconds()),
+					Timestamp: time.Now(),
+				}
+				responseStatusWasExpected = false
+			} else {
+				log.Debug().Msgf("Got response %s", response.Status)
+				responseStatusWasExpected = slices.Contains(state.ExpectedStatusCodes, response.StatusCode)
+				metricMap := map[string]string{
+					"url":                  req.URL.String(),
+					"http_status":          strconv.Itoa(response.StatusCode),
+					"expected_http_status": strconv.FormatBool(responseStatusWasExpected),
+				}
+				if state.ResponsesContains != "" {
+					if response.Body == nil {
+						metricMap["response_constraints_fulfilled"] = strconv.FormatBool(false)
+						responseBodyWasSuccessful = false
+					} else {
+						bodyBytes, err := io.ReadAll(response.Body)
+						if err != nil {
+							log.Error().Err(err).Msg("Failed to read response body")
+							metricMap["response_constraints_fulfilled"] = strconv.FormatBool(false)
+							responseBodyWasSuccessful = false
+						} else {
+							bodyString := string(bodyBytes)
+							metricMap["response_constraints_fulfilled"] = strconv.FormatBool(strings.Contains(bodyString, state.ResponsesContains))
+							responseBodyWasSuccessful = true
+						}
+					}
+				}
+				executionRunData.mutex.Lock()
+				if responseStatusWasExpected && responseBodyWasSuccessful {
+					executionRunData.requestSuccessCounter++
+				}
+				ExecutionRunDataMap.Store(state.ExecutionID, executionRunData)
+				executionRunData.mutex.Unlock()
+
+				metric := action_kit_api.Metric{
+					Name:      extutil.Ptr("response_time"),
+					Metric:    metricMap,
+					Value:     float64(elapsed.Milliseconds()),
+					Timestamp: time.Now(),
+				}
+				executionRunData.metrics <- metric
 			}
 		}
-		executionRunData.mutex.Lock()
-		if responseStatusWasExpected && responseBodyWasSuccessful {
-			executionRunData.requestSuccessCounter++
-		}
-		ExecutionRunDataMap.Store(state.ExecutionID, executionRunData)
-		executionRunData.mutex.Unlock()
-
-		metric := action_kit_api.Metric{
-			Name:      extutil.Ptr("response_time"),
-			Metric:    metricMap,
-			Value:     float64(elapsed.Milliseconds()),
-			Timestamp: time.Now(),
-		}
-		executionRunData.metrics <- metric
 	}
 }
 
@@ -312,6 +311,7 @@ func stop(state *HTTPCheckState) (*action_kit_api.StopResult, error) {
 	ExecutionRunDataMap.Delete(state.ExecutionID)
 	//if successRate < float64(state.SuccessRate) {
 	if successRate < 100 {
+		log.Info().Msgf("Success Rate (%v%%) was below %v%%", successRate, state.SuccessRate)
 		return extutil.Ptr(action_kit_api.StopResult{
 			Metrics: extutil.Ptr(latestMetrics),
 			Error: &action_kit_api.ActionKitError{
@@ -320,6 +320,7 @@ func stop(state *HTTPCheckState) (*action_kit_api.StopResult, error) {
 			},
 		}), nil
 	}
+	log.Info().Msgf("Success Rate (%v%%) was above/equal %v%%", successRate, state.SuccessRate)
 	return extutil.Ptr(action_kit_api.StopResult{
 		Metrics: extutil.Ptr(latestMetrics),
 	}), nil

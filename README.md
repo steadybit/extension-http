@@ -22,7 +22,7 @@ A [Steadybit](https://www.steadybit.com/) action implementation to check HTTP en
 ```sh
 $ docker run \
   --rm \
-  -p 8080 \
+  -p 8085 \
   --name steadybit-extension-http \
   ghcr.io/steadybit/extension-http:latest
 ```
