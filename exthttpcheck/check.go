@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -26,9 +27,8 @@ type ExecutionRunData struct {
 	jobs                  chan time.Time             // stores the jobs for each execution
 	tickers               *time.Ticker               // stores the tickers for each execution, to be able to stop them
 	metrics               chan action_kit_api.Metric // stores the metrics for each execution
-	requestCounter        int                        // stores the number of requests for each execution
-	requestSuccessCounter int                        // stores the number of successful requests for each execution
-	mutex                 sync.Mutex                 // mutex to lock the request counters
+	requestCounter        uint64                     // stores the number of requests for each execution
+	requestSuccessCounter uint64                     // stores the number of successful requests for each execution
 }
 
 var (
@@ -42,7 +42,7 @@ type HTTPCheckState struct {
 	ResponsesContains        string
 	SuccessRate              int
 	MaxConcurrent            int
-	NumberOfRequests         int
+	NumberOfRequests         uint64
 	ReadTimeout              time.Duration
 	ExecutionID              uuid.UUID
 	Body                     string
@@ -65,7 +65,7 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckSt
 	state.ResponsesContains = toString(request.Config["responsesContains"])
 	state.SuccessRate = toInt(request.Config["successRate"])
 	state.MaxConcurrent = toInt(request.Config["maxConcurrent"])
-	state.NumberOfRequests = toInt(request.Config["numberOfRequests"])
+	state.NumberOfRequests = toUInt64(request.Config["numberOfRequests"])
 	state.ReadTimeout = time.Duration(toInt64(request.Config["readTimeout"])) * time.Millisecond
 	state.ExecutionID = request.ExecutionId
 	state.Body = toString(request.Config["body"])
@@ -186,10 +186,8 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, ch
 			log.Debug().Msgf("Requesting %s", req.URL.String())
 			response, err := client.Do(req)
 
-			executionRunData.mutex.Lock()
-			executionRunData.requestCounter++
-			ExecutionRunDataMap.Store(state.ExecutionID, executionRunData)
-			executionRunData.mutex.Unlock()
+			atomic.AddUint64(&executionRunData.requestCounter, 1)
+			//ExecutionRunDataMap.Store(state.ExecutionID, executionRunData)
 
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to execute request")
@@ -228,12 +226,10 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, ch
 						}
 					}
 				}
-				executionRunData.mutex.Lock()
 				if responseStatusWasExpected && responseBodyWasSuccessful {
-					executionRunData.requestSuccessCounter++
+					atomic.AddUint64(&executionRunData.requestSuccessCounter, 1)
 				}
-				ExecutionRunDataMap.Store(state.ExecutionID, executionRunData)
-				executionRunData.mutex.Unlock()
+				//ExecutionRunDataMap.Store(state.ExecutionID, executionRunData)
 
 				metric := action_kit_api.Metric{
 					Name:      extutil.Ptr("response_time"),
@@ -304,10 +300,8 @@ func stop(state *HTTPCheckState) (*action_kit_api.StopResult, error) {
 	//get latest metrics
 	latestMetrics := retrieveLatestMetrics(executionRunData.metrics)
 	// calculate the success rate
-	executionRunData.mutex.Lock()
-	successRate := float64(executionRunData.requestSuccessCounter) / float64(executionRunData.requestCounter) * 100
-	executionRunData.mutex.Unlock()
-	log.Debug().Msgf("Success Rate: %f", successRate)
+	successRate := atomic.LoadUint64(&executionRunData.requestSuccessCounter) / atomic.LoadUint64(&executionRunData.requestCounter) * 100
+	log.Debug().Msgf("Success Rate: %v%%", successRate)
 	ExecutionRunDataMap.Delete(state.ExecutionID)
 	//if successRate < float64(state.SuccessRate) {
 	if successRate < 100 {
