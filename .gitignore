@@ -1,3 +1,4 @@
 /extension
 extension-http
 vendor
+/coverage.out
