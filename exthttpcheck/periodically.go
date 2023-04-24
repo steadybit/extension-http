@@ -8,6 +8,7 @@ import (
   "context"
   "github.com/google/uuid"
   "github.com/rs/zerolog/log"
+  "github.com/steadybit/action-kit/go/action_kit_api/v2"
   action_kit_sdk "github.com/steadybit/action-kit/go/action_kit_sdk"
   "github.com/steadybit/extension-kit/extbuild"
   "github.com/steadybit/extension-kit/extutil"
