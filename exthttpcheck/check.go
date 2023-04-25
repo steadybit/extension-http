@@ -54,26 +54,26 @@ type HTTPCheckState struct {
 }
 
 func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckState, checkEnded func(executionRunData *ExecutionRunData, state *HTTPCheckState) bool) (*action_kit_api.PrepareResult, error) {
-	duration := toInt64(request.Config["duration"])
+	duration := extutil.ToInt64(request.Config["duration"])
 	state.Timeout = time.Now().Add(time.Millisecond * time.Duration(duration))
-	expectedStatusCodes, err := resolveStatusCodeExpression(toString(request.Config["statusCode"]))
+	expectedStatusCodes, err := resolveStatusCodeExpression(extutil.ToString(request.Config["statusCode"]))
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to resolve status codes")
 		return nil, err
 	}
 	state.ExpectedStatusCodes = expectedStatusCodes
-	state.ResponsesContains = toString(request.Config["responsesContains"])
-	state.SuccessRate = toInt(request.Config["successRate"])
-	state.MaxConcurrent = toInt(request.Config["maxConcurrent"])
-	state.NumberOfRequests = toUInt64(request.Config["numberOfRequests"])
-	state.ReadTimeout = time.Duration(toInt64(request.Config["readTimeout"])) * time.Millisecond
+	state.ResponsesContains = extutil.ToString(request.Config["responsesContains"])
+	state.SuccessRate = extutil.ToInt(request.Config["successRate"])
+	state.MaxConcurrent = extutil.ToInt(request.Config["maxConcurrent"])
+	state.NumberOfRequests = extutil.ToUInt64(request.Config["numberOfRequests"])
+	state.ReadTimeout = time.Duration(extutil.ToInt64(request.Config["readTimeout"])) * time.Millisecond
 	state.ExecutionID = request.ExecutionId
-	state.Body = toString(request.Config["body"])
-	state.URL = toString(request.Config["url"])
-	state.Method = toString(request.Config["method"])
-	state.ConnectionTimeout = time.Duration(toInt64(request.Config["connectTimeout"])) * time.Millisecond
-	state.FollowRedirects = toBool(request.Config["followRedirects"])
-	state.Headers, err = toKeyValue(request, "headers")
+	state.Body = extutil.ToString(request.Config["body"])
+	state.URL = extutil.ToString(request.Config["url"])
+	state.Method = extutil.ToString(request.Config["method"])
+	state.ConnectionTimeout = time.Duration(extutil.ToInt64(request.Config["connectTimeout"])) * time.Millisecond
+	state.FollowRedirects = extutil.ToBool(request.Config["followRedirects"])
+	state.Headers, err = extutil.ToKeyValue(request.Config, "headers")
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to parse headers")
 		return nil, err

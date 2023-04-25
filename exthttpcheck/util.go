@@ -7,88 +7,9 @@ package exthttpcheck
 import (
 	"fmt"
 	"github.com/rs/zerolog/log"
-	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"strconv"
 	"strings"
 )
-
-func toInt64(val interface{}) int64 {
-	switch val := val.(type) {
-	case int:
-		return int64(val)
-	case int32:
-		return int64(val)
-	case int64:
-		return val
-	case float32:
-		return int64(val)
-	case float64:
-		return int64(val)
-	case string:
-		i, err := strconv.ParseInt(val, 10, 64)
-		if err != nil {
-			return 0
-		}
-		return i
-	default:
-		return 0
-	}
-}
-
-func toUInt64(val interface{}) uint64 {
-	switch val := val.(type) {
-	case int:
-		return uint64(val)
-	case int32:
-		return uint64(val)
-	case int64:
-		return uint64(val)
-	case uint64:
-		return val
-	case float32:
-		return uint64(val)
-	case float64:
-		return uint64(val)
-	case string:
-		i, err := strconv.ParseInt(val, 10, 64)
-		if err != nil {
-			return 0
-		}
-		return uint64(i)
-	default:
-		return 0
-	}
-}
-
-func toInt(val interface{}) int {
-	switch val := val.(type) {
-	case int:
-		return val
-	case int32:
-		return int(val)
-	case int64:
-		return int(val)
-	case float32:
-		return int(val)
-	case float64:
-		return int(val)
-	case string:
-		i, err := strconv.ParseInt(val, 10, 64)
-		if err != nil {
-			return 0
-		}
-		return int(i)
-	default:
-		return 0
-	}
-}
-
-func toString(val interface{}) string {
-	if val == nil {
-		return ""
-	}
-	return val.(string)
-}
 
 // resolveStatusCodeExpression resolves the given status code expression into a list of status codes
 func resolveStatusCodeExpression(statusCodes string) ([]int, error) {
@@ -130,33 +51,5 @@ func resolveStatusCodeExpression(statusCodes string) ([]int, error) {
 			result = append(result, code)
 		}
 	}
-	return result, nil
-}
-
-func toBool(val interface{}) bool {
-	if val == nil || val == "" {
-		return false
-	}
-	// parse bool string
-	if val, ok := val.(string); ok {
-		return val == "true"
-	}
-	return val.(bool)
-}
-func toKeyValue(request action_kit_api.PrepareActionRequestBody, configName string) (map[string]string, error) {
-	kv, ok := request.Config[configName].([]any)
-	if !ok {
-		return nil, fmt.Errorf("failed to interpret config value for %s as a key/value array", configName)
-	}
-
-	result := make(map[string]string, len(kv))
-	for _, rawEntry := range kv {
-		entry, ok := rawEntry.(map[string]any)
-		if !ok {
-			return nil, fmt.Errorf("failed to interpret config value for %s as a key/value array", configName)
-		}
-		result[entry["key"].(string)] = entry["value"].(string)
-	}
-
 	return result, nil
 }

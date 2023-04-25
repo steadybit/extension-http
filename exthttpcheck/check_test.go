@@ -39,7 +39,9 @@ func TestAction_Prepare(t *testing.T) {
 					"method":            "GET",
 					"connectTimeout":    "5000",
 					"followRedirects":   "true",
-					"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+					"headers": []any{
+						map[string]any{"key": "test", "value": "test"},
+					},
 				},
 				ExecutionId: uuid.New(),
 			},
@@ -87,7 +89,9 @@ func TestAction_Prepare(t *testing.T) {
 					"method":            "GET",
 					"connectTimeout":    "5000",
 					"followRedirects":   "true",
-					"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+					"headers": []any{
+						map[string]any{"key": "test", "value": "test"},
+					},
 				},
 				ExecutionId: uuid.New(),
 			},

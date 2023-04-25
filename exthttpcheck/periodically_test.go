@@ -150,7 +150,7 @@ func TestNewHTTPCheckActionPeriodically_All_Success(t *testing.T) {
 	prepareResult, err := action.Prepare(context.Background(), &state, prepareActionRequestBody)
 	assert.NoError(t, err)
 	assert.Nil(t, prepareResult)
-	assert.Greater(t, state.DelayBetweenRequestsInMS, toInt64(0))
+	assert.Greater(t, state.DelayBetweenRequestsInMS, extutil.ToInt64(0))
 
 	// Start
 	startResult, err := action.Start(context.Background(), &state)
@@ -213,7 +213,7 @@ func TestNewHTTPCheckActionPeriodically_All_Failure(t *testing.T) {
 	prepareResult, err := action.Prepare(context.Background(), &state, prepareActionRequestBody)
 	assert.NoError(t, err)
 	assert.Nil(t, prepareResult)
-	assert.Greater(t, state.DelayBetweenRequestsInMS, toInt64(0))
+	assert.Greater(t, state.DelayBetweenRequestsInMS, extutil.ToInt64(0))
 
 	// Start
 	startResult, err := action.Start(context.Background(), &state)
