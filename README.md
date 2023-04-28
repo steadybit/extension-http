@@ -1,7 +1,5 @@
 # Steadybit extension-http
 
-*Open Beta: This extension generally works, but you may discover some rough edges.*
-
 A [Steadybit](https://www.steadybit.com/) action implementation to check HTTP endpoints.
 
 ## Configuration
