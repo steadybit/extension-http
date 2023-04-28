@@ -24,7 +24,7 @@ func TestAction_Prepare(t *testing.T) {
 	}{
 		{
 			name: "Should return config",
-			requestBody: action_kit_api.PrepareActionRequestBody{
+			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
 				Config: map[string]interface{}{
 					"action":            "prepare",
 					"duration":          "5000",
@@ -44,7 +44,7 @@ func TestAction_Prepare(t *testing.T) {
 					},
 				},
 				ExecutionId: uuid.New(),
-			},
+			}),
 
 			wantedState: &HTTPCheckState{
 				ExpectedStatusCodes:      []int{200, 201, 202, 203, 204, 205, 206, 207, 208, 209},
@@ -65,18 +65,18 @@ func TestAction_Prepare(t *testing.T) {
 			},
 		}, {
 			name: "Should return error for headers",
-			requestBody: action_kit_api.PrepareActionRequestBody{
+			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
 				Config: map[string]interface{}{
 					"action":  "prepare",
 					"headers": "test:test",
 				},
 				ExecutionId: uuid.New(),
-			},
+			}),
 
 			wantedError: extutil.Ptr(extension_kit.ToError("failed to interpret config value for headers as a key/value array", nil)),
 		}, {
 			name: "Should return error for missing url",
-			requestBody: action_kit_api.PrepareActionRequestBody{
+			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
 				Config: map[string]interface{}{
 					"action":            "prepare",
 					"statusCode":        "200-209",
@@ -94,7 +94,7 @@ func TestAction_Prepare(t *testing.T) {
 					},
 				},
 				ExecutionId: uuid.New(),
-			},
+			}),
 
 			wantedError: extutil.Ptr(extension_kit.ToError("URL is missing", nil)),
 		},

@@ -29,7 +29,7 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 	}{
 		{
 			name: "Should return config",
-			requestBody: action_kit_api.PrepareActionRequestBody{
+			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
 				Config: map[string]interface{}{
 					"action":            "prepare",
 					"duration":          "5000",
@@ -47,7 +47,7 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 					"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
 				},
 				ExecutionId: uuid.New(),
-			},
+			}),
 
 			wantedState: &HTTPCheckState{
 				ExpectedStatusCodes:      []int{200, 201, 202, 203, 204, 205, 206, 207, 208, 209},
@@ -68,14 +68,14 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 			},
 		}, {
 			name: "Should return error for headers",
-			requestBody: action_kit_api.PrepareActionRequestBody{
+			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
 				Config: map[string]interface{}{
 					"action":   "prepare",
 					"duration": "5000",
 					"headers":  "test:test",
 				},
 				ExecutionId: uuid.New(),
-			},
+			}),
 
 			wantedError: extutil.Ptr(extension_kit.ToError("failed to interpret config value for headers as a key/value array", nil)),
 		}, {
@@ -148,7 +148,7 @@ func TestNewHTTPCheckActionFixedAmount_All_Success(t *testing.T) {
 	//prepare the action
 	action := httpCheckActionFixedAmount{}
 	state := action.NewEmptyState()
-	prepareActionRequestBody := action_kit_api.PrepareActionRequestBody{
+	prepareActionRequestBody := extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
 		Config: map[string]interface{}{
 			"action":            "prepare",
 			"duration":          "1000",
@@ -166,7 +166,7 @@ func TestNewHTTPCheckActionFixedAmount_All_Success(t *testing.T) {
 			"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
 		},
 		ExecutionId: uuid.New(),
-	}
+	})
 
 	// Prepare
 	prepareResult, err := action.Prepare(context.Background(), &state, prepareActionRequestBody)
@@ -212,7 +212,7 @@ func TestNewHTTPCheckActionFixedAmount_All_Failure(t *testing.T) {
 	//prepare the action
 	action := httpCheckActionFixedAmount{}
 	state := action.NewEmptyState()
-	prepareActionRequestBody := action_kit_api.PrepareActionRequestBody{
+	prepareActionRequestBody := extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
 		Config: map[string]interface{}{
 			"action":            "prepare",
 			"duration":          "1000",
@@ -230,7 +230,7 @@ func TestNewHTTPCheckActionFixedAmount_All_Failure(t *testing.T) {
 			"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
 		},
 		ExecutionId: uuid.New(),
-	}
+	})
 
 	// Prepare
 	prepareResult, err := action.Prepare(context.Background(), &state, prepareActionRequestBody)
