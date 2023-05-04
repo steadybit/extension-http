@@ -13,7 +13,6 @@ import (
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extutil"
-	"sync/atomic"
 )
 
 type httpCheckActionFixedAmount struct{}
@@ -275,7 +274,7 @@ func (l *httpCheckActionFixedAmount) Prepare(_ context.Context, state *HTTPCheck
 }
 
 func checkEndedFixedAmount(executionRunData *ExecutionRunData, state *HTTPCheckState) bool {
-	result := atomic.LoadUint64(&executionRunData.requestCounter) >= state.NumberOfRequests
+	result := executionRunData.requestCounter.Load() >= state.NumberOfRequests
 	return result
 }
 

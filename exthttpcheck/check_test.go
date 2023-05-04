@@ -10,6 +10,7 @@ import (
 	extension_kit "github.com/steadybit/extension-kit"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/stretchr/testify/assert"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -132,4 +133,60 @@ func TestAction_Prepare(t *testing.T) {
 			}
 		})
 	}
+}
+func TestAction_Stop(t *testing.T) {
+
+	tests := []struct {
+		name             string
+		requestBody      action_kit_api.StopActionRequestBody
+		state            *HTTPCheckState
+		executionRunData *ExecutionRunData
+		wantedError      error
+	}{
+		{
+			name:        "Should successfully stop the action",
+			requestBody: extutil.JsonMangle(action_kit_api.StopActionRequestBody{}),
+			state: &HTTPCheckState{
+				ExecutionID: uuid.New(),
+				SuccessRate: 40,
+			},
+			executionRunData: getExecutionRunData(5, 10),
+			wantedError:      nil,
+		}, {
+			name:        "Should fail because of low success rate",
+			requestBody: extutil.JsonMangle(action_kit_api.StopActionRequestBody{}),
+			state: &HTTPCheckState{
+				ExecutionID: uuid.New(),
+				SuccessRate: 100,
+			},
+			executionRunData: getExecutionRunData(4, 11),
+			wantedError:      extutil.Ptr(extension_kit.ToError("Success Rate (36.36%) was below 100%", nil)),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			//Given
+			saveExecutionRunData(tt.state.ExecutionID, tt.executionRunData)
+			//When
+			result, err := stop(tt.state)
+
+			//Then
+			if tt.wantedError != nil && result.Error == nil {
+				assert.EqualError(t, err, tt.wantedError.Error())
+			} else if tt.wantedError != nil && result.Error != nil {
+				assert.Equal(t, tt.wantedError.Error(), result.Error.Title)
+			}
+		})
+	}
+}
+
+func getExecutionRunData(successCounter uint64, counter uint64) *ExecutionRunData {
+	data := &ExecutionRunData{
+		requestSuccessCounter: atomic.Uint64{},
+		requestCounter:        atomic.Uint64{},
+	}
+	data.requestCounter.Store(counter)
+	data.requestSuccessCounter.Store(successCounter)
+	return data
+
 }

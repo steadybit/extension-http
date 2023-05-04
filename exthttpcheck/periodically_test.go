@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
-	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -170,13 +169,13 @@ func TestNewHTTPCheckActionPeriodically_All_Success(t *testing.T) {
 
 	executionRunData, err := action.getExecutionRunData(state.ExecutionID)
 	assert.NoError(t, err)
-	assert.Greater(t, atomic.LoadUint64(&executionRunData.requestCounter), uint64(0))
+	assert.Greater(t, executionRunData.requestCounter.Load(), uint64(0))
 	// Stop
 	stopResult, err := action.Stop(context.Background(), &state)
 	assert.NoError(t, err)
 	assert.NotNil(t, stopResult.Metrics)
 	assert.Nil(t, stopResult.Error)
-	assert.Greater(t, atomic.LoadUint64(&executionRunData.requestSuccessCounter), uint64(0))
+	assert.Greater(t, executionRunData.requestSuccessCounter.Load(), uint64(0))
 }
 
 func TestNewHTTPCheckActionPeriodically_All_Failure(t *testing.T) {
@@ -232,12 +231,12 @@ func TestNewHTTPCheckActionPeriodically_All_Failure(t *testing.T) {
 
 	executionRunData, err := action.getExecutionRunData(state.ExecutionID)
 	assert.NoError(t, err)
-	assert.Greater(t, atomic.LoadUint64(&executionRunData.requestCounter), uint64(0))
+	assert.Greater(t, executionRunData.requestCounter.Load(), uint64(0))
 	// Stop
 	stopResult, err := action.Stop(context.Background(), &state)
 	assert.NoError(t, err)
 	assert.NotNil(t, stopResult.Metrics)
 	assert.NotNil(t, stopResult.Error)
-	assert.Equal(t, stopResult.Error.Title, "Success Rate (0%) was below 100%")
-	assert.Equal(t, atomic.LoadUint64(&executionRunData.requestSuccessCounter), uint64(0))
+	assert.Equal(t, stopResult.Error.Title, "Success Rate (0.00%) was below 100%")
+	assert.Equal(t, executionRunData.requestSuccessCounter.Load(), uint64(0))
 }

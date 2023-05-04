@@ -27,8 +27,8 @@ type ExecutionRunData struct {
 	jobs                  chan time.Time             // stores the jobs for each execution
 	tickers               *time.Ticker               // stores the tickers for each execution, to be able to stop them
 	metrics               chan action_kit_api.Metric // stores the metrics for each execution
-	requestCounter        uint64                     // stores the number of requests for each execution
-	requestSuccessCounter uint64                     // stores the number of successful requests for each execution
+	requestCounter        atomic.Uint64              // stores the number of requests for each execution
+	requestSuccessCounter atomic.Uint64              // stores the number of successful requests for each execution
 }
 
 var (
@@ -107,13 +107,17 @@ func loadExecutionRunData(executionID uuid.UUID) (*ExecutionRunData, error) {
 }
 
 func initExecutionRunData(state *HTTPCheckState) {
-	ExecutionRunDataMap.Store(state.ExecutionID, &ExecutionRunData{
+	saveExecutionRunData(state.ExecutionID, &ExecutionRunData{
 		stopTicker:            make(chan bool),
 		jobs:                  make(chan time.Time, state.MaxConcurrent),
 		metrics:               make(chan action_kit_api.Metric, state.MaxConcurrent),
-		requestCounter:        0,
-		requestSuccessCounter: 0,
+		requestCounter:        atomic.Uint64{},
+		requestSuccessCounter: atomic.Uint64{},
 	})
+}
+
+func saveExecutionRunData(executionID uuid.UUID, executionRunData *ExecutionRunData) {
+	ExecutionRunDataMap.Store(executionID, executionRunData)
 }
 
 func createRequest(state *HTTPCheckState) (*http.Request, error) {
@@ -186,7 +190,7 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, ch
 			log.Debug().Msgf("Requesting %s", req.URL.String())
 			response, err := client.Do(req)
 
-			atomic.AddUint64(&executionRunData.requestCounter, 1)
+			executionRunData.requestCounter.Add(1)
 			//ExecutionRunDataMap.Store(state.ExecutionID, executionRunData)
 
 			if err != nil {
@@ -227,7 +231,7 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, ch
 					}
 				}
 				if responseStatusWasExpected && responseBodyWasSuccessful {
-					atomic.AddUint64(&executionRunData.requestSuccessCounter, 1)
+					executionRunData.requestSuccessCounter.Add(1)
 				}
 				//ExecutionRunDataMap.Store(state.ExecutionID, executionRunData)
 
@@ -300,21 +304,22 @@ func stop(state *HTTPCheckState) (*action_kit_api.StopResult, error) {
 	//get latest metrics
 	latestMetrics := retrieveLatestMetrics(executionRunData.metrics)
 	// calculate the success rate
-	successRate := atomic.LoadUint64(&executionRunData.requestSuccessCounter) / atomic.LoadUint64(&executionRunData.requestCounter) * 100
+	//Uint64.Load(&executionRunData.requestCounter)
+	successRate := float64(executionRunData.requestSuccessCounter.Load()) / float64(executionRunData.requestCounter.Load()) * 100
 	log.Debug().Msgf("Success Rate: %v%%", successRate)
 	ExecutionRunDataMap.Delete(state.ExecutionID)
 	//if successRate < float64(state.SuccessRate) {
 	if successRate < 100 {
-		log.Info().Msgf("Success Rate (%v%%) was below %v%%", successRate, state.SuccessRate)
+		log.Info().Msgf("Success Rate (%.2f%%) was below %v%%", successRate, state.SuccessRate)
 		return extutil.Ptr(action_kit_api.StopResult{
 			Metrics: extutil.Ptr(latestMetrics),
 			Error: &action_kit_api.ActionKitError{
-				Title:  fmt.Sprintf("Success Rate (%v%%) was below %v%%", successRate, state.SuccessRate),
+				Title:  fmt.Sprintf("Success Rate (%.2f%%) was below %v%%", successRate, state.SuccessRate),
 				Status: extutil.Ptr(action_kit_api.Failed),
 			},
 		}), nil
 	}
-	log.Info().Msgf("Success Rate (%v%%) was above/equal %v%%", successRate, state.SuccessRate)
+	log.Info().Msgf("Success Rate (%.2f%%) was above/equal %v%%", successRate, state.SuccessRate)
 	return extutil.Ptr(action_kit_api.StopResult{
 		Metrics: extutil.Ptr(latestMetrics),
 	}), nil
