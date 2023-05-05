@@ -175,7 +175,11 @@ func TestAction_Stop(t *testing.T) {
 				assert.EqualError(t, err, tt.wantedError.Error())
 			} else if tt.wantedError != nil && result.Error != nil {
 				assert.Equal(t, tt.wantedError.Error(), result.Error.Title)
-			}
+			} else if tt.wantedError == nil && result.Error != nil {
+        assert.Fail(t, "Should not have error", result.Error.Title)
+      } else {
+        assert.NoError(t, err)
+      }
 		})
 	}
 }

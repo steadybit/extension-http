@@ -308,8 +308,7 @@ func stop(state *HTTPCheckState) (*action_kit_api.StopResult, error) {
 	successRate := float64(executionRunData.requestSuccessCounter.Load()) / float64(executionRunData.requestCounter.Load()) * 100
 	log.Debug().Msgf("Success Rate: %v%%", successRate)
 	ExecutionRunDataMap.Delete(state.ExecutionID)
-	//if successRate < float64(state.SuccessRate) {
-	if successRate < 100 {
+	if successRate < float64(state.SuccessRate) {
 		log.Info().Msgf("Success Rate (%.2f%%) was below %v%%", successRate, state.SuccessRate)
 		return extutil.Ptr(action_kit_api.StopResult{
 			Metrics: extutil.Ptr(latestMetrics),
