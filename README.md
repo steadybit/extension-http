@@ -2,11 +2,13 @@
 
 A [Steadybit](https://www.steadybit.com/) action implementation to check HTTP endpoints.
 
+Learn about the capabilities of this extension in our [Reliability Hub](https://hub.steadybit.com/extension/com.github.steadybit.extension_http).
+
 ## Configuration
 
 The extension supports all environment variables provided by [steadybit/extension-kit](https://github.com/steadybit/extension-kit#environment-variables).
 
-## Running the Extension
+## Installation
 
 ### Using Docker
 
