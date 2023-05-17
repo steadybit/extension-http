@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.6
+
+ - use read only file system
+
 ## v1.0.5
 
  - fix: success rate calculation
