@@ -13,7 +13,7 @@ The extension supports all environment variables provided by [steadybit/extensio
 ### Using Docker
 
 ```sh
-$ docker run \
+docker run \
   --rm \
   -p 8085 \
   --name steadybit-extension-http \
@@ -23,9 +23,9 @@ $ docker run \
 ### Using Helm in Kubernetes
 
 ```sh
-$ helm repo add steadybit-extension-http https://steadybit.github.io/extension-http
-$ helm repo update
-$ helm upgrade steadybit-extension-http \
+helm repo add steadybit-extension-http https://steadybit.github.io/extension-http
+helm repo update
+helm upgrade steadybit-extension-http \
     --install \
     --wait \
     --timeout 5m0s \
