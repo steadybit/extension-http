@@ -1,0 +1,4 @@
+unixSocket: /run/steadybit/extension-http.sock
+types:
+  - ACTION
+  - DISCOVERY
