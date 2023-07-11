@@ -7,8 +7,6 @@ package main
 import (
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
-	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
-	"github.com/steadybit/event-kit/go/event_kit_api"
 	"github.com/steadybit/extension-http/config"
 	"github.com/steadybit/extension-http/exthttpcheck"
 	"github.com/steadybit/extension-kit/extbuild"
@@ -64,9 +62,7 @@ func main() {
 // ExtensionListResponse exists to merge the possible root path responses supported by the
 // various extension kits. In this case, the response for ActionKit, DiscoveryKit and EventKit.
 type ExtensionListResponse struct {
-	action_kit_api.ActionList       `json:",inline"`
-	discovery_kit_api.DiscoveryList `json:",inline"`
-	event_kit_api.EventListenerList `json:",inline"`
+	action_kit_api.ActionList `json:",inline"`
 }
 
 func getExtensionList() ExtensionListResponse {
