@@ -47,8 +47,7 @@ chartlint:
 ## build: build the extension
 .PHONY: build
 build:
-	go mod verify
-	go build -o=./extension
+	goreleaser build --clean --snapshot --single-target -o extension
 
 ## run: run the extension
 .PHONY: run

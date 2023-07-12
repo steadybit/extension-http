@@ -1,0 +1,18 @@
+[Unit]
+Description="steadybit extension http"
+After=syslog.target
+
+[Service]
+Type=simple
+ExecStart=/opt/steadybit/extension-http/extension-http
+EnvironmentFile=/etc/steadybit/extension-http
+User=steadybit
+Group=steadybit
+SuccessExitStatus=0 143
+Restart=on-failure
+RestartSec=5s
+StandardOutput=append:/var/log/steadybit-extension-http.log
+StandardError=append:/var/log/steadybit-extension-http.log
+
+[Install]
+WantedBy=multi-user.target
