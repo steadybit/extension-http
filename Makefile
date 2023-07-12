@@ -58,3 +58,7 @@ run: tidy build
 .PHONY: container
 container:
 	docker build -t extension-http:latest .
+
+.PHONY: linuxpkg
+linuxpkg:
+	goreleaser release --clean --snapshot --skip-sign
