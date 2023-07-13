@@ -15,6 +15,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptrace"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -46,7 +47,7 @@ type HTTPCheckState struct {
 	ReadTimeout              time.Duration
 	ExecutionID              uuid.UUID
 	Body                     string
-	URL                      string
+	URL                      url.URL
 	Method                   string
 	Headers                  map[string]string
 	ConnectionTimeout        time.Duration
@@ -69,7 +70,6 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckSt
 	state.ReadTimeout = time.Duration(extutil.ToInt64(request.Config["readTimeout"])) * time.Millisecond
 	state.ExecutionID = request.ExecutionId
 	state.Body = extutil.ToString(request.Config["body"])
-	state.URL = extutil.ToString(request.Config["url"])
 	state.Method = extutil.ToString(request.Config["method"])
 	state.ConnectionTimeout = time.Duration(extutil.ToInt64(request.Config["connectTimeout"])) * time.Millisecond
 	state.FollowRedirects = extutil.ToBool(request.Config["followRedirects"])
@@ -79,9 +79,12 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckSt
 		return nil, err
 	}
 
-	if state.URL == "" {
-		return nil, fmt.Errorf("URL is missing")
+	u, err := url.Parse(extutil.ToString(request.Config["url"]))
+	if err != nil {
+		log.Error().Err(err).Msg("URL could not be parsed missing")
+		return nil, err
 	}
+	state.URL = *u
 
 	initExecutionRunData(state)
 	executionRunData, err := loadExecutionRunData(state.ExecutionID)
@@ -130,7 +133,7 @@ func createRequest(state *HTTPCheckState) (*http.Request, error) {
 		method = state.Method
 	}
 
-	request, err := http.NewRequest(strings.ToUpper(method), state.URL, body)
+	request, err := http.NewRequest(strings.ToUpper(method), state.URL.String(), body)
 	if err == nil {
 		for k, v := range state.Headers {
 			request.Header.Add(k, v)
