@@ -13,12 +13,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 )
 
 func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 	action := httpCheckActionFixedAmount{}
+
+	url, _ := url.Parse("https://steadybit.com")
 
 	tests := []struct {
 		name        string
@@ -59,7 +62,7 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 				ReadTimeout:              time.Second * 5,
 				ExecutionID:              uuid.New(),
 				Body:                     "test",
-				URL:                      "https://steadybit.com",
+				URL:                      *url,
 				Method:                   "GET",
 				Headers:                  map[string]string{"test": "test"},
 				ConnectionTimeout:        time.Second * 5,

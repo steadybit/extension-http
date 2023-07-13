@@ -79,7 +79,11 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckSt
 		return nil, err
 	}
 
-	u, err := url.Parse(extutil.ToString(request.Config["url"]))
+	urlString, ok := request.Config["url"]
+	if !ok {
+		return nil, fmt.Errorf("URL is missing")
+	}
+	u, err := url.Parse(extutil.ToString(urlString))
 	if err != nil {
 		log.Error().Err(err).Msg("URL could not be parsed missing")
 		return nil, err

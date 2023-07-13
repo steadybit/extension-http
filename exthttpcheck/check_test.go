@@ -10,12 +10,15 @@ import (
 	extension_kit "github.com/steadybit/extension-kit"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/stretchr/testify/assert"
+	"net/url"
 	"sync/atomic"
 	"testing"
 	"time"
 )
 
 func TestAction_Prepare(t *testing.T) {
+
+	url, _ := url.Parse("https://steadybit.com")
 
 	tests := []struct {
 		name        string
@@ -58,7 +61,7 @@ func TestAction_Prepare(t *testing.T) {
 				ReadTimeout:              time.Second * 5,
 				ExecutionID:              uuid.New(),
 				Body:                     "test",
-				URL:                      "https://steadybit.com",
+				URL:                      *url,
 				Method:                   "GET",
 				Headers:                  map[string]string{"test": "test"},
 				ConnectionTimeout:        time.Second * 5,
@@ -176,10 +179,10 @@ func TestAction_Stop(t *testing.T) {
 			} else if tt.wantedError != nil && result.Error != nil {
 				assert.Equal(t, tt.wantedError.Error(), result.Error.Title)
 			} else if tt.wantedError == nil && result.Error != nil {
-        assert.Fail(t, "Should not have error", result.Error.Title)
-      } else {
-        assert.NoError(t, err)
-      }
+				assert.Fail(t, "Should not have error", result.Error.Title)
+			} else {
+				assert.NoError(t, err)
+			}
 		})
 	}
 }
