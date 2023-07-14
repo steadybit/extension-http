@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.8
+
+ - fix invalid url causing panics
+ - fixes for the linux packaging
+
 ## v1.0.7
 
  - add support for unix domain sockets
