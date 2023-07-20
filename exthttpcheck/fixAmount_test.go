@@ -79,7 +79,7 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 				ExecutionId: uuid.New(),
 			}),
 
-			wantedError: extutil.Ptr(extension_kit.ToError("failed to interpret config value for headers as a key/value array", nil)),
+			wantedError: extension_kit.ToError("failed to interpret config value for headers as a key/value array", nil),
 		}, {
 			name: "Should return error missing duration",
 			requestBody: action_kit_api.PrepareActionRequestBody{
@@ -101,7 +101,7 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 				ExecutionId: uuid.New(),
 			},
 
-			wantedError: extutil.Ptr(extension_kit.ToError("duration must be greater than 0", nil)),
+			wantedError: extension_kit.ToError("duration must be greater than 0", nil),
 		},
 	}
 	for _, tt := range tests {

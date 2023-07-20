@@ -77,7 +77,7 @@ func TestAction_Prepare(t *testing.T) {
 				ExecutionId: uuid.New(),
 			}),
 
-			wantedError: extutil.Ptr(extension_kit.ToError("failed to interpret config value for headers as a key/value array", nil)),
+			wantedError: extension_kit.ToError("failed to interpret config value for headers as a key/value array", nil),
 		}, {
 			name: "Should return error for missing url",
 			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
@@ -100,7 +100,7 @@ func TestAction_Prepare(t *testing.T) {
 				ExecutionId: uuid.New(),
 			}),
 
-			wantedError: extutil.Ptr(extension_kit.ToError("URL is missing", nil)),
+			wantedError: extension_kit.ToError("URL is missing", nil),
 		},
 	}
 	for _, tt := range tests {
@@ -163,7 +163,7 @@ func TestAction_Stop(t *testing.T) {
 				SuccessRate: 100,
 			},
 			executionRunData: getExecutionRunData(4, 11),
-			wantedError:      extutil.Ptr(extension_kit.ToError("Success Rate (36.36%) was below 100%", nil)),
+			wantedError:      extension_kit.ToError("Success Rate (36.36%) was below 100%", nil),
 		},
 	}
 	for _, tt := range tests {

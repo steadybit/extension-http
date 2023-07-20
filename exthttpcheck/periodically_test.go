@@ -79,7 +79,7 @@ func TestNewHTTPCheckActionPeriodically_Prepare(t *testing.T) {
 				ExecutionId: uuid.New(),
 			}),
 
-			wantedError: extutil.Ptr(extension_kit.ToError("failed to interpret config value for headers as a key/value array", nil)),
+			wantedError: extension_kit.ToError("failed to interpret config value for headers as a key/value array", nil),
 		},
 	}
 	for _, tt := range tests {
