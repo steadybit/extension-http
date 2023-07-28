@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.9
+
+- update dependencies
+
 ## v1.0.8
 
  - fix invalid url causing panics
