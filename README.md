@@ -2,7 +2,7 @@
 
 A [Steadybit](https://www.steadybit.com/) action implementation to check HTTP endpoints.
 
-Learn about the capabilities of this extension in our [Reliability Hub](https://hub.steadybit.com/extension/com.github.steadybit.extension_http).
+Learn about the capabilities of this extension in our [Reliability Hub](https://hub.steadybit.com/extension/com.steadybit.extension_http).
 
 ## Configuration
 
