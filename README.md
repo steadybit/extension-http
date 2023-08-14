@@ -48,3 +48,7 @@ The script will download the latest version of the extension and install it usin
 
 Make sure to register the extension at the steadybit platform. Please refer to
 the [documentation](https://docs.steadybit.com/integrate-with-steadybit/extensions/extension-installation) for more information.
+
+## Proxy
+
+A proxy configuration is currently not supported.
