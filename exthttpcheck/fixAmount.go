@@ -59,7 +59,7 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 		//   External: The agent takes care and calls stop then the time has passed. Requires a duration parameter. Use this when the duration is known in advance.
 		//   Internal: The action has to implement the status endpoint to signal when the action is done. Use this when the duration is not known in advance.
 		//   Instantaneous: The action is done immediately. Use this for actions that happen immediately, e.g. a reboot.
-		TimeControl: action_kit_api.Internal,
+		TimeControl: action_kit_api.TimeControlInternal,
 
 		// The parameters for the action
 		Parameters: []action_kit_api.ActionParameter{
