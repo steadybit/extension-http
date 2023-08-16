@@ -36,7 +36,7 @@ func (l *httpCheckActionFixedAmount) NewEmptyState() HTTPCheckState {
 // Describe returns the action description for the platform with all required information.
 func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription {
 	return action_kit_api.ActionDescription{
-		Id:          targetIDFixedAmount,
+		Id:          TargetIDFixedAmount,
 		Label:       "HTTP (# of Requests)",
 		Description: "Calls an http endpoint a specified number of times and checks the response",
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),

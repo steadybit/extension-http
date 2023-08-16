@@ -35,7 +35,7 @@ func (l *httpCheckActionPeriodically) NewEmptyState() HTTPCheckState {
 // Describe returns the action description for the platform with all required information.
 func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescription {
 	return action_kit_api.ActionDescription{
-		Id:          targetIDPeriodically,
+		Id:          TargetIDPeriodically,
 		Label:       "HTTP (Requests / s)",
 		Description: "Calls a http endpoint periodically (requests / s) and checks the response",
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),

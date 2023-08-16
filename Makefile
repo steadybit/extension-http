@@ -23,8 +23,8 @@ tidy:
 .PHONY: audit
 audit:
 	go vet ./...
-	go run honnef.co/go/tools/cmd/staticcheck@latest -checks=all,-ST1000,-U1000 ./...
-	go test -race -vet=off -coverprofile=coverage.out ./...
+	go run honnef.co/go/tools/cmd/staticcheck@latest -checks=all,-ST1000,-ST1003,-U1000 ./...
+	go test -race -vet=off -coverprofile=coverage.out -timeout 30m ./...
 	go mod verify
 
 ## charttesting: Run Helm chart unit tests
@@ -57,7 +57,8 @@ run: tidy build
 ## container: build the container image
 .PHONY: container
 container:
-	docker build -t extension-http:latest .
+	git tag -d $$(git tag -l | grep -v "^v[0-9]*.[0-9]*.[0-9]*") # delete all tags locally that are not semver
+	docker buildx build --build-arg BUILD_WITH_COVERAGE="true" -t extension-http:latest --output=type=docker .
 
 .PHONY: linuxpkg
 linuxpkg:

@@ -48,6 +48,8 @@ func main() {
 
 	//This will install a signal handlder, that will stop active actions when receiving a SIGURS1, SIGTERM or SIGINT
 	action_kit_sdk.InstallSignalHandler()
+
+  action_kit_sdk.RegisterCoverageEndpoints()
 	exthealth.SetReady(true)
 
 	exthttp.Listen(exthttp.ListenOpts{
