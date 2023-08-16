@@ -66,68 +66,11 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 			//------------------------
 			// Request Definition
 			//------------------------
-			{
-				Name:  "requestDefinition",
-				Label: "Request Definition",
-				Type:  action_kit_api.Header,
-				Order: extutil.Ptr(0),
-			},
-			{
-				Name:         "method",
-				Label:        "HTTP Method",
-				Description:  extutil.Ptr("The HTTP method to use."),
-				Type:         action_kit_api.String,
-				DefaultValue: extutil.Ptr("GET"),
-				Required:     extutil.Ptr(true),
-				Order:        extutil.Ptr(1),
-				Options: extutil.Ptr([]action_kit_api.ParameterOption{
-					action_kit_api.ExplicitParameterOption{
-						Label: "GET",
-						Value: "GET",
-					},
-					action_kit_api.ExplicitParameterOption{
-						Label: "POST",
-						Value: "POST",
-					},
-					action_kit_api.ExplicitParameterOption{
-						Label: "PUT",
-						Value: "PUT",
-					},
-					action_kit_api.ExplicitParameterOption{
-						Label: "PATCH",
-						Value: "PATCH",
-					},
-					action_kit_api.ExplicitParameterOption{
-						Label: "HEAD",
-						Value: "HEAD",
-					},
-					action_kit_api.ExplicitParameterOption{
-						Label: "DELETE",
-						Value: "DELETE",
-					},
-				}),
-			},
-			{
-				Name:        "url",
-				Label:       "Target URL",
-				Description: extutil.Ptr("The URL to check."),
-				Type:        action_kit_api.Url,
-				Required:    extutil.Ptr(true),
-				Order:       extutil.Ptr(2),
-			},
-			{
-				Name:        "body",
-				Label:       "HTTP Body",
-				Description: extutil.Ptr("The HTTP Body."),
-				Type:        action_kit_api.Textarea,
-				Order:       extutil.Ptr(3),
-			}, {
-				Name:        "headers",
-				Label:       "HTTP Headers",
-				Description: extutil.Ptr("The HTTP Headers."),
-				Type:        action_kit_api.KeyValue,
-				Order:       extutil.Ptr(4),
-			},
+			requestDefinition,
+			method,
+			url,
+			body,
+			headers,
 			{
 				Name:  "-",
 				Label: "-",
@@ -137,12 +80,7 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 			//------------------------
 			// Repitions
 			//------------------------
-			{
-				Name:  "repetitionControl",
-				Label: "Repetition Control",
-				Type:  action_kit_api.Header,
-				Order: extutil.Ptr(6),
-			},
+			repetitionControl,
 			{
 				Name:         "numberOfRequests",
 				Label:        "Number of Requests.",
@@ -152,15 +90,7 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 				DefaultValue: extutil.Ptr("1"),
 				Order:        extutil.Ptr(7),
 			},
-			{
-				Name:         "duration",
-				Label:        "Duration",
-				Description:  extutil.Ptr("In which timeframe should the specified requests be executed?"),
-				Type:         action_kit_api.Duration,
-				DefaultValue: extutil.Ptr("10s"),
-				Required:     extutil.Ptr(true),
-				Order:        extutil.Ptr(8),
-			},
+			duration,
 			{
 				Name:  "-",
 				Label: "-",
@@ -170,80 +100,19 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 			//------------------------
 			// Result Verification
 			//------------------------
-			{
-				Name:  "resultVerification",
-				Label: "Result Verification",
-				Type:  action_kit_api.Header,
-				Order: extutil.Ptr(10),
-			},
-			{
-				Name:         "statusCode",
-				Label:        "Response status codes",
-				Description:  extutil.Ptr("Which HTTP-Status code should be considered as success? This field supports ranges with '-' and multiple codes delimited by ';' for example '200-399;429'."),
-				Type:         action_kit_api.String,
-				DefaultValue: extutil.Ptr("200-299"),
-				Required:     extutil.Ptr(true),
-				Order:        extutil.Ptr(11),
-			}, {
-				Name:         "successRate",
-				Label:        "Required Success Rate",
-				Description:  extutil.Ptr("How many percent of the Request must be at least successful (in terms of the given response status codes above) to continue the experiment execution? The result will be evaluated and the end of the given duration."),
-				Type:         action_kit_api.Percentage,
-				DefaultValue: extutil.Ptr("100"),
-				Required:     extutil.Ptr(true),
-				Order:        extutil.Ptr(12),
-				MinValue:     extutil.Ptr(0),
-				MaxValue:     extutil.Ptr(100),
-			}, {
-				Name:        "responsesContains",
-				Label:       "Responses contains",
-				Description: extutil.Ptr("The Responses needs to contain the given string, otherwise the experiment will fail. The responses will be evaluated and the end of the given duration."),
-				Type:        action_kit_api.String,
-				Required:    extutil.Ptr(false),
-				Order:       extutil.Ptr(13),
-			},
+			resultVerification,
+			statusCode,
+			successRate,
+			responsesContains,
 
 			//------------------------
 			// Additional Settings
 			//------------------------
 
-			{
-				Name:        "followRedirects",
-				Label:       "Follow Redirects?",
-				Description: extutil.Ptr("Should Redirects be followed?"),
-				Type:        action_kit_api.Boolean,
-				Required:    extutil.Ptr(true),
-				Advanced:    extutil.Ptr(true),
-				Order:       extutil.Ptr(14),
-			}, {
-				Name:         "connectTimeout",
-				Label:        "Connection Timeout",
-				Description:  extutil.Ptr("Connection Timeout for a single Call in seconds. Should be between 1 and 10 seconds."),
-				Type:         action_kit_api.Duration,
-				DefaultValue: extutil.Ptr("5s"),
-				Required:     extutil.Ptr(true),
-				Advanced:     extutil.Ptr(true),
-				Order:        extutil.Ptr(15),
-			}, {
-				Name:         "readTimeout",
-				Label:        "Read Timeout",
-				Description:  extutil.Ptr("Read Timeout for a single Call in seconds. Should be between 1 and 10 seconds."),
-				Type:         action_kit_api.Duration,
-				DefaultValue: extutil.Ptr("5s"),
-				Required:     extutil.Ptr(true),
-				Advanced:     extutil.Ptr(true),
-				Order:        extutil.Ptr(16),
-			},
-			{
-				Name:         "maxConcurrent",
-				Label:        "Max concurrent requests",
-				Description:  extutil.Ptr("Maximum count on parallel running requests. (min 1, max 10)"),
-				Type:         action_kit_api.Integer,
-				DefaultValue: extutil.Ptr("5"),
-				Required:     extutil.Ptr(true),
-				Advanced:     extutil.Ptr(true),
-				Order:        extutil.Ptr(17),
-			},
+			followRedirects,
+			connectTimeout,
+			readTimeout,
+			maxConcurrent,
 		},
 		Status: extutil.Ptr(action_kit_api.MutatingEndpointReferenceWithCallInterval{
 			CallInterval: extutil.Ptr("1s"),
