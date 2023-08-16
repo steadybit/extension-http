@@ -99,11 +99,11 @@ func testPeriodically(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 				if metrics == nil {
 					return false
 				}
-				return len(*metrics) > 2
+				return len(metrics) > 2
 			}, 5*time.Second, 500*time.Millisecond)
 			metrics := e.GetMetrics(exthttpcheck.TargetIDPeriodically)
 
-			for _, metric := range *metrics {
+			for _, metric := range metrics {
 				if !tt.WantedFailure {
 					assert.Equal(t, "200", metric.Metric["http_status"])
 				} else {
@@ -181,11 +181,11 @@ func testFixAmount(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 				if metrics == nil {
 					return false
 				}
-				return len(*metrics) > 1
+				return len(metrics) > 1
 			}, 5*time.Second, 500*time.Millisecond)
 			metrics := e.GetMetrics(exthttpcheck.TargetIDFixedAmount)
 
-			for _, metric := range *metrics {
+			for _, metric := range metrics {
 				if !tt.WantedFailure {
 					assert.Equal(t, metric.Metric["http_status"], "200")
 				} else {
