@@ -51,13 +51,13 @@ func testPeriodically(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	}{
 		{
 			name:          "should check status ok",
-			url:           "http://demo.dev.steadybit.io/products",
+			url:           "https://hub.steadybit.com/",
 			timeout:       1000,
 			WantedFailure: false,
 		},
 		{
 			name:          "should check status not ok",
-			url:           "http://demo.dev.steadybit.io/products",
+			url:           "https://hub.steadybit.com/",
 			timeout:       1,
 			WantedFailure: true,
 		},
@@ -108,7 +108,7 @@ func testPeriodically(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 					assert.Equal(t, "200", metric.Metric["http_status"])
 				} else {
 					assert.NotEqual(t, "200", metric.Metric["http_status"])
-					//error -> Get "http://demo.dev.steadybit.io/products": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+					//error -> Get "https://hub.steadybit.com/": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
 					assert.Contains(t, metric.Metric["error"], "context deadline exceeded")
 				}
 			}
@@ -133,13 +133,13 @@ func testFixAmount(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	}{
 		{
 			name:          "should check status ok",
-			url:           "http://demo.dev.steadybit.io/products",
+			url:           "https://hub.steadybit.com/",
 			timeout:       1000,
 			WantedFailure: false,
 		},
 		{
 			name:          "should check status not ok",
-			url:           "http://demo.dev.steadybit.io/products",
+			url:           "https://hub.steadybit.com/",
 			timeout:       1,
 			WantedFailure: true,
 		},
@@ -190,7 +190,7 @@ func testFixAmount(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 					assert.Equal(t, metric.Metric["http_status"], "200")
 				} else {
 					assert.NotEqual(t, metric.Metric["http_status"], "200")
-					//error -> Get "http://demo.dev.steadybit.io/products": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+					//error -> Get "https://hub.steadybit.com/": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
 					assert.Contains(t, metric.Metric["error"], "context deadline exceeded")
 				}
 			}
