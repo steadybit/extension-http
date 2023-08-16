@@ -55,7 +55,7 @@ var (
 			},
 		}),
 	}
-	url = action_kit_api.ActionParameter{
+	urlParameter = action_kit_api.ActionParameter{
 		Name:        "url",
 		Label:       "Target URL",
 		Description: extutil.Ptr("The URL to check."),

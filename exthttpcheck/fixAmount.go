@@ -68,7 +68,7 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 			//------------------------
 			requestDefinition,
 			method,
-			url,
+			urlParameter,
 			body,
 			headers,
 			{

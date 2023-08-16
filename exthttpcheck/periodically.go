@@ -67,7 +67,7 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 			//------------------------
 			requestDefinition,
 			method,
-			url,
+			urlParameter,
 			body,
 			headers,
 			{
