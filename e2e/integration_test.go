@@ -52,7 +52,7 @@ func testPeriodically(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		{
 			name:          "should check status ok",
 			url:           "https://hub-dev.steadybit.com",
-			timeout:       1000,
+			timeout:       3000,
 			WantedFailure: false,
 		},
 		{
@@ -105,6 +105,9 @@ func testPeriodically(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 			for _, metric := range metrics {
 				if !tt.WantedFailure {
+          if metric.Metric["error"] != "" {
+            log.Info().Msgf("Metric error: %v", metric.Metric["error"])
+          }
 					assert.Equal(t, "200", metric.Metric["http_status"])
 				} else {
 					assert.NotEqual(t, "200", metric.Metric["http_status"])
@@ -134,7 +137,7 @@ func testFixAmount(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		{
 			name:          "should check status ok",
 			url:           "https://hub-dev.steadybit.com",
-			timeout:       1000,
+			timeout:       3000,
 			WantedFailure: false,
 		},
 		{
