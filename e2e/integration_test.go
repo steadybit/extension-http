@@ -95,19 +95,19 @@ func testPeriodically(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			require.NoError(t, err)
 
 			assert.Eventually(t, func() bool {
-				metrics := e.GetMetrics(exthttpcheck.TargetIDPeriodically)
+				metrics := action.Metrics()
 				if metrics == nil {
 					return false
 				}
 				return len(metrics) > 2
 			}, 5*time.Second, 500*time.Millisecond)
-			metrics := e.GetMetrics(exthttpcheck.TargetIDPeriodically)
+			metrics := action.Metrics()
 
 			for _, metric := range metrics {
 				if !tt.WantedFailure {
-          if metric.Metric["error"] != "" {
-            log.Info().Msgf("Metric error: %v", metric.Metric["error"])
-          }
+					if metric.Metric["error"] != "" {
+						log.Info().Msgf("Metric error: %v", metric.Metric["error"])
+					}
 					assert.Equal(t, "200", metric.Metric["http_status"])
 				} else {
 					assert.NotEqual(t, "200", metric.Metric["http_status"])
@@ -180,13 +180,13 @@ func testFixAmount(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			require.NoError(t, err)
 
 			assert.Eventually(t, func() bool {
-				metrics := e.GetMetrics(exthttpcheck.TargetIDFixedAmount)
+				metrics := action.Metrics()
 				if metrics == nil {
 					return false
 				}
 				return len(metrics) > 1
 			}, 5*time.Second, 500*time.Millisecond)
-			metrics := e.GetMetrics(exthttpcheck.TargetIDFixedAmount)
+			metrics := action.Metrics()
 
 			for _, metric := range metrics {
 				if !tt.WantedFailure {
