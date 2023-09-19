@@ -4,3 +4,4 @@
 /gpg.key
 /dist
 go.docker.mod
+/licenses
