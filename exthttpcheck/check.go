@@ -165,7 +165,7 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, ch
 			var start = time.Now()
 			var elapsed time.Duration
 
-      // see seems to break a configured proxy. maybe we can use it in the future and configure the proxy here
+			// see seems to break a configured proxy. maybe we can use it in the future and configure the proxy here
 			trace := &httptrace.ClientTrace{
 				WroteRequest: func(info httptrace.WroteRequestInfo) {
 					start = time.Now()
