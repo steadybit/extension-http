@@ -121,6 +121,7 @@ func TestNewHTTPCheckActionPeriodically_Prepare(t *testing.T) {
 func TestNewHTTPCheckActionPeriodically_All_Success(t *testing.T) {
 	// generate a test server so we can capture and inspect the request
 	testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		res.Write([]byte("this is a test response"))
 		res.WriteHeader(200)
 	}))
 	defer func() { testServer.Close() }()
