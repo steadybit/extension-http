@@ -233,8 +233,9 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, ch
 							responseBodyWasSuccessful = false
 						} else {
 							bodyString := string(bodyBytes)
-							metricMap["response_constraints_fulfilled"] = strconv.FormatBool(strings.Contains(bodyString, state.ResponsesContains))
-							responseBodyWasSuccessful = true
+							responseConstraintFulfilled := strings.Contains(bodyString, state.ResponsesContains)
+							metricMap["response_constraints_fulfilled"] = strconv.FormatBool(responseConstraintFulfilled)
+							responseBodyWasSuccessful = responseConstraintFulfilled
 						}
 					}
 				}

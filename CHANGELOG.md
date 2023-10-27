@@ -1,6 +1,10 @@
 # Changelog
 
 
+## v1.0.13
+
+- Fix "Response Contains" check
+
 ## v1.0.12
 
 - Possibility to exclude attributes from discovery
