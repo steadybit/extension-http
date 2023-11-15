@@ -162,16 +162,16 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, ch
 
 	for range executionRunData.jobs {
 		if !checkEnded(executionRunData, state) {
-			var start = time.Now()
-			var elapsed time.Duration
+			var started = time.Now()
+			var ended time.Time
 
 			// see seems to break a configured proxy. maybe we can use it in the future and configure the proxy here
 			trace := &httptrace.ClientTrace{
 				WroteRequest: func(info httptrace.WroteRequestInfo) {
-					start = time.Now()
+					started = time.Now()
 				},
 				GotFirstResponseByte: func() {
-					elapsed = time.Since(start)
+					ended = time.Now()
 				},
 			}
 
@@ -181,14 +181,15 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, ch
 			req, err := createRequest(state)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to create request")
+				now := time.Now()
 				executionRunData.metrics <- action_kit_api.Metric{
 					Metric: map[string]string{
 						"url":   req.URL.String(),
 						"error": err.Error(),
 					},
 					Name:      extutil.Ptr("response_time"),
-					Value:     float64(time.Since(start).Milliseconds()),
-					Timestamp: time.Now(),
+					Value:     float64(now.Sub(started).Milliseconds()),
+					Timestamp: now,
 				}
 				responseStatusWasExpected = false
 				return
@@ -199,18 +200,18 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, ch
 			response, err := client.Do(req)
 
 			executionRunData.requestCounter.Add(1)
-			//ExecutionRunDataMap.Store(state.ExecutionID, executionRunData)
 
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to execute request")
+				now := time.Now()
 				executionRunData.metrics <- action_kit_api.Metric{
 					Metric: map[string]string{
 						"url":   req.URL.String(),
 						"error": err.Error(),
 					},
 					Name:      extutil.Ptr("response_time"),
-					Value:     float64(time.Since(start).Milliseconds()),
-					Timestamp: time.Now(),
+					Value:     float64(now.Sub(started).Milliseconds()),
+					Timestamp: now,
 				}
 				responseStatusWasExpected = false
 			} else {
@@ -247,8 +248,8 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, ch
 				metric := action_kit_api.Metric{
 					Name:      extutil.Ptr("response_time"),
 					Metric:    metricMap,
-					Value:     float64(elapsed.Milliseconds()),
-					Timestamp: time.Now(),
+					Value:     float64(ended.Sub(started).Milliseconds()),
+					Timestamp: ended,
 				}
 				executionRunData.metrics <- metric
 			}
@@ -313,7 +314,6 @@ func stop(state *HTTPCheckState) (*action_kit_api.StopResult, error) {
 	//get latest metrics
 	latestMetrics := retrieveLatestMetrics(executionRunData.metrics)
 	// calculate the success rate
-	//Uint64.Load(&executionRunData.requestCounter)
 	successRate := float64(executionRunData.requestSuccessCounter.Load()) / float64(executionRunData.requestCounter.Load()) * 100
 	log.Debug().Msgf("Success Rate: %v%%", successRate)
 	ExecutionRunDataMap.Delete(state.ExecutionID)
