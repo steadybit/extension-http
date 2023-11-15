@@ -163,12 +163,13 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, ch
 	for range executionRunData.jobs {
 		if !checkEnded(executionRunData, state) {
 			var started = time.Now()
+			var requestWritten time.Time
 			var ended time.Time
 
 			// see seems to break a configured proxy. maybe we can use it in the future and configure the proxy here
 			trace := &httptrace.ClientTrace{
 				WroteRequest: func(info httptrace.WroteRequestInfo) {
-					started = time.Now()
+					requestWritten = time.Now()
 				},
 				GotFirstResponseByte: func() {
 					ended = time.Now()
@@ -248,7 +249,7 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, ch
 				metric := action_kit_api.Metric{
 					Name:      extutil.Ptr("response_time"),
 					Metric:    metricMap,
-					Value:     float64(ended.Sub(started).Milliseconds()),
+					Value:     float64(ended.Sub(requestWritten).Milliseconds()),
 					Timestamp: ended,
 				}
 				executionRunData.metrics <- metric
