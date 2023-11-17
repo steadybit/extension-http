@@ -1,6 +1,11 @@
 # Changelog
 
 
+## v1.0.14
+
+- Update dependencies
+- Fix response time calculation
+
 ## v1.0.13
 
 - Fix "Response Contains" check
