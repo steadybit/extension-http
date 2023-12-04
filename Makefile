@@ -11,10 +11,16 @@ help:
 ## licenses-report: generate a report of all licenses
 .PHONY: licenses-report
 licenses-report:
+ifeq ($(SKIP_LICENSES_REPORT), true)
+	@echo "Skipping licenses report"
+	rm -rf ./licenses && mkdir -p ./licenses
+else
+	@echo "Generating licenses report"
 	rm -rf ./licenses
 	go run github.com/google/go-licenses@v1.6.0 save . --save_path ./licenses
 	go run github.com/google/go-licenses@v1.6.0 report . > ./licenses/THIRD-PARTY.csv
 	cp LICENSE ./licenses/LICENSE.txt
+endif
 
 # ==================================================================================== #
 # QUALITY CONTROL
@@ -65,8 +71,7 @@ run: tidy build
 ## container: build the container image
 .PHONY: container
 container:
-	git tag -d $$(git tag -l | grep -v "^v[0-9]*.[0-9]*.[0-9]*") # delete all tags locally that are not semver
-	docker buildx build --build-arg BUILD_WITH_COVERAGE="true" -t extension-http:latest --output=type=docker .
+	docker buildx build --build-arg BUILD_WITH_COVERAGE="true" --build-arg SKIP_LICENSES_REPORT="true" -t extension-http:latest --output=type=docker .
 
 ## linuxpkg: build the linux packages
 .PHONY: linuxpkg

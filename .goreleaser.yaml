@@ -3,8 +3,14 @@ before:
   hooks:
     - go mod download
     - make licenses-report
+
 release:
   prerelease: "false"
+
+git:
+  ignore_tags:
+    - steadybit-extension-http-*
+
 builds:
   - binary: extension-http
     env:
