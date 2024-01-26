@@ -83,12 +83,12 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckSt
 	if !ok {
 		return nil, fmt.Errorf("URL is missing")
 	}
-	u, err := url.Parse(extutil.ToString(urlString))
+	parsedUrl, err := url.Parse(extutil.ToString(urlString))
 	if err != nil {
 		log.Error().Err(err).Msg("URL could not be parsed missing")
 		return nil, err
 	}
-	state.URL = *u
+	state.URL = *parsedUrl
 
 	initExecutionRunData(state)
 	executionRunData, err := loadExecutionRunData(state.ExecutionID)
@@ -244,7 +244,6 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, ch
 				if responseStatusWasExpected && responseBodyWasSuccessful {
 					executionRunData.requestSuccessCounter.Add(1)
 				}
-				//ExecutionRunDataMap.Store(state.ExecutionID, executionRunData)
 
 				metric := action_kit_api.Metric{
 					Name:      extutil.Ptr("response_time"),
@@ -312,7 +311,6 @@ func stop(state *HTTPCheckState) (*action_kit_api.StopResult, error) {
 	}
 	stopTickers(executionRunData)
 
-	//get latest metrics
 	latestMetrics := retrieveLatestMetrics(executionRunData.metrics)
 	// calculate the success rate
 	successRate := float64(executionRunData.requestSuccessCounter.Load()) / float64(executionRunData.requestCounter.Load()) * 100
