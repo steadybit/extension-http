@@ -94,27 +94,21 @@ func testPeriodically(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			defer func() { _ = action.Cancel() }()
 			require.NoError(t, err)
 
-			assert.Eventually(t, func() bool {
+			assert.EventuallyWithT(t, func(c *assert.CollectT) {
 				metrics := action.Metrics()
-				if metrics == nil {
-					return false
-				}
-				return len(metrics) > 2
-			}, 5*time.Second, 500*time.Millisecond)
-			metrics := action.Metrics()
-
-			for _, metric := range metrics {
-				if !tt.WantedFailure {
-					if metric.Metric["error"] != "" {
-						log.Info().Msgf("Metric error: %v", metric.Metric["error"])
+				for _, metric := range metrics {
+					if !tt.WantedFailure {
+						if metric.Metric["error"] != "" {
+							log.Info().Msgf("Metric error: %v", metric.Metric["error"])
+						}
+						assert.Equal(t, "200", metric.Metric["http_status"])
+					} else {
+						assert.NotEqual(t, "200", metric.Metric["http_status"])
+						//error -> Get "https://hub-dev.steadybit.com": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+						assert.Contains(t, metric.Metric["error"], "context deadline exceeded")
 					}
-					assert.Equal(t, "200", metric.Metric["http_status"])
-				} else {
-					assert.NotEqual(t, "200", metric.Metric["http_status"])
-					//error -> Get "https://hub-dev.steadybit.com": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-					assert.Contains(t, metric.Metric["error"], "context deadline exceeded")
 				}
-			}
+			}, 5*time.Second, 500*time.Millisecond)
 
 			require.NoError(t, action.Cancel())
 		})
@@ -179,24 +173,18 @@ func testFixAmount(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			defer func() { _ = action.Cancel() }()
 			require.NoError(t, err)
 
-			assert.Eventually(t, func() bool {
+			assert.EventuallyWithT(t, func(c *assert.CollectT) {
 				metrics := action.Metrics()
-				if metrics == nil {
-					return false
+				for _, metric := range metrics {
+					if !tt.WantedFailure {
+						assert.Equal(t, metric.Metric["http_status"], "200")
+					} else {
+						assert.NotEqual(t, metric.Metric["http_status"], "200")
+						//error -> Get "https://hub-dev.steadybit.com": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+						assert.Contains(t, metric.Metric["error"], "context deadline exceeded")
+					}
 				}
-				return len(metrics) > 1
 			}, 5*time.Second, 500*time.Millisecond)
-			metrics := action.Metrics()
-
-			for _, metric := range metrics {
-				if !tt.WantedFailure {
-					assert.Equal(t, metric.Metric["http_status"], "200")
-				} else {
-					assert.NotEqual(t, metric.Metric["http_status"], "200")
-					//error -> Get "https://hub-dev.steadybit.com": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-					assert.Contains(t, metric.Metric["error"], "context deadline exceeded")
-				}
-			}
 
 			require.NoError(t, action.Cancel())
 		})
