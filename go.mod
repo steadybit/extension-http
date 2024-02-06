@@ -88,7 +88,7 @@ require (
 	github.com/schollz/closestmatch v2.1.0+incompatible // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.5.0 // indirect
+	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.5.1 // indirect
 	github.com/steadybit/discovery-kit/go/discovery_kit_test v1.1.2 // indirect
 	github.com/tdewolff/minify/v2 v2.20.9 // indirect
 	github.com/tdewolff/parse/v2 v2.7.6 // indirect
