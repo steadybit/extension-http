@@ -48,6 +48,12 @@ func resolveStatusCodeExpression(statusCodes string) ([]int, *action_kit_api.Act
 				result = append(result, i)
 			}
 		} else {
+			if len(code) == 0 {
+				log.Error().Msgf("Invalid status code '%s'", code)
+				return nil, &action_kit_api.ActionKitError{
+					Title: "Status code is required.",
+				}
+			}
 			parsed, err := strconv.Atoi(code)
 			if err != nil {
 				log.Error().Msgf("Invalid status code '%s'", code)

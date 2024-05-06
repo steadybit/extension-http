@@ -64,6 +64,14 @@ func Test_resolveStatusCodeExpression(t *testing.T) {
 			want:  nil,
 			error: &action_kit_api.ActionKitError{Title: "Invalid status code '600'. Status code should be between 100 and 599."},
 		},
+		{
+			name: "Should return error if status code is empty",
+			args: args{
+				statusCodes: "",
+			},
+			want:  nil,
+			error: &action_kit_api.ActionKitError{Title: "Status code is required."},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
