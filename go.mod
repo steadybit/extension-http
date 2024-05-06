@@ -11,7 +11,7 @@ require (
 	github.com/rs/zerolog v1.32.0
 	github.com/steadybit/action-kit/go/action_kit_api/v2 v2.9.0
 	github.com/steadybit/action-kit/go/action_kit_sdk v1.1.9
-	github.com/steadybit/action-kit/go/action_kit_test v1.2.9
+	github.com/steadybit/action-kit/go/action_kit_test v1.2.11
 	github.com/steadybit/extension-kit v1.8.14
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/automaxprocs v1.5.3
@@ -33,7 +33,7 @@ require (
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
-	github.com/go-resty/resty/v2 v2.11.0 // indirect
+	github.com/go-resty/resty/v2 v2.12.0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
@@ -63,12 +63,13 @@ require (
 	github.com/rs/xid v1.5.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.5.1 // indirect
+	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.5.2 // indirect
 	github.com/steadybit/discovery-kit/go/discovery_kit_test v1.1.2 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/yalp/jsonpath v0.0.0-20180802001716-5cc68e5049a0 // indirect
 	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/oauth2 v0.13.0 // indirect
+	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/term v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
