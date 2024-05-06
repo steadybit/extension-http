@@ -3,6 +3,7 @@
 ## v1.0.19 (next)
 
 - Update dependencies (go 1.22)
+- Improved status code constraint parsing
 
 ## v1.0.18
 

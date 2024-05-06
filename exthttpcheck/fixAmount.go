@@ -135,11 +135,7 @@ func (l *httpCheckActionFixedAmount) Prepare(_ context.Context, state *HTTPCheck
 	}
 	state.DelayBetweenRequestsInMS = getDelayBetweenRequestsInMsFixedAmount(extutil.ToInt64(request.Config["duration"]), extutil.ToInt64(request.Config["numberOfRequests"]))
 
-	result, err := prepare(request, state, checkEndedFixedAmount)
-	if err != nil {
-		return result, err
-	}
-	return nil, nil
+	return prepare(request, state, checkEndedFixedAmount)
 }
 
 func checkEndedFixedAmount(executionRunData *ExecutionRunData, state *HTTPCheckState) bool {

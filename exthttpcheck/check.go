@@ -57,10 +57,11 @@ type HTTPCheckState struct {
 func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckState, checkEnded func(executionRunData *ExecutionRunData, state *HTTPCheckState) bool) (*action_kit_api.PrepareResult, error) {
 	duration := extutil.ToInt64(request.Config["duration"])
 	state.Timeout = time.Now().Add(time.Millisecond * time.Duration(duration))
-	expectedStatusCodes, err := resolveStatusCodeExpression(extutil.ToString(request.Config["statusCode"]))
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to resolve status codes")
-		return nil, err
+	expectedStatusCodes, statusCodeErr := resolveStatusCodeExpression(extutil.ToString(request.Config["statusCode"]))
+	if statusCodeErr != nil {
+		return &action_kit_api.PrepareResult{
+			Error: statusCodeErr,
+		}, nil
 	}
 	state.ExpectedStatusCodes = expectedStatusCodes
 	state.ResponsesContains = extutil.ToString(request.Config["responsesContains"])
@@ -73,6 +74,7 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckSt
 	state.Method = extutil.ToString(request.Config["method"])
 	state.ConnectionTimeout = time.Duration(extutil.ToInt64(request.Config["connectTimeout"])) * time.Millisecond
 	state.FollowRedirects = extutil.ToBool(request.Config["followRedirects"])
+	var err error
 	state.Headers, err = extutil.ToKeyValue(request.Config, "headers")
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to parse headers")
