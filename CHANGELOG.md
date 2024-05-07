@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.0.19 (next)
+## v1.0.19
 
 - Update dependencies (go 1.22)
 - Improved status code constraint parsing
