@@ -11,7 +11,7 @@ require (
 	github.com/rs/zerolog v1.32.0
 	github.com/steadybit/action-kit/go/action_kit_api/v2 v2.9.0
 	github.com/steadybit/action-kit/go/action_kit_sdk v1.1.9
-	github.com/steadybit/action-kit/go/action_kit_test v1.2.11
+	github.com/steadybit/action-kit/go/action_kit_test v1.2.12
 	github.com/steadybit/extension-kit v1.8.14
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/automaxprocs v1.5.3
@@ -72,7 +72,7 @@ require (
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/term v0.18.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/text v0.15.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
