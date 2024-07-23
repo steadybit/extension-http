@@ -11,7 +11,9 @@ manifest should match snapshot with TLS:
       namespace: NAMESPACE
     spec:
       ports:
-        - port: 8085
+        - appProtocol: tcp
+          name: tcp-app
+          port: 8085
           protocol: TCP
           targetPort: 8085
       selector:
@@ -30,7 +32,9 @@ manifest should match snapshot with mutual TLS:
       namespace: NAMESPACE
     spec:
       ports:
-        - port: 8085
+        - appProtocol: tcp
+          name: tcp-app
+          port: 8085
           protocol: TCP
           targetPort: 8085
       selector:
@@ -49,7 +53,9 @@ manifest should match snapshot with mutual TLS using containerPaths:
       namespace: NAMESPACE
     spec:
       ports:
-        - port: 8085
+        - appProtocol: tcp
+          name: tcp-app
+          port: 8085
           protocol: TCP
           targetPort: 8085
       selector:
@@ -68,7 +74,9 @@ manifest should match snapshot without TLS:
       namespace: NAMESPACE
     spec:
       ports:
-        - port: 8085
+        - appProtocol: tcp
+          name: tcp-app
+          port: 8085
           protocol: TCP
           targetPort: 8085
       selector:
