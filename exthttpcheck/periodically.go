@@ -100,9 +100,11 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 			// Result Verification
 			//------------------------
 			resultVerification,
-			statusCode,
 			successRate,
+			statusCode,
 			responsesContains,
+			responsesTimeMode,
+			responseTime,
 
 			//------------------------
 			// Additional Settings

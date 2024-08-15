@@ -42,6 +42,8 @@ type HTTPCheckState struct {
 	Timeout                  time.Time
 	ResponsesContains        string
 	SuccessRate              int
+	ResponseTimeMode         string
+	ResponseTime             *time.Duration
 	MaxConcurrent            int
 	NumberOfRequests         uint64
 	ReadTimeout              time.Duration
@@ -66,6 +68,8 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckSt
 	state.ExpectedStatusCodes = expectedStatusCodes
 	state.ResponsesContains = extutil.ToString(request.Config["responsesContains"])
 	state.SuccessRate = extutil.ToInt(request.Config["successRate"])
+	state.ResponseTimeMode = extutil.ToString(request.Config["responseTimeMode"])
+	state.ResponseTime = extutil.Ptr(time.Duration(extutil.ToInt64(request.Config["responseTime"])) * time.Millisecond)
 	state.MaxConcurrent = extutil.ToInt(request.Config["maxConcurrent"])
 	state.NumberOfRequests = extutil.ToUInt64(request.Config["numberOfRequests"])
 	state.ReadTimeout = time.Duration(extutil.ToInt64(request.Config["readTimeout"])) * time.Millisecond
@@ -180,6 +184,7 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, ch
 
 			responseStatusWasExpected := false
 			responseBodyWasSuccessful := true
+			responseTimeWasSuccessful := true
 
 			req, err := createRequest(state)
 			if err != nil {
@@ -218,6 +223,7 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, ch
 				}
 				responseStatusWasExpected = false
 			} else {
+				responseTimeValue := float64(ended.Sub(requestWritten).Milliseconds())
 				log.Debug().Msgf("Got response %s", response.Status)
 				responseStatusWasExpected = slices.Contains(state.ExpectedStatusCodes, response.StatusCode)
 				metricMap := map[string]string{
@@ -243,14 +249,27 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, ch
 						}
 					}
 				}
-				if responseStatusWasExpected && responseBodyWasSuccessful {
+				if state.ResponseTimeMode == "LESS_THAN" {
+					if responseTimeValue > float64(state.ResponseTime.Milliseconds()) {
+						responseTimeWasSuccessful = false
+					}
+					metricMap["response_time_constraints_fulfilled"] = strconv.FormatBool(responseTimeWasSuccessful)
+				}
+				if state.ResponseTimeMode == "GREATER_THAN" {
+					if responseTimeValue < float64(state.ResponseTime.Milliseconds()) {
+						responseTimeWasSuccessful = false
+					}
+					metricMap["response_time_constraints_fulfilled"] = strconv.FormatBool(responseTimeWasSuccessful)
+				}
+
+				if responseStatusWasExpected && responseBodyWasSuccessful && responseTimeWasSuccessful {
 					executionRunData.requestSuccessCounter.Add(1)
 				}
 
 				metric := action_kit_api.Metric{
 					Name:      extutil.Ptr("response_time"),
 					Metric:    metricMap,
-					Value:     float64(ended.Sub(requestWritten).Milliseconds()),
+					Value:     responseTimeValue,
 					Timestamp: ended,
 				}
 				executionRunData.metrics <- metric

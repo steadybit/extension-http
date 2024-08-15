@@ -98,6 +98,17 @@ var (
 		Type:  action_kit_api.Header,
 		Order: extutil.Ptr(10),
 	}
+	successRate = action_kit_api.ActionParameter{
+		Name:         "successRate",
+		Label:        "Required Success Rate",
+		Description:  extutil.Ptr("How many percent of the Request must be at least successful (in terms of the following response verifications) to continue the experiment execution? The result will be evaluated and the end of the given duration."),
+		Type:         action_kit_api.Percentage,
+		DefaultValue: extutil.Ptr("100"),
+		Required:     extutil.Ptr(true),
+		Order:        extutil.Ptr(11),
+		MinValue:     extutil.Ptr(0),
+		MaxValue:     extutil.Ptr(100),
+	}
 	statusCode = action_kit_api.ActionParameter{
 		Name:         "statusCode",
 		Label:        "Response status codes",
@@ -105,18 +116,7 @@ var (
 		Type:         action_kit_api.String,
 		DefaultValue: extutil.Ptr("200-299"),
 		Required:     extutil.Ptr(true),
-		Order:        extutil.Ptr(11),
-	}
-	successRate = action_kit_api.ActionParameter{
-		Name:         "successRate",
-		Label:        "Required Success Rate",
-		Description:  extutil.Ptr("How many percent of the Request must be at least successful (in terms of the given response status codes above) to continue the experiment execution? The result will be evaluated and the end of the given duration."),
-		Type:         action_kit_api.Percentage,
-		DefaultValue: extutil.Ptr("100"),
-		Required:     extutil.Ptr(true),
 		Order:        extutil.Ptr(12),
-		MinValue:     extutil.Ptr(0),
-		MaxValue:     extutil.Ptr(100),
 	}
 	responsesContains = action_kit_api.ActionParameter{
 		Name:        "responsesContains",
@@ -126,6 +126,38 @@ var (
 		Required:    extutil.Ptr(false),
 		Order:       extutil.Ptr(13),
 	}
+	responsesTimeMode = action_kit_api.ActionParameter{
+		Name:         "responseTimeMode",
+		Label:        "Response Time Verification Mode",
+		Description:  extutil.Ptr("Should the Response Time be less or greater than the given value?"),
+		Type:         action_kit_api.String,
+		Required:     extutil.Ptr(false),
+		Order:        extutil.Ptr(14),
+		DefaultValue: extutil.Ptr("NO_VERIFICATION"),
+		Options: extutil.Ptr([]action_kit_api.ParameterOption{
+			action_kit_api.ExplicitParameterOption{
+				Label: "no verification",
+				Value: "NO_VERIFICATION",
+			},
+			action_kit_api.ExplicitParameterOption{
+				Label: "less than",
+				Value: "LESS_THAN",
+			},
+			action_kit_api.ExplicitParameterOption{
+				Label: "greater than",
+				Value: "GREATER_THAN",
+			},
+		}),
+	}
+	responseTime = action_kit_api.ActionParameter{
+		Name:         "responseTime",
+		Label:        "Response Time",
+		Description:  extutil.Ptr("The value for the response time verification."),
+		Type:         action_kit_api.Duration,
+		Required:     extutil.Ptr(false),
+		Order:        extutil.Ptr(15),
+		DefaultValue: extutil.Ptr("500ms"),
+	}
 	followRedirects = action_kit_api.ActionParameter{
 		Name:        "followRedirects",
 		Label:       "Follow Redirects?",
@@ -133,7 +165,7 @@ var (
 		Type:        action_kit_api.Boolean,
 		Required:    extutil.Ptr(true),
 		Advanced:    extutil.Ptr(true),
-		Order:       extutil.Ptr(14),
+		Order:       extutil.Ptr(16),
 	}
 	connectTimeout = action_kit_api.ActionParameter{
 		Name:         "connectTimeout",
@@ -143,7 +175,7 @@ var (
 		DefaultValue: extutil.Ptr("5s"),
 		Required:     extutil.Ptr(true),
 		Advanced:     extutil.Ptr(true),
-		Order:        extutil.Ptr(15),
+		Order:        extutil.Ptr(17),
 	}
 	readTimeout = action_kit_api.ActionParameter{
 		Name:         "readTimeout",
@@ -153,7 +185,7 @@ var (
 		DefaultValue: extutil.Ptr("5s"),
 		Required:     extutil.Ptr(true),
 		Advanced:     extutil.Ptr(true),
-		Order:        extutil.Ptr(16),
+		Order:        extutil.Ptr(18),
 	}
 	maxConcurrent = action_kit_api.ActionParameter{
 		Name:         "maxConcurrent",
@@ -163,6 +195,6 @@ var (
 		DefaultValue: extutil.Ptr("5"),
 		Required:     extutil.Ptr(true),
 		Advanced:     extutil.Ptr(true),
-		Order:        extutil.Ptr(17),
+		Order:        extutil.Ptr(19),
 	}
 )
