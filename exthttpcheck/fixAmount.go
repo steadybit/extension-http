@@ -101,18 +101,21 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 			// Result Verification
 			//------------------------
 			resultVerification,
-			statusCode,
 			successRate,
+			statusCode,
 			responsesContains,
+			responsesTimeMode,
+			responseTime,
 
 			//------------------------
 			// Additional Settings
 			//------------------------
 
+			maxConcurrent,
+			clientSettings,
 			followRedirects,
 			connectTimeout,
 			readTimeout,
-			maxConcurrent,
 		},
 		Status: extutil.Ptr(action_kit_api.MutatingEndpointReferenceWithCallInterval{
 			CallInterval: extutil.Ptr("1s"),

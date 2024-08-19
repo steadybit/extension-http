@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.21
+
+- Added an option to verify response times
+
 ## v1.0.20
 
 - Update dependencies
