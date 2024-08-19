@@ -169,10 +169,11 @@ var (
 		Order:        extutil.Ptr(16),
 	}
 	clientSettings = action_kit_api.ActionParameter{
-		Name:  "clientSettings",
-		Label: "HTTP Client Settings",
-		Type:  action_kit_api.Header,
-		Order: extutil.Ptr(17),
+		Name:     "clientSettings",
+		Label:    "HTTP Client Settings",
+		Type:     action_kit_api.Header,
+		Advanced: extutil.Ptr(true),
+		Order:    extutil.Ptr(17),
 	}
 	followRedirects = action_kit_api.ActionParameter{
 		Name:        "followRedirects",
