@@ -111,10 +111,11 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 			// Additional Settings
 			//------------------------
 
+			maxConcurrent,
+			clientSettings,
 			followRedirects,
 			connectTimeout,
 			readTimeout,
-			maxConcurrent,
 		},
 		Status: extutil.Ptr(action_kit_api.MutatingEndpointReferenceWithCallInterval{
 			CallInterval: extutil.Ptr("1s"),

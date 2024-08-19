@@ -129,7 +129,7 @@ var (
 	responsesTimeMode = action_kit_api.ActionParameter{
 		Name:         "responseTimeMode",
 		Label:        "Response Time Verification Mode",
-		Description:  extutil.Ptr("Should the Response Time be less or greater than the given value?"),
+		Description:  extutil.Ptr("Should the Response Time be shorter or longer than the given duration?"),
 		Type:         action_kit_api.String,
 		Required:     extutil.Ptr(false),
 		Order:        extutil.Ptr(14),
@@ -140,12 +140,12 @@ var (
 				Value: "NO_VERIFICATION",
 			},
 			action_kit_api.ExplicitParameterOption{
-				Label: "less than",
-				Value: "LESS_THAN",
+				Label: "shorter than",
+				Value: "SHORTER_THAN",
 			},
 			action_kit_api.ExplicitParameterOption{
-				Label: "greater than",
-				Value: "GREATER_THAN",
+				Label: "longer than",
+				Value: "LONGER_THAN",
 			},
 		}),
 	}
@@ -158,6 +158,22 @@ var (
 		Order:        extutil.Ptr(15),
 		DefaultValue: extutil.Ptr("500ms"),
 	}
+	maxConcurrent = action_kit_api.ActionParameter{
+		Name:         "maxConcurrent",
+		Label:        "Max concurrent requests",
+		Description:  extutil.Ptr("Maximum count on parallel running requests. (min 1, max 10)"),
+		Type:         action_kit_api.Integer,
+		DefaultValue: extutil.Ptr("5"),
+		Required:     extutil.Ptr(true),
+		Advanced:     extutil.Ptr(true),
+		Order:        extutil.Ptr(16),
+	}
+	clientSettings = action_kit_api.ActionParameter{
+		Name:  "clientSettings",
+		Label: "HTTP Client Settings",
+		Type:  action_kit_api.Header,
+		Order: extutil.Ptr(17),
+	}
 	followRedirects = action_kit_api.ActionParameter{
 		Name:        "followRedirects",
 		Label:       "Follow Redirects?",
@@ -165,7 +181,7 @@ var (
 		Type:        action_kit_api.Boolean,
 		Required:    extutil.Ptr(true),
 		Advanced:    extutil.Ptr(true),
-		Order:       extutil.Ptr(16),
+		Order:       extutil.Ptr(18),
 	}
 	connectTimeout = action_kit_api.ActionParameter{
 		Name:         "connectTimeout",
@@ -175,7 +191,7 @@ var (
 		DefaultValue: extutil.Ptr("5s"),
 		Required:     extutil.Ptr(true),
 		Advanced:     extutil.Ptr(true),
-		Order:        extutil.Ptr(17),
+		Order:        extutil.Ptr(19),
 	}
 	readTimeout = action_kit_api.ActionParameter{
 		Name:         "readTimeout",
@@ -185,16 +201,6 @@ var (
 		DefaultValue: extutil.Ptr("5s"),
 		Required:     extutil.Ptr(true),
 		Advanced:     extutil.Ptr(true),
-		Order:        extutil.Ptr(18),
-	}
-	maxConcurrent = action_kit_api.ActionParameter{
-		Name:         "maxConcurrent",
-		Label:        "Max concurrent requests",
-		Description:  extutil.Ptr("Maximum count on parallel running requests. (min 1, max 10)"),
-		Type:         action_kit_api.Integer,
-		DefaultValue: extutil.Ptr("5"),
-		Required:     extutil.Ptr(true),
-		Advanced:     extutil.Ptr(true),
-		Order:        extutil.Ptr(19),
+		Order:        extutil.Ptr(20),
 	}
 )

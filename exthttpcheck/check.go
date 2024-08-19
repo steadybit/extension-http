@@ -249,13 +249,13 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, ch
 						}
 					}
 				}
-				if state.ResponseTimeMode == "LESS_THAN" {
+				if state.ResponseTimeMode == "SHORTER_THAN" {
 					if responseTimeValue > float64(state.ResponseTime.Milliseconds()) {
 						responseTimeWasSuccessful = false
 					}
 					metricMap["response_time_constraints_fulfilled"] = strconv.FormatBool(responseTimeWasSuccessful)
 				}
-				if state.ResponseTimeMode == "GREATER_THAN" {
+				if state.ResponseTimeMode == "LONGER_THAN" {
 					if responseTimeValue < float64(state.ResponseTime.Milliseconds()) {
 						responseTimeWasSuccessful = false
 					}
