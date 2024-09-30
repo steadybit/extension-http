@@ -47,8 +47,7 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 			},
 		}),
 
-		// Category for the targets to appear in
-		Category: extutil.Ptr("HTTP"),
+		Technology: extutil.Ptr("HTTP"),
 
 		// To clarify the purpose of the action:
 		//   Check: Will perform checks on the targets
