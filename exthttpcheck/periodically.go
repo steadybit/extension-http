@@ -48,6 +48,7 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 		}),
 
 		Technology: extutil.Ptr("HTTP"),
+		Category:   extutil.Ptr("HTTP"), //Can be removed in Q1/24 - support for backward compatibility of old sidebar
 
 		// To clarify the purpose of the action:
 		//   Check: Will perform checks on the targets
