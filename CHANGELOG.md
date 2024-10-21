@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.22
+
+- Update dependencies (go 1.23)
+
 ## v1.0.21
 
 - Added an option to verify response times
