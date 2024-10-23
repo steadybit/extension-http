@@ -40,12 +40,7 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 		Description: "Calls a http endpoint periodically (requests / s) and checks the response",
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:        extutil.Ptr(targetIconPeriodically),
-		Widgets: extutil.Ptr([]action_kit_api.Widget{
-			action_kit_api.PredefinedWidget{
-				Type:               action_kit_api.ComSteadybitWidgetPredefined,
-				PredefinedWidgetId: "com.steadybit.widget.predefined.HttpCheck",
-			},
-		}),
+		Widgets:     widgets,
 
 		Technology: extutil.Ptr("HTTP"),
 		Category:   extutil.Ptr("HTTP"), //Can be removed in Q1/24 - support for backward compatibility of old sidebar
