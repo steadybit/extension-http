@@ -204,4 +204,76 @@ var (
 		Advanced:     extutil.Ptr(true),
 		Order:        extutil.Ptr(20),
 	}
+	widgets = extutil.Ptr([]action_kit_api.Widget{
+		action_kit_api.LineChartWidget{
+			Type:  action_kit_api.ComSteadybitWidgetLineChart,
+			Title: "HTTP Responses",
+			Identity: action_kit_api.LineChartWidgetIdentityConfig{
+				MetricName: "response_time",
+				From:       "url",
+				Mode:       action_kit_api.ComSteadybitWidgetLineChartIdentityModeWidgetPerValue,
+			},
+			Grouping: extutil.Ptr(action_kit_api.LineChartWidgetGroupingConfig{
+				ShowSummary: extutil.Ptr(true),
+				Groups: []action_kit_api.LineChartWidgetGroup{
+					{
+						Title: "Successul",
+						Color: "success",
+						Matcher: action_kit_api.LineChartWidgetGroupMatcherFallback{
+							Type: action_kit_api.ComSteadybitWidgetLineChartGroupMatcherFallback,
+						},
+					},
+					{
+						Title: "Failure",
+						Color: "danger",
+						Matcher: action_kit_api.LineChartWidgetGroupMatcherNotEmpty{
+							Type: action_kit_api.ComSteadybitWidgetLineChartGroupMatcherNotEmpty,
+							Key:  "error",
+						},
+					},
+					{
+						Title: "Unexpected Status",
+						Color: "warn",
+						Matcher: action_kit_api.LineChartWidgetGroupMatcherKeyEqualsValue{
+							Type:  action_kit_api.ComSteadybitWidgetLineChartGroupMatcherKeyEqualsValue,
+							Key:   "expected_http_status",
+							Value: "false",
+						},
+					},
+					{
+						Title: "Body Constraint Violated",
+						Color: "warn",
+						Matcher: action_kit_api.LineChartWidgetGroupMatcherKeyEqualsValue{
+							Type:  action_kit_api.ComSteadybitWidgetLineChartGroupMatcherKeyEqualsValue,
+							Key:   "response_constraints_fulfilled",
+							Value: "false",
+						},
+					},
+					{
+						Title: "Response Time Constraint Violated",
+						Color: "warn",
+						Matcher: action_kit_api.LineChartWidgetGroupMatcherKeyEqualsValue{
+							Type:  action_kit_api.ComSteadybitWidgetLineChartGroupMatcherKeyEqualsValue,
+							Key:   "response_time_constraints_fulfilled",
+							Value: "false",
+						},
+					},
+				},
+			}),
+			Tooltip: extutil.Ptr(action_kit_api.LineChartWidgetTooltipConfig{
+				MetricValueTitle: extutil.Ptr("Response Time"),
+				MetricValueUnit:  extutil.Ptr("ms"),
+				AdditionalContent: []action_kit_api.LineChartWidgetTooltipContent{
+					{
+						From:  "error",
+						Title: "Error",
+					},
+					{
+						From:  "http_status",
+						Title: "HTTP Status",
+					},
+				},
+			}),
+		},
+	})
 )
