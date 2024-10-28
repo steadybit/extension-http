@@ -10,7 +10,7 @@ require (
 	github.com/steadybit/action-kit/go/action_kit_api/v2 v2.9.3
 	github.com/steadybit/action-kit/go/action_kit_sdk v1.1.12
 	github.com/steadybit/action-kit/go/action_kit_test v1.3.0
-	github.com/steadybit/extension-kit v1.8.18
+	github.com/steadybit/extension-kit v1.8.19
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/automaxprocs v1.6.0
 	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c
