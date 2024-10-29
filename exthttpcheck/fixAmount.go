@@ -41,12 +41,7 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 		Description: "Calls an http endpoint a specified number of times and checks the response",
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:        extutil.Ptr(targetIconFixedAmount),
-		Widgets: extutil.Ptr([]action_kit_api.Widget{
-			action_kit_api.PredefinedWidget{
-				Type:               action_kit_api.ComSteadybitWidgetPredefined,
-				PredefinedWidgetId: "com.steadybit.widget.predefined.HttpCheck",
-			},
-		}),
+		Widgets:     widgets,
 
 		Technology: extutil.Ptr("HTTP"),
 		Category:   extutil.Ptr("HTTP"), //Can be removed in Q1/24 - support for backward compatibility of old sidebar
