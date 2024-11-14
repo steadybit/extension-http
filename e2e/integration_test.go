@@ -90,7 +90,7 @@ func testPeriodically(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		}
 
 		t.Run(tt.name, func(t *testing.T) {
-			action, err := e.RunAction(exthttpcheck.TargetIDPeriodically, nil, config, nil)
+			action, err := e.RunAction(exthttpcheck.ActionIDPeriodically, nil, config, nil)
 			defer func() { _ = action.Cancel() }()
 			require.NoError(t, err)
 
@@ -169,7 +169,7 @@ func testFixAmount(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		}
 
 		t.Run(tt.name, func(t *testing.T) {
-			action, err := e.RunAction(exthttpcheck.TargetIDFixedAmount, nil, config, nil)
+			action, err := e.RunAction(exthttpcheck.ActionIDFixedAmount, nil, config, nil)
 			defer func() { _ = action.Cancel() }()
 			require.NoError(t, err)
 

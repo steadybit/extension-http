@@ -13,7 +13,10 @@ import (
 // through environment variables. Learn more through the documentation of the envconfig package.
 // https://github.com/kelseyhightower/envconfig
 type Specification struct {
-	// no config at the moment
+	KubernetesClusterName string `json:"kubernetesClusterName" split_words:"true" required:"false"`
+	KubernetesNodeName    string `json:"kubernetesNodeName" split_words:"true" required:"false"`
+	KubernetesPodName     string `json:"kubernetesPodName" split_words:"true" required:"false"`
+	KubernetesNamespace   string `json:"kubernetesNamespace" split_words:"true" required:"false"`
 }
 
 var (

@@ -1,6 +1,11 @@
 # Default values for steadybit-extension-kubernetes.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+
+kubernetes:
+  # kubernetes.clusterName -- The name of the kubernetes cluster (if not set, the global.clusterName will be used)
+  clusterName: null
+
 image:
   # image.name -- The container image to use for the Steadybit scaffold extension.
   name: ghcr.io/steadybit/extension-http

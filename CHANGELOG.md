@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.23 (next release)
+
+- Location selection for http checks
+
 ## v1.0.22
 
 - Update dependencies (go 1.23)
