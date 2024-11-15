@@ -72,7 +72,7 @@ func (e *httpClientLocationDiscovery) DiscoverTargets(ctx context.Context) ([]di
 		attributes["k8s.namespace"] = []string{config.Config.KubernetesNamespace}
 		attributes["k8s.pod.name"] = []string{config.Config.KubernetesPodName}
 		attributes["k8s.node.name"] = []string{config.Config.KubernetesNodeName}
-		attributes["host.hostname"] = []string{config.Config.KubernetesPodName}
+		attributes["host.hostname"] = []string{config.Config.KubernetesNodeName}
 	} else {
 		hostname, _ := os.Hostname()
 		pid := os.Getpid()
