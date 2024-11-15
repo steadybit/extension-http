@@ -50,7 +50,7 @@ func (e *httpClientLocationDiscovery) DescribeTarget() discovery_kit_api.TargetD
 				{Attribute: "k8s.cluster-name"},
 				{Attribute: "k8s.namespace"},
 				{Attribute: "aws.account", FallbackAttributes: &[]string{"gcp.project.id", "azure.subscription.id"}},
-				{Attribute: "aws.zone", FallbackAttributes: &[]string{"google.zone", "azure.zone"}},
+				{Attribute: "aws.zone", FallbackAttributes: &[]string{"gcp.zone", "azure.zone"}},
 			},
 			OrderBy: []discovery_kit_api.OrderBy{
 				{
