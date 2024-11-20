@@ -91,4 +91,8 @@ tests:
         clusterName: beautiful-cluster
     asserts:
       - matchSnapshot: {}
-
+  - it: should enable location selection
+    set:
+      enableLocationSelection: true
+    asserts:
+      - matchSnapshot: {}

@@ -59,6 +59,10 @@ spec:
             - name: STEADYBIT_EXTENSION_KUBERNETES_CLUSTER_NAME
               value: {{ if and .Values.global .Values.global.clusterName }}{{ .Values.global.clusterName | quote }}{{ else }}{{ .Values.kubernetes.clusterName }}{{ end }}
             {{- end }}
+            {{ if .Values.enableLocationSelection }}
+            - name: STEADYBIT_EXTENSION_ENABLE_LOCATION_SELECTION
+              value: "true"
+            {{- end }}
             - name: STEADYBIT_EXTENSION_KUBERNETES_NODE_NAME
               valueFrom:
                 fieldRef:

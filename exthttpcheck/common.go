@@ -17,17 +17,26 @@ const (
 )
 
 var (
+	targetSelection = extutil.Ptr(action_kit_api.TargetSelection{
+		TargetType: targetType,
+		DefaultBlastRadius: extutil.Ptr(action_kit_api.DefaultBlastRadius{
+			Mode:  action_kit_api.DefaultBlastRadiusModeMaximum,
+			Value: 1,
+		}),
+		MissingQuerySelection: extutil.Ptr(action_kit_api.MissingQuerySelectionIncludeAll),
+	})
+
 	requestDefinition = action_kit_api.ActionParameter{
 		Name:  "requestDefinition",
 		Label: "Request Definition",
-		Type:  action_kit_api.Header,
+		Type:  action_kit_api.ActionParameterTypeHeader,
 		Order: extutil.Ptr(0),
 	}
 	method = action_kit_api.ActionParameter{
 		Name:         "method",
 		Label:        "HTTP Method",
 		Description:  extutil.Ptr("The HTTP method to use."),
-		Type:         action_kit_api.String,
+		Type:         action_kit_api.ActionParameterTypeString,
 		DefaultValue: extutil.Ptr("GET"),
 		Required:     extutil.Ptr(true),
 		Order:        extutil.Ptr(1),
@@ -62,7 +71,7 @@ var (
 		Name:        "url",
 		Label:       "Target URL",
 		Description: extutil.Ptr("The URL to check."),
-		Type:        action_kit_api.Url,
+		Type:        action_kit_api.ActionParameterTypeUrl,
 		Required:    extutil.Ptr(true),
 		Order:       extutil.Ptr(2),
 	}
@@ -70,27 +79,27 @@ var (
 		Name:        "body",
 		Label:       "HTTP Body",
 		Description: extutil.Ptr("The HTTP Body."),
-		Type:        action_kit_api.Textarea,
+		Type:        action_kit_api.ActionParameterTypeTextarea,
 		Order:       extutil.Ptr(3),
 	}
 	headers = action_kit_api.ActionParameter{
 		Name:        "headers",
 		Label:       "HTTP Headers",
 		Description: extutil.Ptr("The HTTP Headers."),
-		Type:        action_kit_api.KeyValue,
+		Type:        action_kit_api.ActionParameterTypeKeyValue,
 		Order:       extutil.Ptr(4),
 	}
 	repetitionControl = action_kit_api.ActionParameter{
 		Name:  "repetitionControl",
 		Label: "Repetition Control",
-		Type:  action_kit_api.Header,
+		Type:  action_kit_api.ActionParameterTypeHeader,
 		Order: extutil.Ptr(6),
 	}
 	duration = action_kit_api.ActionParameter{
 		Name:         "duration",
 		Label:        "Duration",
 		Description:  extutil.Ptr("In which timeframe should the specified requests be executed?"),
-		Type:         action_kit_api.Duration,
+		Type:         action_kit_api.ActionParameterTypeDuration,
 		DefaultValue: extutil.Ptr("10s"),
 		Required:     extutil.Ptr(true),
 		Order:        extutil.Ptr(8),
@@ -98,14 +107,14 @@ var (
 	resultVerification = action_kit_api.ActionParameter{
 		Name:  "resultVerification",
 		Label: "Result Verification",
-		Type:  action_kit_api.Header,
+		Type:  action_kit_api.ActionParameterTypeHeader,
 		Order: extutil.Ptr(10),
 	}
 	successRate = action_kit_api.ActionParameter{
 		Name:         "successRate",
 		Label:        "Required Success Rate",
 		Description:  extutil.Ptr("How many percent of the Request must be at least successful (in terms of the following response verifications) to continue the experiment execution? The result will be evaluated and the end of the given duration."),
-		Type:         action_kit_api.Percentage,
+		Type:         action_kit_api.ActionParameterTypePercentage,
 		DefaultValue: extutil.Ptr("100"),
 		Required:     extutil.Ptr(true),
 		Order:        extutil.Ptr(11),
@@ -116,7 +125,7 @@ var (
 		Name:         "statusCode",
 		Label:        "Response status codes",
 		Description:  extutil.Ptr("Which HTTP-Status code should be considered as success? This field supports ranges with '-' and multiple codes delimited by ';' for example '200-399;429'."),
-		Type:         action_kit_api.String,
+		Type:         action_kit_api.ActionParameterTypeString,
 		DefaultValue: extutil.Ptr("200-299"),
 		Required:     extutil.Ptr(true),
 		Order:        extutil.Ptr(12),
@@ -125,7 +134,7 @@ var (
 		Name:        "responsesContains",
 		Label:       "Responses contains",
 		Description: extutil.Ptr("The Responses needs to contain the given string, otherwise the experiment will fail. The responses will be evaluated and the end of the given duration."),
-		Type:        action_kit_api.String,
+		Type:        action_kit_api.ActionParameterTypeString,
 		Required:    extutil.Ptr(false),
 		Order:       extutil.Ptr(13),
 	}
@@ -133,7 +142,7 @@ var (
 		Name:         "responseTimeMode",
 		Label:        "Response Time Verification Mode",
 		Description:  extutil.Ptr("Should the Response Time be shorter or longer than the given duration?"),
-		Type:         action_kit_api.String,
+		Type:         action_kit_api.ActionParameterTypeString,
 		Required:     extutil.Ptr(false),
 		Order:        extutil.Ptr(14),
 		DefaultValue: extutil.Ptr("NO_VERIFICATION"),
@@ -156,55 +165,70 @@ var (
 		Name:         "responseTime",
 		Label:        "Response Time",
 		Description:  extutil.Ptr("The value for the response time verification."),
-		Type:         action_kit_api.Duration,
+		Type:         action_kit_api.ActionParameterTypeDuration,
 		Required:     extutil.Ptr(false),
 		Order:        extutil.Ptr(15),
 		DefaultValue: extutil.Ptr("500ms"),
+	}
+	targetSelectionParameter = action_kit_api.ActionParameter{
+		Name:  "-",
+		Label: "Filter HTTP Client Locations",
+		Type:  action_kit_api.ActionParameterTypeTargetSelection,
+		Order: extutil.Ptr(17),
 	}
 	maxConcurrent = action_kit_api.ActionParameter{
 		Name:         "maxConcurrent",
 		Label:        "Max concurrent requests",
 		Description:  extutil.Ptr("Maximum count on parallel running requests. (min 1, max 10)"),
-		Type:         action_kit_api.Integer,
+		Type:         action_kit_api.ActionParameterTypeInteger,
 		DefaultValue: extutil.Ptr("5"),
 		Required:     extutil.Ptr(true),
 		Advanced:     extutil.Ptr(true),
-		Order:        extutil.Ptr(16),
+		Order:        extutil.Ptr(18),
 	}
 	clientSettings = action_kit_api.ActionParameter{
 		Name:     "clientSettings",
 		Label:    "HTTP Client Settings",
-		Type:     action_kit_api.Header,
+		Type:     action_kit_api.ActionParameterTypeHeader,
 		Advanced: extutil.Ptr(true),
-		Order:    extutil.Ptr(17),
+		Order:    extutil.Ptr(19),
 	}
 	followRedirects = action_kit_api.ActionParameter{
 		Name:        "followRedirects",
 		Label:       "Follow Redirects?",
 		Description: extutil.Ptr("Should Redirects be followed?"),
-		Type:        action_kit_api.Boolean,
+		Type:        action_kit_api.ActionParameterTypeBoolean,
 		Required:    extutil.Ptr(true),
 		Advanced:    extutil.Ptr(true),
-		Order:       extutil.Ptr(18),
+		Order:       extutil.Ptr(20),
 	}
 	connectTimeout = action_kit_api.ActionParameter{
 		Name:         "connectTimeout",
 		Label:        "Connection Timeout",
 		Description:  extutil.Ptr("Connection Timeout for a single Call in seconds. Should be between 1 and 10 seconds."),
-		Type:         action_kit_api.Duration,
+		Type:         action_kit_api.ActionParameterTypeDuration,
 		DefaultValue: extutil.Ptr("5s"),
 		Required:     extutil.Ptr(true),
 		Advanced:     extutil.Ptr(true),
-		Order:        extutil.Ptr(19),
+		Order:        extutil.Ptr(21),
 	}
 	readTimeout = action_kit_api.ActionParameter{
 		Name:         "readTimeout",
 		Label:        "Read Timeout",
 		Description:  extutil.Ptr("Read Timeout for a single Call in seconds. Should be between 1 and 10 seconds."),
-		Type:         action_kit_api.Duration,
+		Type:         action_kit_api.ActionParameterTypeDuration,
 		DefaultValue: extutil.Ptr("5s"),
 		Required:     extutil.Ptr(true),
 		Advanced:     extutil.Ptr(true),
-		Order:        extutil.Ptr(20),
+		Order:        extutil.Ptr(22),
 	}
 )
+
+func filter[T any](ss []T, test func(T) bool) (ret []T) {
+	for _, s := range ss {
+		if test(s) {
+			ret = append(ret, s)
+		}
+	}
+	return
+}
