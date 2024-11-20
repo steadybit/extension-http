@@ -62,7 +62,7 @@ func (e *httpClientLocationDiscovery) DescribeTarget() discovery_kit_api.TargetD
 	}
 }
 
-func (e *httpClientLocationDiscovery) DiscoverTargets(ctx context.Context) ([]discovery_kit_api.Target, error) {
+func (e *httpClientLocationDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.Target, error) {
 	attributes := make(map[string][]string)
 
 	var id, label string
