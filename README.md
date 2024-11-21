@@ -6,6 +6,10 @@ Learn about the capabilities of this extension in our [Reliability Hub](https://
 
 ## Configuration
 
+| Environment Variable                            | Helm value                | Meaning                                                                                                                                                                                              | required | default |
+|-------------------------------------------------|---------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|
+| `STEADYBIT_EXTENSION_ENABLE_LOCATION_SELECTION` | `enableLocationSelection` | By default, the platform will select a random instance when executing actions from this extension. If you enable location selection, users can optionally specify the location via target selection. | no       | false   |
+
 The extension supports all environment variables provided by [steadybit/extension-kit](https://github.com/steadybit/extension-kit#environment-variables).
 
 ## Installation
