@@ -72,12 +72,7 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 			urlParameter,
 			body,
 			headers,
-			{
-				Name:  "-",
-				Label: "-",
-				Type:  action_kit_api.ActionParameterTypeSeparator,
-				Order: extutil.Ptr(5),
-			},
+			separator(5),
 			//------------------------
 			// Repitions
 			//------------------------
@@ -92,12 +87,7 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 				Order:        extutil.Ptr(7),
 			},
 			duration,
-			{
-				Name:  "-",
-				Label: "-",
-				Type:  action_kit_api.ActionParameterTypeSeparator,
-				Order: extutil.Ptr(9),
-			},
+			separator(9),
 			//------------------------
 			// Result Verification
 			//------------------------
@@ -107,12 +97,7 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 			responsesContains,
 			responsesTimeMode,
 			responseTime,
-			{
-				Name:  "-",
-				Label: "-",
-				Type:  action_kit_api.ActionParameterTypeSeparator,
-				Order: extutil.Ptr(16),
-			},
+			separator(16),
 
 			//------------------------
 			// Target Selection

@@ -224,6 +224,15 @@ var (
 	}
 )
 
+func separator(order int) action_kit_api.ActionParameter {
+	return action_kit_api.ActionParameter{
+		Name:  "-",
+		Label: "-",
+		Type:  action_kit_api.ActionParameterTypeSeparator,
+		Order: extutil.Ptr(order),
+	}
+}
+
 func filter[T any](ss []T, test func(T) bool) (ret []T) {
 	for _, s := range ss {
 		if test(s) {
