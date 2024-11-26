@@ -67,3 +67,19 @@ information about extension registration and how to verify.
 ## Proxy
 
 A proxy configuration is currently not supported.
+
+## Location Selection
+When multiple HTTP extensions are deployed in different subsystems (e.g., multiple Kubernetes clusters), it can be tricky to ensure that the HTTP check is performed from the right location when testing cluster-internal URLs.
+To solve this, you can activate the location selection feature.
+Once you do that, the HTTP extension discovers itself as a client execution location.
+When configuring the experiment, you can optionally define which extension's deployment should execute the HTTP check.
+Also, the execution locations are part of Steadybit's environment concept, so you can assign permissions for execution locations.
+
+### Migration Guideline
+Before activating the location selection feature, be sure to follow these steps:
+1. The installed agent version needs to be >= X.XX, and - only for on-prem customers - the platform version needs to be >=X.X
+2. Activate the location selection via environment or helm variable when deploying the latest extension version (see [configuration options](#configuration).
+3. Configure every environment that should be able to run HTTP checks by including the HTTP client location in the environment configuration.
+	 One option is to add the statement `or target via the query language.type="com.steadybit.extension_http.client-location"` to your existing query.
+	 You can also filter the available execution locations down, e.g., via the clustername by using `(target.type="com.steadybit.extension_http.client-location" and k8s.cluster-name="CLUSTER-NAME")`
+
