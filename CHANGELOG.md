@@ -2,7 +2,7 @@
 
 ## v1.0.23 (next release)
 
-- Location selection for http checks (can be enabled via STEADYBIT_EXTENSION_ENABLE_LOCATION_SELECTION env var, requires platform => 2.1.26)
+- Location selection for http checks (can be enabled via STEADYBIT_EXTENSION_ENABLE_LOCATION_SELECTION env var, requires platform => 2.1.27)
 
 ## v1.0.22
 
