@@ -13,7 +13,7 @@ func Test_resolveStatusCodeExpression(t *testing.T) {
 	tests := []struct {
 		name  string
 		args  args
-		want  []int
+		want  []string
 		error *action_kit_api.ActionKitError
 	}{
 		{
@@ -21,15 +21,15 @@ func Test_resolveStatusCodeExpression(t *testing.T) {
 			args: args{
 				statusCodes: "200-209",
 			},
-			want:  []int{200, 201, 202, 203, 204, 205, 206, 207, 208, 209},
+			want:  []string{"200", "201", "202", "203", "204", "205", "206", "207", "208", "209"},
 			error: nil,
 		},
 		{
 			name: "Should return status codes with range and enum",
 			args: args{
-				statusCodes: "201-202;209",
+				statusCodes: "201-202;error;209",
 			},
-			want:  []int{201, 202, 209},
+			want:  []string{"201", "202", "error", "209"},
 			error: nil,
 		},
 		{

@@ -3,6 +3,7 @@
 ## v1.0.23 (next release)
 
 - Location selection for http checks (can be enabled via STEADYBIT_EXTENSION_ENABLE_LOCATION_SELECTION env var, requires platform => 2.1.27)
+- Use "error" in the expected HTTP status code field to verify that requests are returning an error
 
 ## v1.0.22
 

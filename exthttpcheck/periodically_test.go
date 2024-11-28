@@ -53,7 +53,7 @@ func TestNewHTTPCheckActionPeriodically_Prepare(t *testing.T) {
 			}),
 
 			wantedState: &HTTPCheckState{
-				ExpectedStatusCodes:      []int{200, 201, 202, 203, 204, 205, 206, 207, 208, 209},
+				ExpectedStatusCodes:      []string{"200", "201", "202", "203", "204", "205", "206", "207", "208", "209"},
 				DelayBetweenRequestsInMS: 500,
 				Timeout:                  time.Now(),
 				ResponsesContains:        "test",

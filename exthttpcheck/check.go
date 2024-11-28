@@ -37,7 +37,7 @@ var (
 )
 
 type HTTPCheckState struct {
-	ExpectedStatusCodes      []int
+	ExpectedStatusCodes      []string
 	DelayBetweenRequestsInMS int64
 	Timeout                  time.Time
 	ResponsesContains        string
@@ -221,11 +221,11 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, ch
 					Value:     float64(now.Sub(started).Milliseconds()),
 					Timestamp: now,
 				}
-				responseStatusWasExpected = false
+				responseStatusWasExpected = slices.Contains(state.ExpectedStatusCodes, "error")
 			} else {
 				responseTimeValue := float64(ended.Sub(requestWritten).Milliseconds())
 				log.Debug().Msgf("Got response %s", response.Status)
-				responseStatusWasExpected = slices.Contains(state.ExpectedStatusCodes, response.StatusCode)
+				responseStatusWasExpected = slices.Contains(state.ExpectedStatusCodes, strconv.Itoa(response.StatusCode))
 				metricMap := map[string]string{
 					"url":                  req.URL.String(),
 					"http_status":          strconv.Itoa(response.StatusCode),
