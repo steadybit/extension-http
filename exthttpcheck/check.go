@@ -250,9 +250,6 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, ch
 							responseConstraintFulfilled := strings.Contains(bodyString, state.ResponsesContains)
 							metricMap["response_constraints_fulfilled"] = strconv.FormatBool(responseConstraintFulfilled)
 							responseBodyWasSuccessful = responseConstraintFulfilled
-							if !(responseConstraintFulfilled) {
-								log.Trace().Str("response_body", bodyString).Str("expected_string", state.ResponsesContains).Msg("response body does not contain expected string")
-							}
 						}
 					}
 				}
