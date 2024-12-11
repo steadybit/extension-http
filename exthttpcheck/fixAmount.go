@@ -97,7 +97,7 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 			successRate,
 			statusCode,
 			responsesContains,
-			responsesTimeMode,
+			responseTimeMode,
 			responseTime,
 			separator(16),
 			//------------------------

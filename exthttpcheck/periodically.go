@@ -95,7 +95,7 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 			successRate,
 			statusCode,
 			responsesContains,
-			responsesTimeMode,
+			responseTimeMode,
 			responseTime,
 			separator(16),
 

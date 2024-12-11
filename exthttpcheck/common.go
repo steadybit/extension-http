@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2024 Steadybit GmbH
+
 package exthttpcheck
 
 import (
@@ -113,7 +116,7 @@ var (
 	successRate = action_kit_api.ActionParameter{
 		Name:         "successRate",
 		Label:        "Required Success Rate",
-		Description:  extutil.Ptr("How many percent of the Request must be at least successful (in terms of the following response verifications) to continue the experiment execution? The result will be evaluated and the end of the given duration."),
+		Description:  extutil.Ptr("How many percent of all requests must be at least successful (according to response verifications)? The result will be evaluated at the end of the given duration."),
 		Type:         action_kit_api.ActionParameterTypePercentage,
 		DefaultValue: extutil.Ptr("100"),
 		Required:     extutil.Ptr(true),
@@ -124,7 +127,7 @@ var (
 	statusCode = action_kit_api.ActionParameter{
 		Name:         "statusCode",
 		Label:        "Response status codes",
-		Description:  extutil.Ptr("Which HTTP-Status code should be considered as success? This field supports ranges with '-' and multiple codes delimited by ';' for example '200-399;429'."),
+		Description:  extutil.Ptr("Which HTTP-Status codes should be considered as success? This field supports ranges with '-' and multiple codes delimited by ';' for example '200-399;429'."),
 		Type:         action_kit_api.ActionParameterTypeString,
 		DefaultValue: extutil.Ptr("200-299"),
 		Required:     extutil.Ptr(true),
@@ -133,15 +136,15 @@ var (
 	responsesContains = action_kit_api.ActionParameter{
 		Name:        "responsesContains",
 		Label:       "Responses contains",
-		Description: extutil.Ptr("The Responses needs to contain the given string, otherwise the experiment will fail. The responses will be evaluated and the end of the given duration."),
+		Description: extutil.Ptr("The responses must contain the given string, otherwise the step will fail."),
 		Type:        action_kit_api.ActionParameterTypeString,
 		Required:    extutil.Ptr(false),
 		Order:       extutil.Ptr(13),
 	}
-	responsesTimeMode = action_kit_api.ActionParameter{
+	responseTimeMode = action_kit_api.ActionParameter{
 		Name:         "responseTimeMode",
 		Label:        "Response Time Verification Mode",
-		Description:  extutil.Ptr("Should the Response Time be shorter or longer than the given duration?"),
+		Description:  extutil.Ptr("Must the response time be shorter or longer than the specified response time?"),
 		Type:         action_kit_api.ActionParameterTypeString,
 		Required:     extutil.Ptr(false),
 		Order:        extutil.Ptr(14),
