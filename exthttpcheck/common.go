@@ -222,6 +222,12 @@ var (
 		Advanced:     extutil.Ptr(true),
 		Order:        extutil.Ptr(22),
 	}
+	widgetsBackwardCompatiblity = extutil.Ptr([]action_kit_api.Widget{
+		action_kit_api.PredefinedWidget{
+			Type:               action_kit_api.ComSteadybitWidgetPredefined,
+			PredefinedWidgetId: "com.steadybit.widget.predefined.HttpCheck",
+		},
+	})
 	widgets = extutil.Ptr([]action_kit_api.Widget{
 		action_kit_api.LineChartWidget{
 			Type:  action_kit_api.ComSteadybitWidgetLineChart,

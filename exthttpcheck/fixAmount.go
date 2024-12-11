@@ -36,6 +36,12 @@ func (l *httpCheckActionFixedAmount) NewEmptyState() HTTPCheckState {
 
 // Describe returns the action description for the platform with all required information.
 func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription {
+
+	widgetToUse := widgets
+	if config.Config.EnableWidgetBackwardCompatibility {
+		widgetToUse = widgetsBackwardCompatiblity
+	}
+
 	description := action_kit_api.ActionDescription{
 		Id:              ActionIDFixedAmount,
 		Label:           "HTTP (# of Requests)",
@@ -43,7 +49,7 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 		Version:         extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:            extutil.Ptr(actionIconFixedAmount),
 		TargetSelection: targetSelection,
-		Widgets:     widgets,
+		Widgets:         widgetToUse,
 
 		Technology: extutil.Ptr("HTTP"),
 		Category:   extutil.Ptr("HTTP"), //Can be removed in Q1/24 - support for backward compatibility of old sidebar

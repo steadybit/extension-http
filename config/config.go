@@ -13,11 +13,12 @@ import (
 // through environment variables. Learn more through the documentation of the envconfig package.
 // https://github.com/kelseyhightower/envconfig
 type Specification struct {
-	KubernetesClusterName   string `json:"kubernetesClusterName" split_words:"true" required:"false"`
-	KubernetesNodeName      string `json:"kubernetesNodeName" split_words:"true" required:"false"`
-	KubernetesPodName       string `json:"kubernetesPodName" split_words:"true" required:"false"`
-	KubernetesNamespace     string `json:"kubernetesNamespace" split_words:"true" required:"false"`
-	EnableLocationSelection bool   `json:"enableLocationSelection" split_words:"true" required:"false"`
+	KubernetesClusterName             string `json:"kubernetesClusterName" split_words:"true" required:"false"`
+	KubernetesNodeName                string `json:"kubernetesNodeName" split_words:"true" required:"false"`
+	KubernetesPodName                 string `json:"kubernetesPodName" split_words:"true" required:"false"`
+	KubernetesNamespace               string `json:"kubernetesNamespace" split_words:"true" required:"false"`
+	EnableLocationSelection           bool   `json:"enableLocationSelection" split_words:"true" required:"false"`
+	EnableWidgetBackwardCompatibility bool   `json:"enableWidgetBackwardCompatibility" split_words:"true" required:"false" default:"true"`
 }
 
 var (
