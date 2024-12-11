@@ -74,9 +74,25 @@ tests:
         runAsUser: 2222
     asserts:
       - matchSnapshot: {}
-
   - it: manifest should match snapshot with priority class
     set:
       priorityClassName: my-priority-class
+    asserts:
+      - matchSnapshot: {}
+  - it: should add cluster name from global values
+    set:
+      global:
+        clusterName: beautiful-cluster
+    asserts:
+      - matchSnapshot: {}
+  - it: should add cluster name from local values
+    set:
+      kubernetes:
+        clusterName: beautiful-cluster
+    asserts:
+      - matchSnapshot: {}
+  - it: should enable location selection
+    set:
+      enableLocationSelection: true
     asserts:
       - matchSnapshot: {}

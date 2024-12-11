@@ -1,6 +1,14 @@
 # Default values for steadybit-extension-kubernetes.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+
+kubernetes:
+  # kubernetes.clusterName -- The name of the kubernetes cluster (if not set, the global.clusterName will be used)
+  clusterName: null
+
+# enableLocationSelection -- Specifies whether the extension should allow the user to select a location for the http checks.
+enableLocationSelection: false
+
 image:
   # image.name -- The container image to use for the Steadybit scaffold extension.
   name: ghcr.io/steadybit/extension-http
@@ -55,12 +63,12 @@ probes:
 resources:
   requests:
     # resources.requests.memory -- The minimal amount of memory needed
-    memory: "32Mi"
+    memory: "16Mi"
     # resources.requests.cpu -- The minimal amount of cpu shares needed
     cpu: "50m"
   limits:
     # resources.limits.memory -- The limit of memory to be used
-    memory: "128Mi"
+    memory: "32Mi"
     # resources.limits.cpu -- The limit of cpu share to be used during its interval
     cpu: "200m"
 
@@ -99,7 +107,18 @@ affinity: {}
 priorityClassName: null
 
 # podSecurityContext -- SecurityContext to apply to the pod.
-podSecurityContext: {}
+podSecurityContext:
+  seccompProfile:
+    type: RuntimeDefault
+  runAsNonRoot: true
+
+# containerSecurityContext -- SecurityContext to apply to the container.
+containerSecurityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
 
 # extraEnv -- Array with extra environment variables to add to the container
 # e.g:

@@ -7,11 +7,13 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/rs/zerolog v1.33.0
-	github.com/steadybit/action-kit/go/action_kit_api/v2 v2.9.4
-	github.com/steadybit/action-kit/go/action_kit_sdk v1.1.12
+	github.com/steadybit/action-kit/go/action_kit_api/v2 v2.9.6
+	github.com/steadybit/action-kit/go/action_kit_sdk v1.1.14
 	github.com/steadybit/action-kit/go/action_kit_test v1.3.0
-	github.com/steadybit/extension-kit v1.8.18
-	github.com/stretchr/testify v1.9.0
+	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.6.0
+	github.com/steadybit/discovery-kit/go/discovery_kit_sdk v1.2.1
+	github.com/steadybit/extension-kit v1.8.22
+	github.com/stretchr/testify v1.10.0
 	go.uber.org/automaxprocs v1.6.0
 	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c
 )
@@ -23,7 +25,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/docker/go-units v0.5.0 // indirect
-	github.com/elastic/go-sysinfo v1.14.2 // indirect
+	github.com/elastic/go-sysinfo v1.15.0 // indirect
 	github.com/elastic/go-windows v1.0.2 // indirect
 	github.com/emicklei/go-restful/v3 v3.12.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
@@ -63,15 +65,15 @@ require (
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.6.0 // indirect
 	github.com/steadybit/discovery-kit/go/discovery_kit_test v1.1.2 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/yalp/jsonpath v0.0.0-20180802001716-5cc68e5049a0 // indirect
+	github.com/zmwangx/debounce v1.0.0 // indirect
 	golang.org/x/net v0.30.0 // indirect
 	golang.org/x/oauth2 v0.23.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.26.0 // indirect
+	golang.org/x/sys v0.27.0 // indirect
 	golang.org/x/term v0.25.0 // indirect
 	golang.org/x/text v0.19.0 // indirect
 	golang.org/x/time v0.7.0 // indirect

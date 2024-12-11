@@ -55,6 +55,26 @@ spec:
               memory: {{ .Values.resources.limits.memory }}
               cpu: {{ .Values.resources.limits.cpu }}
           env:
+            {{ if .Values.enableLocationSelection }}
+            - name: STEADYBIT_EXTENSION_ENABLE_LOCATION_SELECTION
+              value: "true"
+            {{- end }}
+            {{ if or (and .Values.global .Values.global.clusterName) .Values.kubernetes.clusterName }}
+            - name: STEADYBIT_EXTENSION_KUBERNETES_CLUSTER_NAME
+              value: {{ if and .Values.global .Values.global.clusterName }}{{ .Values.global.clusterName | quote }}{{ else }}{{ .Values.kubernetes.clusterName }}{{ end }}
+            {{- end }}
+            - name: STEADYBIT_EXTENSION_KUBERNETES_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: STEADYBIT_EXTENSION_KUBERNETES_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: STEADYBIT_EXTENSION_KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
             {{- include "extensionlib.deployment.env" (list .) | nindent 12 }}
             {{- with .Values.extraEnv }}
               {{- toYaml . | nindent 12 }}
@@ -83,15 +103,10 @@ spec:
             httpGet:
               path: /health/readiness
               port: 8081
+          {{- with .Values.containerSecurityContext }}
           securityContext:
-            readOnlyRootFilesystem: true
-            runAsNonRoot: true
-            runAsUser: 10000
-            runAsGroup: 10000
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
+          {{- toYaml . | nindent 12 }}
+          {{- end }}
       volumes:
         {{- include "extensionlib.deployment.volumes" (list .) | nindent 8 }}
       serviceAccountName: {{ .Values.serviceAccount.name }}

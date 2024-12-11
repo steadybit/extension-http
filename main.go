@@ -9,6 +9,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
+	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
+	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
 	"github.com/steadybit/extension-http/config"
 	"github.com/steadybit/extension-http/exthttpcheck"
 	"github.com/steadybit/extension-kit/extbuild"
@@ -16,6 +18,7 @@ import (
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extlogging"
 	"github.com/steadybit/extension-kit/extruntime"
+	"github.com/steadybit/extension-kit/extsignals"
 	_ "go.uber.org/automaxprocs" // Importing automaxprocs automatically adjusts GOMAXPROCS.
 	_ "net/http/pprof"           //allow pprof
 )
@@ -51,9 +54,10 @@ func main() {
 
 	action_kit_sdk.RegisterAction(exthttpcheck.NewHTTPCheckActionFixedAmount())
 	action_kit_sdk.RegisterAction(exthttpcheck.NewHTTPCheckActionPeriodically())
+	discovery_kit_sdk.Register(exthttpcheck.NewDiscovery())
 
 	//This will install a signal handlder, that will stop active actions when receiving a SIGURS1, SIGTERM or SIGINT
-	action_kit_sdk.InstallSignalHandler()
+	extsignals.ActivateSignalHandlers()
 
 	action_kit_sdk.RegisterCoverageEndpoints()
 	exthealth.SetReady(true)
@@ -70,7 +74,8 @@ func main() {
 // ExtensionListResponse exists to merge the possible root path responses supported by the
 // various extension kits. In this case, the response for ActionKit, DiscoveryKit and EventKit.
 type ExtensionListResponse struct {
-	action_kit_api.ActionList `json:",inline"`
+	action_kit_api.ActionList       `json:",inline"`
+	discovery_kit_api.DiscoveryList `json:",inline"`
 }
 
 func getExtensionList() ExtensionListResponse {
@@ -78,5 +83,8 @@ func getExtensionList() ExtensionListResponse {
 		// See this document to learn more about the action list:
 		// https://github.com/steadybit/action-kit/blob/main/docs/action-api.md#action-list
 		ActionList: action_kit_sdk.GetActionList(),
+		// See this document to learn more about the discovery list:
+		// https://github.com/steadybit/discovery-kit/blob/main/docs/discovery-api.md#index-response
+		DiscoveryList: discovery_kit_sdk.GetDiscoveryList(),
 	}
 }

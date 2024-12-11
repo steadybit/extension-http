@@ -37,7 +37,7 @@ var (
 )
 
 type HTTPCheckState struct {
-	ExpectedStatusCodes      []int
+	ExpectedStatusCodes      []string
 	DelayBetweenRequestsInMS int64
 	Timeout                  time.Time
 	ResponsesContains        string
@@ -183,8 +183,6 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, ch
 			}
 
 			responseStatusWasExpected := false
-			responseBodyWasSuccessful := true
-			responseTimeWasSuccessful := true
 
 			req, err := createRequest(state)
 			if err != nil {
@@ -212,20 +210,26 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, ch
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to execute request")
 				now := time.Now()
+				responseStatusWasExpected = slices.Contains(state.ExpectedStatusCodes, "error")
 				executionRunData.metrics <- action_kit_api.Metric{
 					Metric: map[string]string{
-						"url":   req.URL.String(),
-						"error": err.Error(),
+						"url":                  req.URL.String(),
+						"error":                err.Error(),
+						"expected_http_status": strconv.FormatBool(responseStatusWasExpected),
 					},
 					Name:      extutil.Ptr("response_time"),
 					Value:     float64(now.Sub(started).Milliseconds()),
 					Timestamp: now,
 				}
-				responseStatusWasExpected = false
+				if responseStatusWasExpected {
+					executionRunData.requestSuccessCounter.Add(1)
+				}
 			} else {
+				responseBodyWasSuccessful := true
+				responseTimeWasSuccessful := true
 				responseTimeValue := float64(ended.Sub(requestWritten).Milliseconds())
 				log.Debug().Msgf("Got response %s", response.Status)
-				responseStatusWasExpected = slices.Contains(state.ExpectedStatusCodes, response.StatusCode)
+				responseStatusWasExpected = slices.Contains(state.ExpectedStatusCodes, strconv.Itoa(response.StatusCode))
 				metricMap := map[string]string{
 					"url":                  req.URL.String(),
 					"http_status":          strconv.Itoa(response.StatusCode),

@@ -11,6 +11,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
+	"github.com/steadybit/extension-http/config"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extutil"
 )
@@ -35,12 +36,13 @@ func (l *httpCheckActionFixedAmount) NewEmptyState() HTTPCheckState {
 
 // Describe returns the action description for the platform with all required information.
 func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription {
-	return action_kit_api.ActionDescription{
-		Id:          TargetIDFixedAmount,
-		Label:       "HTTP (# of Requests)",
-		Description: "Calls an http endpoint a specified number of times and checks the response",
-		Version:     extbuild.GetSemverVersionStringOrUnknown(),
-		Icon:        extutil.Ptr(targetIconFixedAmount),
+	description := action_kit_api.ActionDescription{
+		Id:              ActionIDFixedAmount,
+		Label:           "HTTP (# of Requests)",
+		Description:     "Calls an http endpoint a specified number of times and checks the response",
+		Version:         extbuild.GetSemverVersionStringOrUnknown(),
+		Icon:            extutil.Ptr(actionIconFixedAmount),
+		TargetSelection: targetSelection,
 		Widgets:     widgets,
 
 		Technology: extutil.Ptr("HTTP"),
@@ -66,12 +68,7 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 			urlParameter,
 			body,
 			headers,
-			{
-				Name:  "-",
-				Label: "-",
-				Type:  action_kit_api.Separator,
-				Order: extutil.Ptr(5),
-			},
+			separator(5),
 			//------------------------
 			// Repitions
 			//------------------------
@@ -80,18 +77,13 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 				Name:         "numberOfRequests",
 				Label:        "Number of Requests.",
 				Description:  extutil.Ptr("Fixed number of Requests, distributed to given duration"),
-				Type:         action_kit_api.Integer,
+				Type:         action_kit_api.ActionParameterTypeInteger,
 				Required:     extutil.Ptr(true),
 				DefaultValue: extutil.Ptr("1"),
 				Order:        extutil.Ptr(7),
 			},
 			duration,
-			{
-				Name:  "-",
-				Label: "-",
-				Type:  action_kit_api.Separator,
-				Order: extutil.Ptr(9),
-			},
+			separator(9),
 			//------------------------
 			// Result Verification
 			//------------------------
@@ -101,11 +93,14 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 			responsesContains,
 			responsesTimeMode,
 			responseTime,
-
+			separator(16),
+			//------------------------
+			// Target Selection
+			//------------------------
+			targetSelectionParameter,
 			//------------------------
 			// Additional Settings
 			//------------------------
-
 			maxConcurrent,
 			clientSettings,
 			followRedirects,
@@ -117,6 +112,15 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 		}),
 		Stop: extutil.Ptr(action_kit_api.MutatingEndpointReference{}),
 	}
+
+	if !config.Config.EnableLocationSelection {
+		description.Parameters = filter(description.Parameters, func(p action_kit_api.ActionParameter) bool {
+			return p.Type != action_kit_api.ActionParameterTypeTargetSelection
+		})
+		description.TargetSelection = nil
+	}
+
+	return description
 }
 
 func getDelayBetweenRequestsInMsFixedAmount(duration int64, numberOfRequests int64) int64 {

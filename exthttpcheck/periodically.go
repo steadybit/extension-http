@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
+	"github.com/steadybit/extension-http/config"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extutil"
 )
@@ -34,12 +35,13 @@ func (l *httpCheckActionPeriodically) NewEmptyState() HTTPCheckState {
 
 // Describe returns the action description for the platform with all required information.
 func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescription {
-	return action_kit_api.ActionDescription{
-		Id:          TargetIDPeriodically,
-		Label:       "HTTP (Requests / s)",
-		Description: "Calls a http endpoint periodically (requests / s) and checks the response",
-		Version:     extbuild.GetSemverVersionStringOrUnknown(),
-		Icon:        extutil.Ptr(targetIconPeriodically),
+	description := action_kit_api.ActionDescription{
+		Id:              ActionIDPeriodically,
+		Label:           "HTTP (Requests / s)",
+		Description:     "Calls a http endpoint periodically (requests / s) and checks the response",
+		Version:         extbuild.GetSemverVersionStringOrUnknown(),
+		Icon:            extutil.Ptr(actionIconPeriodically),
+		TargetSelection: targetSelection,
 		Widgets:     widgets,
 
 		Technology: extutil.Ptr("HTTP"),
@@ -65,12 +67,7 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 			urlParameter,
 			body,
 			headers,
-			{
-				Name:  "-",
-				Label: "-",
-				Type:  action_kit_api.Separator,
-				Order: extutil.Ptr(5),
-			},
+			separator(5),
 			//------------------------
 			// Repitions
 			//------------------------
@@ -79,18 +76,13 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 				Name:         "requestsPerSecond",
 				Label:        "Requests per second",
 				Description:  extutil.Ptr("The number of requests per second. Should be between 1 and 10."),
-				Type:         action_kit_api.Integer,
+				Type:         action_kit_api.ActionParameterTypeInteger,
 				DefaultValue: extutil.Ptr("1"),
 				Required:     extutil.Ptr(true),
 				Order:        extutil.Ptr(7),
 			},
 			duration,
-			{
-				Name:  "-",
-				Label: "-",
-				Type:  action_kit_api.Separator,
-				Order: extutil.Ptr(9),
-			},
+			separator(9),
 			//------------------------
 			// Result Verification
 			//------------------------
@@ -100,6 +92,12 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 			responsesContains,
 			responsesTimeMode,
 			responseTime,
+			separator(16),
+
+			//------------------------
+			// Target Selection
+			//------------------------
+			targetSelectionParameter,
 
 			//------------------------
 			// Additional Settings
@@ -116,6 +114,15 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 		}),
 		Stop: extutil.Ptr(action_kit_api.MutatingEndpointReference{}),
 	}
+
+	if !config.Config.EnableLocationSelection {
+		description.Parameters = filter(description.Parameters, func(p action_kit_api.ActionParameter) bool {
+			return p.Type != action_kit_api.ActionParameterTypeTargetSelection
+		})
+		description.TargetSelection = nil
+	}
+
+	return description
 }
 
 func getDelayBetweenRequestsInMsPeriodically(requestsPerSecond int64) int64 {

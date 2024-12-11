@@ -3,7 +3,7 @@
 ##
 ## Build
 ##
-FROM --platform=$BUILDPLATFORM goreleaser/goreleaser:v2.3.2 AS build
+FROM --platform=$BUILDPLATFORM goreleaser/goreleaser:v2.4.8 AS build
 
 ARG TARGETOS TARGETARCH
 ARG BUILD_WITH_COVERAGE
@@ -22,7 +22,7 @@ RUN GOOS=$TARGETOS GOARCH=$TARGETARCH goreleaser build --snapshot="${BUILD_SNAPS
 ##
 ## Runtime
 ##
-FROM alpine:3.20
+FROM alpine:3.21
 
 LABEL "steadybit.com.discovery-disabled"="true"
 
@@ -31,7 +31,7 @@ ARG USER_UID=10000
 
 RUN adduser -u $USER_UID -D $USERNAME
 
-USER $USERNAME
+USER $USER_UID
 
 WORKDIR /
 
