@@ -35,6 +35,11 @@ func (l *httpCheckActionPeriodically) NewEmptyState() HTTPCheckState {
 
 // Describe returns the action description for the platform with all required information.
 func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescription {
+	widgetToUse := widgets
+	if config.Config.EnableWidgetBackwardCompatibility {
+		widgetToUse = widgetsBackwardCompatiblity
+	}
+
 	description := action_kit_api.ActionDescription{
 		Id:              ActionIDPeriodically,
 		Label:           "HTTP (Requests / s)",
@@ -42,12 +47,7 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 		Version:         extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:            extutil.Ptr(actionIconPeriodically),
 		TargetSelection: targetSelection,
-		Widgets: extutil.Ptr([]action_kit_api.Widget{
-			action_kit_api.PredefinedWidget{
-				Type:               action_kit_api.ComSteadybitWidgetPredefined,
-				PredefinedWidgetId: "com.steadybit.widget.predefined.HttpCheck",
-			},
-		}),
+		Widgets:         widgetToUse,
 
 		Technology: extutil.Ptr("HTTP"),
 		Category:   extutil.Ptr("HTTP"), //Can be removed in Q1/24 - support for backward compatibility of old sidebar
