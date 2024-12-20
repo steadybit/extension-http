@@ -252,7 +252,7 @@ var (
 					},
 					{
 						Title: "Failure",
-						Color: "danger",
+						Color: "warn",
 						Matcher: action_kit_api.LineChartWidgetGroupMatcherNotEmpty{
 							Type: action_kit_api.ComSteadybitWidgetLineChartGroupMatcherNotEmpty,
 							Key:  "error",

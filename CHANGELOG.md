@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.24 (next release)
+
+- Failing HTTP requests are shown yellow instead of red
+
 ## v1.0.23
 
 - Location selection for http checks (can be enabled via STEADYBIT_EXTENSION_ENABLE_LOCATION_SELECTION env var, requires platform => 2.1.27)
