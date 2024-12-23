@@ -1,7 +1,8 @@
 # Changelog
 
-## v1.0.24 (next release)
+## v1.0.24
 
+- Update dependencies
 - Failing HTTP requests are shown yellow instead of red
 
 ## v1.0.23
