@@ -269,3 +269,56 @@ func TestNewHTTPCheckActionFixedAmount_All_Failure(t *testing.T) {
 	assert.Equal(t, stopResult.Error.Title, "Success Rate (0.00%) was below 100%")
 	assert.Equal(t, executionRunData.requestSuccessCounter.Load(), uint64(0))
 }
+
+func TestNewHTTPCheckActionFixedAmount_start_directly(t *testing.T) {
+	// write receive timestamps to the channel to check the delay between requests
+	var receivedRequests = make(chan time.Time, 10)
+
+	// generate a test server so we can capture and inspect the request
+	testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		receivedRequests <- time.Now()
+		res.WriteHeader(200)
+	}))
+	defer func() { testServer.Close() }()
+
+	//prepare the action
+	action := httpCheckActionFixedAmount{}
+	state := action.NewEmptyState()
+	prepareActionRequestBody := extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
+		Config: map[string]interface{}{
+			"action":            "prepare",
+			"duration":          2000,
+			"statusCode":        "200-209",
+			"responsesContains": "test",
+			"successRate":       100,
+			"maxConcurrent":     1,
+			"numberOfRequests":  2,
+			"readTimeout":       5000,
+			"body":              "test",
+			"url":               testServer.URL,
+			"method":            "GET",
+			"connectTimeout":    5000,
+			"followRedirects":   true,
+			"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+		},
+		ExecutionId: uuid.New(),
+	})
+
+	// prepare
+	_, err := action.Prepare(context.Background(), &state, prepareActionRequestBody)
+	assert.NoError(t, err)
+
+	now := time.Now()
+	println(now.String())
+	_, _ = action.Start(context.Background(), &state)
+
+	// first request is executed immediately, check with quite big tolerance to avoid flakiness
+	firstRequest := <-receivedRequests
+	println(firstRequest.String())
+	assert.WithinDuration(t, now, firstRequest, 400*time.Millisecond)
+
+	// second request is executed after 1 second
+	secondRequest := <-receivedRequests
+	println(secondRequest.String())
+	assert.WithinDuration(t, now.Add(1*time.Second), secondRequest, 400*time.Millisecond)
+}

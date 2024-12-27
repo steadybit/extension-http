@@ -64,6 +64,13 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 		//   Instantaneous: The action is done immediately. Use this for actions that happen immediately, e.g. a reboot.
 		TimeControl: action_kit_api.TimeControlInternal,
 
+		Hint: &action_kit_api.ActionHint{
+			Content: "Please note that the given number of requests is uniformly distributed over the given duration. For example, 10 requests in 10 seconds " +
+				"will result in 1 request per second, whereas the first request is executed immediately.  " +
+				"The requests are handled by the given number of parallel processes, adhering to the overall request count.",
+			Type: action_kit_api.HintInfo,
+		},
+
 		// The parameters for the action
 		Parameters: []action_kit_api.ActionParameter{
 			//------------------------
@@ -76,7 +83,7 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 			headers,
 			separator(5),
 			//------------------------
-			// Repitions
+			// Repetitions
 			//------------------------
 			repetitionControl,
 			{
@@ -88,7 +95,15 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 				DefaultValue: extutil.Ptr("1"),
 				Order:        extutil.Ptr(7),
 			},
-			duration,
+			action_kit_api.ActionParameter{
+				Name:         "duration",
+				Label:        "Duration",
+				Description:  extutil.Ptr("In which timeframe should the specified requests be executed?"),
+				Type:         action_kit_api.ActionParameterTypeDuration,
+				DefaultValue: extutil.Ptr("2s"),
+				Required:     extutil.Ptr(true),
+				Order:        extutil.Ptr(8),
+			},
 			separator(9),
 			//------------------------
 			// Result Verification

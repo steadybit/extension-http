@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.25 (next)
+
+- Add hint describing the behavior of the fixed amount check and lower the default duration to 2 seconds
+
 ## v1.0.24
 
 - Update dependencies
