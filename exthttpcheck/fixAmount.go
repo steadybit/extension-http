@@ -145,8 +145,9 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 }
 
 func getDelayBetweenRequestsInMsFixedAmount(duration uint64, numberOfRequests uint64) uint64 {
-	if numberOfRequests > 0 {
-		return duration / numberOfRequests
+	actualRequests := numberOfRequests - 1
+	if actualRequests > 0 {
+		return duration / actualRequests
 	} else {
 		return 1000 / 1
 	}

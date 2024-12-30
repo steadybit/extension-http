@@ -53,7 +53,7 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 
 			wantedState: &HTTPCheckState{
 				ExpectedStatusCodes:      []string{"200", "201", "202", "203", "204", "205", "206", "207", "208", "209"},
-				DelayBetweenRequestsInMS: 1000,
+				DelayBetweenRequestsInMS: 1250, // 5000 / (5 - 1 (initial request))
 				Timeout:                  time.Now(),
 				ResponsesContains:        "test",
 				SuccessRate:              100,
@@ -278,7 +278,7 @@ func TestNewHTTPCheckActionFixedAmount_All_Failure(t *testing.T) {
 
 func TestNewHTTPCheckActionFixedAmount_start_directly(t *testing.T) {
 	// write receive timestamps to the channel to check the delay between requests
-	var receivedRequests = make(chan time.Time, 10)
+	var receivedRequests = make(chan time.Time)
 
 	// generate a test server so we can capture and inspect the request
 	testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
@@ -298,7 +298,7 @@ func TestNewHTTPCheckActionFixedAmount_start_directly(t *testing.T) {
 			"responsesContains": "test",
 			"successRate":       100,
 			"maxConcurrent":     1,
-			"numberOfRequests":  2,
+			"numberOfRequests":  3,
 			"readTimeout":       5000,
 			"body":              "test",
 			"url":               testServer.URL,
@@ -309,19 +309,26 @@ func TestNewHTTPCheckActionFixedAmount_start_directly(t *testing.T) {
 		},
 		ExecutionId: uuid.New(),
 	})
-
-	// prepare
 	_, err := action.Prepare(context.Background(), &state, prepareActionRequestBody)
 	assert.NoError(t, err)
 
+	// start
 	now := time.Now()
+	println("0")
 	_, _ = action.Start(context.Background(), &state)
 
 	// first request is executed immediately, check with quite big tolerance to avoid flakiness
 	firstRequest := <-receivedRequests
+	println("1")
 	assert.WithinDuration(t, now, firstRequest, 400*time.Millisecond)
 
-	// second request is executed after 1 second
+	// second request is executed after 1 second (now + 1 * (2000 / (3 - 1)))
 	secondRequest := <-receivedRequests
+	println("2")
 	assert.WithinDuration(t, now.Add(1*time.Second), secondRequest, 400*time.Millisecond)
+
+	// third request is executed after 2 second (now + 2 * (2000 / (3 - 1)))
+	thirdRequest := <-receivedRequests
+	println("3")
+	assert.WithinDuration(t, now.Add(2*time.Second), thirdRequest, 400*time.Millisecond)
 }
