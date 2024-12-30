@@ -104,10 +104,16 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckSt
 		return nil, err
 	}
 
-	// create worker pool
-	for w := 1; w <= state.MaxConcurrent; w++ {
-		go requestWorker(executionRunData, state, checkEnded)
-	}
+	// create worker pool, and close metrics once all workers are done
+	go func() {
+		var wg sync.WaitGroup
+		for w := 1; w <= state.MaxConcurrent; w++ {
+			wg.Add(1)
+			go requestWorker(executionRunData, state, checkEnded, &wg)
+		}
+		wg.Wait()
+		close(executionRunData.metrics)
+	}()
 	return nil, nil
 }
 
@@ -121,17 +127,13 @@ func loadExecutionRunData(executionID uuid.UUID) (*ExecutionRunData, error) {
 }
 
 func initExecutionRunData(state *HTTPCheckState) {
-	saveExecutionRunData(state.ExecutionID, &ExecutionRunData{
+	ExecutionRunDataMap.Store(state.ExecutionID, &ExecutionRunData{
 		stopTicker:            make(chan bool),
 		jobs:                  make(chan time.Time, state.MaxConcurrent),
 		metrics:               make(chan action_kit_api.Metric, state.RequestsPerSecond),
 		requestCounter:        atomic.Uint64{},
 		requestSuccessCounter: atomic.Uint64{},
 	})
-}
-
-func saveExecutionRunData(executionID uuid.UUID, executionRunData *ExecutionRunData) {
-	ExecutionRunDataMap.Store(executionID, executionRunData)
 }
 
 func createRequest(state *HTTPCheckState) (*http.Request, error) {
@@ -153,8 +155,12 @@ func createRequest(state *HTTPCheckState) (*http.Request, error) {
 	return request, err
 }
 
-func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, checkEnded func(executionRunData *ExecutionRunData, state *HTTPCheckState) bool) {
+func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, checkEnded func(executionRunData *ExecutionRunData, state *HTTPCheckState) bool, wg *sync.WaitGroup) {
+	// restrict idle connections, as all will point to one target
 	transport := &http.Transport{
+		MaxIdleConns:        1,
+		MaxIdleConnsPerHost: 1,
+		DisableKeepAlives:   true,
 		DialContext: (&net.Dialer{
 			Timeout: state.ConnectionTimeout,
 		}).DialContext,
@@ -198,7 +204,6 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, ch
 					Value:     float64(now.Sub(started).Milliseconds()),
 					Timestamp: now,
 				}
-				responseStatusWasExpected = false
 				return
 			}
 
@@ -279,8 +284,12 @@ func requestWorker(executionRunData *ExecutionRunData, state *HTTPCheckState, ch
 				}
 				executionRunData.metrics <- metric
 			}
+			if response != nil && response.Body != nil {
+				_ = response.Body.Close()
+			}
 		}
 	}
+	wg.Done()
 }
 
 func start(state *HTTPCheckState) {
@@ -289,7 +298,6 @@ func start(state *HTTPCheckState) {
 		log.Error().Err(err).Msg("Failed to load execution run data")
 	}
 	executionRunData.tickers = time.NewTicker(time.Duration(state.DelayBetweenRequestsInMS) * time.Millisecond)
-	executionRunData.stopTicker = make(chan bool)
 
 	now := time.Now()
 	log.Debug().Msgf("Schedule first Request at %v", now)
@@ -297,9 +305,16 @@ func start(state *HTTPCheckState) {
 	go func() {
 		for {
 			select {
-			case <-executionRunData.stopTicker:
-				log.Debug().Msg("Stop Request Scheduler")
-				return
+			case _, ok := <-executionRunData.stopTicker:
+				if !ok {
+					log.Debug().Msg("Stop Request Scheduler")
+					// close jobs channel to free worker goroutines
+					close(executionRunData.jobs)
+					executionRunData.tickers.Stop()
+					ExecutionRunDataMap.Delete(state.ExecutionID)
+					log.Trace().Msg("Stopped Request Scheduler")
+					return
+				}
 			case t := <-executionRunData.tickers.C:
 				log.Debug().Msgf("Schedule Request at %v", t)
 				executionRunData.jobs <- t
@@ -334,13 +349,16 @@ func stop(state *HTTPCheckState) (*action_kit_api.StopResult, error) {
 		log.Debug().Err(err).Msg("Execution run data not found, stop was already called")
 		return nil, nil
 	}
-	stopTickers(executionRunData)
+
+	// Close ticker to stop sending requests
+	if executionRunData.stopTicker != nil {
+		close(executionRunData.stopTicker)
+	}
 
 	latestMetrics := retrieveLatestMetrics(executionRunData.metrics)
 	// calculate the success rate
 	successRate := float64(executionRunData.requestSuccessCounter.Load()) / float64(executionRunData.requestCounter.Load()) * 100
 	log.Debug().Msgf("Success Rate: %v%%", successRate)
-	ExecutionRunDataMap.Delete(state.ExecutionID)
 	if successRate < float64(state.SuccessRate) {
 		log.Info().Msgf("Success Rate (%.2f%%) was below %v%%", successRate, state.SuccessRate)
 		return extutil.Ptr(action_kit_api.StopResult{
@@ -355,18 +373,4 @@ func stop(state *HTTPCheckState) (*action_kit_api.StopResult, error) {
 	return extutil.Ptr(action_kit_api.StopResult{
 		Metrics: extutil.Ptr(latestMetrics),
 	}), nil
-}
-
-func stopTickers(executionRunData *ExecutionRunData) {
-	ticker := executionRunData.tickers
-	if ticker != nil {
-		ticker.Stop()
-	}
-	// non-blocking send
-	select {
-	case executionRunData.stopTicker <- true: // stop the ticker
-		log.Trace().Msg("Stopped ticker")
-	default:
-		log.Debug().Msg("Ticker already stopped")
-	}
 }

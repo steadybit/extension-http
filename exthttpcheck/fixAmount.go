@@ -186,11 +186,6 @@ func (l *httpCheckActionFixedAmount) Status(_ context.Context, state *HTTPCheckS
 	}
 
 	completed := checkEndedFixedAmount(executionRunData, state)
-	if completed {
-		stopTickers(executionRunData)
-		log.Info().Msg("Action completed")
-	}
-
 	latestMetrics := retrieveLatestMetrics(executionRunData.metrics)
 
 	return &action_kit_api.StatusResult{

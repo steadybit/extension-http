@@ -6,7 +6,9 @@ package exthttpcheck
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	extension_kit "github.com/steadybit/extension-kit"
 	"github.com/steadybit/extension-kit/extutil"
@@ -14,6 +16,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"runtime"
+	"runtime/pprof"
 	"testing"
 	"time"
 )
@@ -314,21 +319,83 @@ func TestNewHTTPCheckActionFixedAmount_start_directly(t *testing.T) {
 
 	// start
 	now := time.Now()
-	println("0")
 	_, _ = action.Start(context.Background(), &state)
 
 	// first request is executed immediately, check with quite big tolerance to avoid flakiness
 	firstRequest := <-receivedRequests
-	println("1")
 	assert.WithinDuration(t, now, firstRequest, 400*time.Millisecond)
 
 	// second request is executed after 1 second (now + 1 * (2000 / (3 - 1)))
 	secondRequest := <-receivedRequests
-	println("2")
 	assert.WithinDuration(t, now.Add(1*time.Second), secondRequest, 400*time.Millisecond)
 
 	// third request is executed after 2 second (now + 2 * (2000 / (3 - 1)))
 	thirdRequest := <-receivedRequests
-	println("3")
 	assert.WithinDuration(t, now.Add(2*time.Second), thirdRequest, 400*time.Millisecond)
+}
+
+// Use pprof to visualize memory usage after run:
+// > go tool pprof -http=:8080 mem.pprof
+func TestNewHTTPCheckActionFixedAmount_start_multiples(t *testing.T) {
+	t.Skip("manual pprof test")
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		res.WriteHeader(200)
+	}))
+	defer func() { testServer.Close() }()
+
+	//prepare the action
+	request := extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
+		Config: map[string]interface{}{
+			"action":            "prepare",
+			"duration":          50,
+			"statusCode":        "200-209",
+			"responsesContains": "test",
+			"successRate":       100,
+			"maxConcurrent":     5,
+			"numberOfRequests":  2,
+			"readTimeout":       5000,
+			"body":              "test",
+			"url":               testServer.URL,
+			"method":            "GET",
+			"connectTimeout":    5000,
+			"followRedirects":   true,
+			"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+		},
+		ExecutionId: uuid.New(),
+	})
+
+	memProfile, err := os.Create("mem.pprof")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		pprof.WriteHeapProfile(memProfile)
+		memProfile.Close()
+	}()
+
+	var m runtime.MemStats
+	action := httpCheckActionFixedAmount{}
+	// sequential execution to simulate a long-running extension
+	for i := 0; i < 1000; i++ {
+		if i%100 == 0 {
+			runtime.ReadMemStats(&m)
+			fmt.Printf("%3v - Alloc = %v MiB, Heap Objects = %v, GCs = %v\n", i, m.HeapAlloc/1024/1024, m.HeapObjects, m.NumGC)
+		}
+
+		request.ExecutionId = uuid.New()
+		state := action.NewEmptyState()
+		_, err = action.Prepare(context.Background(), &state, request)
+		assert.NoError(t, err)
+		_, err = action.Start(context.Background(), &state)
+		assert.NoError(t, err)
+
+		time.Sleep(time.Duration(extutil.ToInt64(request.Config["duration"])) * time.Millisecond)
+
+		_, err = action.Status(context.Background(), &state)
+		assert.NoError(t, err)
+		_, err = action.Stop(context.Background(), &state)
+		assert.NoError(t, err)
+	}
 }
