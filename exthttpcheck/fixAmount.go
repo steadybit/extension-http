@@ -144,20 +144,22 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 	return description
 }
 
-func getDelayBetweenRequestsInMsFixedAmount(duration int64, numberOfRequests int64) int64 {
-	if duration > 0 && numberOfRequests > 0 {
-		return duration / (numberOfRequests)
+func getDelayBetweenRequestsInMsFixedAmount(duration uint64, numberOfRequests uint64) uint64 {
+	if numberOfRequests > 0 {
+		return duration / numberOfRequests
 	} else {
 		return 1000 / 1
 	}
 }
 
 func (l *httpCheckActionFixedAmount) Prepare(_ context.Context, state *HTTPCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
-	if extutil.ToInt64(request.Config["duration"]) == 0 {
+	duration := extutil.ToInt64(request.Config["duration"])
+	if duration <= 0 {
 		return nil, errors.New("duration must be greater than 0")
 	}
-	state.DelayBetweenRequestsInMS = getDelayBetweenRequestsInMsFixedAmount(extutil.ToInt64(request.Config["duration"]), extutil.ToInt64(request.Config["numberOfRequests"]))
-
+	numberOfRequests := extutil.ToUInt64(request.Config["numberOfRequests"])
+	state.RequestsPerSecond = numberOfRequests * uint64(duration) / 1000
+	state.DelayBetweenRequestsInMS = getDelayBetweenRequestsInMsFixedAmount(uint64(duration), numberOfRequests)
 	return prepare(request, state, checkEndedFixedAmount)
 }
 

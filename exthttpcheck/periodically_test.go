@@ -154,7 +154,7 @@ func TestNewHTTPCheckActionPeriodically_All_Success(t *testing.T) {
 	prepareResult, err := action.Prepare(context.Background(), &state, prepareActionRequestBody)
 	assert.NoError(t, err)
 	assert.Nil(t, prepareResult)
-	assert.Greater(t, state.DelayBetweenRequestsInMS, extutil.ToInt64(0))
+	assert.Greater(t, state.DelayBetweenRequestsInMS, extutil.ToUInt64(0))
 
 	// Start
 	startResult, err := action.Start(context.Background(), &state)
@@ -165,7 +165,9 @@ func TestNewHTTPCheckActionPeriodically_All_Success(t *testing.T) {
 	statusResult, err := action.Status(context.Background(), &state)
 	assert.NoError(t, err)
 	assert.NotNil(t, statusResult.Metrics)
+
 	time.Sleep(1 * time.Second)
+
 	// Status completed
 	statusResult, err = action.Status(context.Background(), &state)
 	assert.NoError(t, err)
@@ -175,6 +177,7 @@ func TestNewHTTPCheckActionPeriodically_All_Success(t *testing.T) {
 	executionRunData, err := action.getExecutionRunData(state.ExecutionID)
 	assert.NoError(t, err)
 	assert.Greater(t, executionRunData.requestCounter.Load(), uint64(0))
+
 	// Stop
 	stopResult, err := action.Stop(context.Background(), &state)
 	assert.NoError(t, err)
@@ -217,7 +220,7 @@ func TestNewHTTPCheckActionPeriodically_All_Failure(t *testing.T) {
 	prepareResult, err := action.Prepare(context.Background(), &state, prepareActionRequestBody)
 	assert.NoError(t, err)
 	assert.Nil(t, prepareResult)
-	assert.Greater(t, state.DelayBetweenRequestsInMS, extutil.ToInt64(0))
+	assert.Greater(t, state.DelayBetweenRequestsInMS, extutil.ToUInt64(0))
 
 	// Start
 	startResult, err := action.Start(context.Background(), &state)
@@ -228,7 +231,9 @@ func TestNewHTTPCheckActionPeriodically_All_Failure(t *testing.T) {
 	statusResult, err := action.Status(context.Background(), &state)
 	assert.NoError(t, err)
 	assert.NotNil(t, statusResult.Metrics)
+
 	time.Sleep(1 * time.Second)
+
 	// Status completed
 	statusResult, err = action.Status(context.Background(), &state)
 	assert.NoError(t, err)
@@ -237,6 +242,7 @@ func TestNewHTTPCheckActionPeriodically_All_Failure(t *testing.T) {
 	executionRunData, err := action.getExecutionRunData(state.ExecutionID)
 	assert.NoError(t, err)
 	assert.Greater(t, executionRunData.requestCounter.Load(), uint64(0))
+
 	// Stop
 	stopResult, err := action.Stop(context.Background(), &state)
 	assert.NoError(t, err)

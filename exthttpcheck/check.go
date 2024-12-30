@@ -38,7 +38,7 @@ var (
 
 type HTTPCheckState struct {
 	ExpectedStatusCodes      []string
-	DelayBetweenRequestsInMS int64
+	DelayBetweenRequestsInMS uint64
 	Timeout                  time.Time
 	ResponsesContains        string
 	SuccessRate              int
@@ -46,6 +46,7 @@ type HTTPCheckState struct {
 	ResponseTime             *time.Duration
 	MaxConcurrent            int
 	NumberOfRequests         uint64
+	RequestsPerSecond        uint64
 	ReadTimeout              time.Duration
 	ExecutionID              uuid.UUID
 	Body                     string
@@ -123,7 +124,7 @@ func initExecutionRunData(state *HTTPCheckState) {
 	saveExecutionRunData(state.ExecutionID, &ExecutionRunData{
 		stopTicker:            make(chan bool),
 		jobs:                  make(chan time.Time, state.MaxConcurrent),
-		metrics:               make(chan action_kit_api.Metric, state.MaxConcurrent),
+		metrics:               make(chan action_kit_api.Metric, state.RequestsPerSecond),
 		requestCounter:        atomic.Uint64{},
 		requestSuccessCounter: atomic.Uint64{},
 	})
@@ -309,7 +310,6 @@ func start(state *HTTPCheckState) {
 }
 
 func retrieveLatestMetrics(metrics chan action_kit_api.Metric) []action_kit_api.Metric {
-
 	statusMetrics := make([]action_kit_api.Metric, 0, len(metrics))
 	for {
 		select {

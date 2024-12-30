@@ -130,7 +130,7 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 	return description
 }
 
-func getDelayBetweenRequestsInMsPeriodically(requestsPerSecond int64) int64 {
+func getDelayBetweenRequestsInMsPeriodically(requestsPerSecond uint64) uint64 {
 	if requestsPerSecond > 0 {
 		return 1000 / requestsPerSecond
 	} else {
@@ -139,7 +139,8 @@ func getDelayBetweenRequestsInMsPeriodically(requestsPerSecond int64) int64 {
 }
 
 func (l *httpCheckActionPeriodically) Prepare(_ context.Context, state *HTTPCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
-	state.DelayBetweenRequestsInMS = getDelayBetweenRequestsInMsPeriodically(extutil.ToInt64(request.Config["requestsPerSecond"]))
+	state.RequestsPerSecond = extutil.ToUInt64(request.Config["requestsPerSecond"])
+	state.DelayBetweenRequestsInMS = getDelayBetweenRequestsInMsPeriodically(state.RequestsPerSecond)
 	return prepare(request, state, func(executionRunData *ExecutionRunData, state *HTTPCheckState) bool { return false })
 }
 
