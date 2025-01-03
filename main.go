@@ -72,12 +72,16 @@ func main() {
 			switch s {
 			case syscall.SIGUSR2:
 				f, err := os.Create("heap.pprof")
-				if err == nil {
-					err = pprof.WriteHeapProfile(f)
-					_ = f.Close()
+				if err != nil {
+					log.Error().Err(err).Msg("failed to create heap profile")
 					return
 				}
-				log.Error().Err(err).Msg("failed to create heap profile")
+				err = pprof.WriteHeapProfile(f)
+				_ = f.Close()
+				if err != nil {
+					log.Error().Err(err).Msg("failed to write heap profile")
+					return
+				}
 			}
 		}
 	}()
