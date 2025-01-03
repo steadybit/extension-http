@@ -7,7 +7,6 @@ package main
 import (
 	_ "github.com/KimMachineGun/automemlimit" // By default, it sets `GOMEMLIMIT` to 90% of cgroup's memory limit.
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
@@ -22,10 +21,6 @@ import (
 	"github.com/steadybit/extension-kit/extsignals"
 	_ "go.uber.org/automaxprocs" // Importing automaxprocs automatically adjusts GOMAXPROCS.
 	_ "net/http/pprof"           //allow pprof
-	"os"
-	"os/signal"
-	"runtime/pprof"
-	"syscall"
 )
 
 func main() {
@@ -63,28 +58,6 @@ func main() {
 
 	//This will install a signal handler, that will stop active actions when receiving a SIGURS1, SIGTERM or SIGINT
 	extsignals.ActivateSignalHandlers()
-
-	// Temporary enable pprof for heap profiling on SIGUSR2
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, syscall.SIGUSR2)
-	go func() {
-		for s := range signals {
-			switch s {
-			case syscall.SIGUSR2:
-				f, err := os.Create("heap.pprof")
-				if err != nil {
-					log.Error().Err(err).Msg("failed to create heap profile")
-					return
-				}
-				err = pprof.WriteHeapProfile(f)
-				_ = f.Close()
-				if err != nil {
-					log.Error().Err(err).Msg("failed to write heap profile")
-					return
-				}
-			}
-		}
-	}()
 
 	action_kit_sdk.RegisterCoverageEndpoints()
 	exthealth.SetReady(true)
