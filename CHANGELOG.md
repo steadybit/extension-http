@@ -1,8 +1,11 @@
 # Changelog
 
-## v1.0.25 (next)
+## v1.0.26 (next)
+
+## v1.0.25
 
 - Add hint describing the behavior of the fixed amount check and lower the default duration to 2 seconds
+- Fix memory lead in the http check
 
 ## v1.0.24
 
