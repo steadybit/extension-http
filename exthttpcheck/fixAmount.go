@@ -95,7 +95,7 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 				DefaultValue: extutil.Ptr("1"),
 				Order:        extutil.Ptr(7),
 			},
-			action_kit_api.ActionParameter{
+			{
 				Name:         "duration",
 				Label:        "Duration",
 				Description:  extutil.Ptr("In which timeframe should the specified requests be executed?"),
@@ -161,12 +161,10 @@ func (l *httpCheckActionFixedAmount) Prepare(_ context.Context, state *HTTPCheck
 	numberOfRequests := extutil.ToUInt64(request.Config["numberOfRequests"])
 	state.RequestsPerSecond = numberOfRequests * uint64(duration) / 1000
 	state.DelayBetweenRequestsInMS = getDelayBetweenRequestsInMsFixedAmount(uint64(duration), numberOfRequests)
-	return prepare(request, state, checkEndedFixedAmount)
-}
 
-func checkEndedFixedAmount(executionRunData *ExecutionRunData, state *HTTPCheckState) bool {
-	result := executionRunData.requestCounter.Load() >= state.NumberOfRequests
-	return result
+	return prepare(request, state, func(checker *httpChecker) bool {
+		return checker.counterReqStarted.Load() >= numberOfRequests
+	})
 }
 
 // Start is called to start the action
@@ -179,14 +177,14 @@ func (l *httpCheckActionFixedAmount) Start(_ context.Context, state *HTTPCheckSt
 
 // Status is called to get the current status of the action
 func (l *httpCheckActionFixedAmount) Status(_ context.Context, state *HTTPCheckState) (*action_kit_api.StatusResult, error) {
-	executionRunData, err := loadExecutionRunData(state.ExecutionID)
+	checker, err := loadHttpChecker(state.ExecutionID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to load execution run data")
 		return nil, err
 	}
 
-	completed := checkEndedFixedAmount(executionRunData, state)
-	latestMetrics := retrieveLatestMetrics(executionRunData.metrics)
+	completed := checker.shouldEnd()
+	latestMetrics := retrieveLatestMetrics(checker.metrics)
 
 	return &action_kit_api.StatusResult{
 		Completed: completed,
@@ -198,6 +196,6 @@ func (l *httpCheckActionFixedAmount) Stop(_ context.Context, state *HTTPCheckSta
 	return stop(state)
 }
 
-func (l *httpCheckActionFixedAmount) getExecutionRunData(executionID uuid.UUID) (*ExecutionRunData, error) {
-	return loadExecutionRunData(executionID)
+func (l *httpCheckActionFixedAmount) getHttpChecker(executionID uuid.UUID) (*httpChecker, error) {
+	return loadHttpChecker(executionID)
 }

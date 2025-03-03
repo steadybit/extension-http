@@ -110,7 +110,7 @@ func TestAction_Prepare(t *testing.T) {
 			state := HTTPCheckState{}
 			request := tt.requestBody
 			//When
-			_, err := prepare(request, &state, func(executionRunData *ExecutionRunData, state *HTTPCheckState) bool { return false })
+			_, err := prepare(request, &state, nil)
 
 			//Then
 			if tt.wantedError != nil {
@@ -141,11 +141,11 @@ func TestAction_Prepare(t *testing.T) {
 func TestAction_Stop(t *testing.T) {
 
 	tests := []struct {
-		name             string
-		requestBody      action_kit_api.StopActionRequestBody
-		state            *HTTPCheckState
-		executionRunData *ExecutionRunData
-		wantedError      error
+		name        string
+		requestBody action_kit_api.StopActionRequestBody
+		state       *HTTPCheckState
+		checker     *httpChecker
+		wantedError error
 	}{
 		{
 			name:        "Should successfully stop the action",
@@ -154,8 +154,8 @@ func TestAction_Stop(t *testing.T) {
 				ExecutionID: uuid.New(),
 				SuccessRate: 40,
 			},
-			executionRunData: getExecutionRunData(5, 10),
-			wantedError:      nil,
+			checker:     getChecker(5, 10),
+			wantedError: nil,
 		}, {
 			name:        "Should fail because of low success rate",
 			requestBody: extutil.JsonMangle(action_kit_api.StopActionRequestBody{}),
@@ -163,14 +163,14 @@ func TestAction_Stop(t *testing.T) {
 				ExecutionID: uuid.New(),
 				SuccessRate: 100,
 			},
-			executionRunData: getExecutionRunData(4, 11),
-			wantedError:      extension_kit.ToError("Success Rate (36.36%) was below 100%", nil),
+			checker:     getChecker(4, 11),
+			wantedError: extension_kit.ToError("Success Rate (36.36%) was below 100%", nil),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			//Given
-			ExecutionRunDataMap.Store(tt.state.ExecutionID, tt.executionRunData)
+			httpCheckers.Store(tt.state.ExecutionID, tt.checker)
 			//When
 			result, err := stop(tt.state)
 
@@ -188,13 +188,15 @@ func TestAction_Stop(t *testing.T) {
 	}
 }
 
-func getExecutionRunData(successCounter uint64, counter uint64) *ExecutionRunData {
-	data := &ExecutionRunData{
-		requestSuccessCounter: atomic.Uint64{},
-		requestCounter:        atomic.Uint64{},
+func getChecker(successCounter uint64, counter uint64) *httpChecker {
+	data := &httpChecker{
+		counterReqSuccess: atomic.Uint64{},
+		counterReqStarted: atomic.Uint64{},
+		counterReqFailed:  atomic.Uint64{},
 	}
-	data.requestCounter.Store(counter)
-	data.requestSuccessCounter.Store(successCounter)
+	data.counterReqStarted.Store(counter)
+	data.counterReqSuccess.Store(successCounter)
+	data.counterReqFailed.Store(counter - successCounter)
 	return data
 
 }

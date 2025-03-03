@@ -17,7 +17,6 @@ require (
 	github.com/steadybit/extension-kit v1.9.0
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/automaxprocs v1.6.0
-	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c
 )
 
 require (
