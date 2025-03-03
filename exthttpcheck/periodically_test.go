@@ -122,8 +122,7 @@ func TestNewHTTPCheckActionPeriodically_Prepare(t *testing.T) {
 func TestNewHTTPCheckActionPeriodically_All_Success(t *testing.T) {
 	// generate a test server so we can capture and inspect the request
 	testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		res.Write([]byte("this is a test response"))
-		res.WriteHeader(200)
+		_, _ = res.Write([]byte("this is a test response"))
 	}))
 	defer func() { testServer.Close() }()
 
@@ -176,14 +175,14 @@ func TestNewHTTPCheckActionPeriodically_All_Success(t *testing.T) {
 
 	executionRunData, err := action.getExecutionRunData(state.ExecutionID)
 	assert.NoError(t, err)
-	assert.Greater(t, executionRunData.requestCounter.Load(), uint64(0))
+	assert.Greater(t, executionRunData.counterReqStarted.Load(), uint64(0))
 
 	// Stop
 	stopResult, err := action.Stop(context.Background(), &state)
 	assert.NoError(t, err)
 	assert.NotNil(t, stopResult.Metrics)
 	assert.Nil(t, stopResult.Error)
-	assert.Greater(t, executionRunData.requestSuccessCounter.Load(), uint64(0))
+	assert.Greater(t, executionRunData.counterReqSuccess.Load(), uint64(0))
 }
 
 func TestNewHTTPCheckActionPeriodically_All_Failure(t *testing.T) {
@@ -241,7 +240,7 @@ func TestNewHTTPCheckActionPeriodically_All_Failure(t *testing.T) {
 
 	executionRunData, err := action.getExecutionRunData(state.ExecutionID)
 	assert.NoError(t, err)
-	assert.Greater(t, executionRunData.requestCounter.Load(), uint64(0))
+	assert.Greater(t, executionRunData.counterReqStarted.Load(), uint64(0))
 
 	// Stop
 	stopResult, err := action.Stop(context.Background(), &state)
@@ -249,5 +248,5 @@ func TestNewHTTPCheckActionPeriodically_All_Failure(t *testing.T) {
 	assert.NotNil(t, stopResult.Metrics)
 	assert.NotNil(t, stopResult.Error)
 	assert.Equal(t, stopResult.Error.Title, "Success Rate (0.00%) was below 100%")
-	assert.Equal(t, executionRunData.requestSuccessCounter.Load(), uint64(0))
+	assert.Equal(t, executionRunData.counterReqSuccess.Load(), uint64(0))
 }

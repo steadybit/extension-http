@@ -141,7 +141,7 @@ func getDelayBetweenRequestsInMsPeriodically(requestsPerSecond uint64) uint64 {
 func (l *httpCheckActionPeriodically) Prepare(_ context.Context, state *HTTPCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	state.RequestsPerSecond = extutil.ToUInt64(request.Config["requestsPerSecond"])
 	state.DelayBetweenRequestsInMS = getDelayBetweenRequestsInMsPeriodically(state.RequestsPerSecond)
-	return prepare(request, state, func(executionRunData *ExecutionRunData, state *HTTPCheckState) bool { return false })
+	return prepare(request, state, nil)
 }
 
 // Start is called to start the action
@@ -154,7 +154,7 @@ func (l *httpCheckActionPeriodically) Start(_ context.Context, state *HTTPCheckS
 
 // Status is called to get the current status of the action
 func (l *httpCheckActionPeriodically) Status(_ context.Context, state *HTTPCheckState) (*action_kit_api.StatusResult, error) {
-	executionRunData, err := loadExecutionRunData(state.ExecutionID)
+	executionRunData, err := loadHttpChecker(state.ExecutionID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to load execution run data")
 		return nil, err
@@ -170,6 +170,6 @@ func (l *httpCheckActionPeriodically) Stop(_ context.Context, state *HTTPCheckSt
 	return stop(state)
 }
 
-func (l *httpCheckActionPeriodically) getExecutionRunData(executionID uuid.UUID) (*ExecutionRunData, error) {
-	return loadExecutionRunData(executionID)
+func (l *httpCheckActionPeriodically) getExecutionRunData(executionID uuid.UUID) (*httpChecker, error) {
+	return loadHttpChecker(executionID)
 }

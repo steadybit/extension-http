@@ -149,8 +149,7 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 func TestNewHTTPCheckActionFixedAmount_All_Success(t *testing.T) {
 	// generate a test server so we can capture and inspect the request
 	testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		res.Write([]byte("this is a test response"))
-		res.WriteHeader(200)
+		_, _ = res.Write([]byte("this is a test response"))
 	}))
 	defer func() { testServer.Close() }()
 
@@ -183,9 +182,9 @@ func TestNewHTTPCheckActionFixedAmount_All_Success(t *testing.T) {
 	assert.Nil(t, prepareResult)
 	assert.Greater(t, state.DelayBetweenRequestsInMS, extutil.ToUInt64(0))
 
-	executionRunData, err := action.getExecutionRunData(state.ExecutionID)
+	checker, err := action.getHttpChecker(state.ExecutionID)
 	assert.NoError(t, err)
-	assert.NotNil(t, executionRunData)
+	assert.NotNil(t, checker)
 
 	// Start
 	startResult, err := action.Start(context.Background(), &state)
@@ -204,14 +203,14 @@ func TestNewHTTPCheckActionFixedAmount_All_Success(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, statusResult.Completed, true)
 	assert.Greater(t, len(*statusResult.Metrics), 0)
-	assert.Equal(t, executionRunData.requestCounter.Load(), uint64(20))
+	assert.Equal(t, checker.counterReqStarted.Load(), uint64(20))
 
 	// Stop
 	stopResult, err := action.Stop(context.Background(), &state)
 	assert.NoError(t, err)
 	assert.NotNil(t, stopResult.Metrics)
 	assert.Nil(t, stopResult.Error)
-	assert.Equal(t, executionRunData.requestSuccessCounter.Load(), uint64(20))
+	assert.Equal(t, checker.counterReqSuccess.Load(), uint64(20))
 }
 
 func TestNewHTTPCheckActionFixedAmount_All_Failure(t *testing.T) {
@@ -268,9 +267,9 @@ func TestNewHTTPCheckActionFixedAmount_All_Failure(t *testing.T) {
 	assert.Equal(t, statusResult.Completed, true)
 	assert.Greater(t, len(*statusResult.Metrics), 0)
 
-	executionRunData, err := action.getExecutionRunData(state.ExecutionID)
+	executionRunData, err := action.getHttpChecker(state.ExecutionID)
 	assert.NoError(t, err)
-	assert.Greater(t, executionRunData.requestCounter.Load(), uint64(0))
+	assert.Greater(t, executionRunData.counterReqStarted.Load(), uint64(0))
 
 	// Stop
 	stopResult, err := action.Stop(context.Background(), &state)
@@ -278,7 +277,7 @@ func TestNewHTTPCheckActionFixedAmount_All_Failure(t *testing.T) {
 	assert.NotNil(t, stopResult.Metrics)
 	assert.NotNil(t, stopResult.Error)
 	assert.Equal(t, stopResult.Error.Title, "Success Rate (0.00%) was below 100%")
-	assert.Equal(t, executionRunData.requestSuccessCounter.Load(), uint64(0))
+	assert.Equal(t, executionRunData.counterReqSuccess.Load(), uint64(0))
 }
 
 func TestNewHTTPCheckActionFixedAmount_start_directly(t *testing.T) {
@@ -371,8 +370,8 @@ func TestNewHTTPCheckActionFixedAmount_start_multiples(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() {
-		pprof.WriteHeapProfile(memProfile)
-		memProfile.Close()
+		_ = pprof.WriteHeapProfile(memProfile)
+		_ = memProfile.Close()
 	}()
 
 	var m runtime.MemStats
