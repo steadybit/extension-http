@@ -1,6 +1,10 @@
 # Changelog
 
-## v1.0.26 (next)
+## v1.0.27 (next)
+
+## v1.0.26
+
+- Fix success rate not correctly calculated when there are unfinished requests
 
 ## v1.0.25
 
