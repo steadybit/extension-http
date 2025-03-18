@@ -83,3 +83,9 @@ Before activating the location selection feature, be sure to follow these steps:
 	 One option is to add the statement `or target via the query language.type="com.steadybit.extension_http.client-location"` to your existing query.
 	 You can also filter the available execution locations down, e.g., via the clustername by using `(target.type="com.steadybit.extension_http.client-location" and k8s.cluster-name="CLUSTER-NAME")`
 
+## Version and Revision
+
+The version and revision of the extension:
+- are printed during the startup of the extension
+- are added as a Docker label to the image
+- are available via the `version.txt`/`revision.txt` files in the root of the image
