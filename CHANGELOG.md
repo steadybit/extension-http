@@ -2,6 +2,8 @@
 
 ## v1.0.27 (next)
 
+- Updated dependencies
+
 ## v1.0.26
 
 - Fix success rate not correctly calculated when there are unfinished requests
