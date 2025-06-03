@@ -38,6 +38,7 @@ type HTTPCheckState struct {
 	Headers                  map[string]string
 	ConnectionTimeout        time.Duration
 	FollowRedirects          bool
+	InsecureSkipVerify       bool
 }
 
 func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckState, checkEnded checkEndedFn) (*action_kit_api.PrepareResult, error) {
@@ -62,6 +63,7 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckSt
 	state.Method = extutil.ToString(request.Config["method"])
 	state.ConnectionTimeout = time.Duration(extutil.ToInt64(request.Config["connectTimeout"])) * time.Millisecond
 	state.FollowRedirects = extutil.ToBool(request.Config["followRedirects"])
+	state.InsecureSkipVerify = extutil.ToBool(request.Config["insecureSkipVerify"])
 	var err error
 	state.Headers, err = extutil.ToKeyValue(request.Config, "headers")
 	if err != nil {

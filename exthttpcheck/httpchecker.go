@@ -4,6 +4,7 @@
 package exthttpcheck
 
 import (
+	"crypto/tls"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/extension-kit/extutil"
@@ -92,6 +93,9 @@ func (c *httpChecker) performRequests(state *HTTPCheckState) {
 		MaxIdleConnsPerHost: 1,
 		DisableKeepAlives:   true,
 		DialContext:         (&net.Dialer{Timeout: state.ConnectionTimeout}).DialContext,
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: state.InsecureSkipVerify,
+		},
 	}
 	client := http.Client{Timeout: state.ReadTimeout, Transport: transport}
 

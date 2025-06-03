@@ -2,6 +2,8 @@
 
 ## v1.0.27 (next)
 
+- ability to import own certificates for TLS connections
+- ability to ignore TLS errors for http connections
 - Updated dependencies
 
 ## v1.0.26
