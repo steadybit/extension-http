@@ -44,10 +44,11 @@ func testPeriodically(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		name          string
-		url           string
-		timeout       float64
-		WantedFailure bool
+		name               string
+		url                string
+		timeout            float64
+		insecureSkipVerify bool
+		WantedFailure      bool
 	}{
 		{
 			name:          "should check status ok",
@@ -60,6 +61,16 @@ func testPeriodically(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			url:           "https://hub-dev.steadybit.com",
 			timeout:       1,
 			WantedFailure: true,
+		}, {
+			name:               "should check status for bad ssl website",
+			url:                "https://self-signed.badssl.com/",
+			insecureSkipVerify: false,
+			WantedFailure:      true,
+		}, {
+			name:               "should check status for bad ssl website with insecureSkipVerify",
+			url:                "https://self-signed.badssl.com/",
+			insecureSkipVerify: true,
+			WantedFailure:      false,
 		},
 	}
 
@@ -68,25 +79,27 @@ func testPeriodically(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	for _, tt := range tests {
 
 		config := struct {
-			Duration          int           `json:"duration"`
-			Url               string        `json:"url"`
-			ConnectTimeout    float64       `json:"connectTimeout"`
-			RequestsPerSecond float64       `json:"requestsPerSecond"`
-			Method            string        `json:"method"`
-			MaxConcurrent     float64       `json:"maxConcurrent"`
-			StatusCode        string        `json:"statusCode"`
-			ReadTimeout       float64       `json:"readTimeout"`
-			Headers           []interface{} `json:"headers"`
+			Duration           int           `json:"duration"`
+			Url                string        `json:"url"`
+			ConnectTimeout     float64       `json:"connectTimeout"`
+			RequestsPerSecond  float64       `json:"requestsPerSecond"`
+			Method             string        `json:"method"`
+			MaxConcurrent      float64       `json:"maxConcurrent"`
+			StatusCode         string        `json:"statusCode"`
+			ReadTimeout        float64       `json:"readTimeout"`
+			Headers            []interface{} `json:"headers"`
+			InsecureSkipVerify bool          `json:"insecureSkipVerify"`
 		}{
-			Duration:          10000,
-			Url:               tt.url,
-			ConnectTimeout:    tt.timeout,
-			RequestsPerSecond: 2,
-			Method:            "GET",
-			MaxConcurrent:     1,
-			StatusCode:        "200",
-			ReadTimeout:       tt.timeout,
-			Headers:           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+			Duration:           10000,
+			Url:                tt.url,
+			ConnectTimeout:     tt.timeout,
+			RequestsPerSecond:  2,
+			Method:             "GET",
+			MaxConcurrent:      1,
+			StatusCode:         "200",
+			ReadTimeout:        tt.timeout,
+			Headers:            []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+			InsecureSkipVerify: tt.insecureSkipVerify,
 		}
 
 		t.Run(tt.name, func(t *testing.T) {
