@@ -19,6 +19,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sync"
 	"testing"
 	"time"
 )
@@ -77,13 +78,53 @@ func startLocalServerWithSelfSignedCertificate(t *testing.T) *http.Server {
 		Handler:   mux,
 	}
 
+	readyCh := make(chan struct{})
+	var wg sync.WaitGroup
+	wg.Add(1)
+
 	go func() {
 		log.Info().Msg("Starting HTTPS server on port 8443")
+		close(readyCh) // Signal that the server goroutine has started
 		if err := server.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
 			log.Error().Err(err).Msg("Failed to start HTTPS server")
 		}
+		wg.Done()
 	}()
+
+	// Wait for server to be ready with retry and backoff
+	waitForServerReady(t, "https://localhost:8443", readyCh)
+
 	return server
+}
+
+func waitForServerReady(t *testing.T, url string, readyCh chan struct{}) {
+	timeout := time.After(10 * time.Second)
+	backoff := 100 * time.Millisecond
+	<-readyCh // Wait for server goroutine to start
+	for {
+		select {
+		case <-timeout:
+			t.Fatalf("Server did not become ready in time")
+			return
+		default:
+			tr := &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			}
+			client := &http.Client{Transport: tr}
+			resp, err := client.Get(url)
+			if err == nil && resp.StatusCode == http.StatusOK {
+				resp.Body.Close()
+				return
+			}
+			if resp != nil {
+				resp.Body.Close()
+			}
+			time.Sleep(backoff)
+			if backoff < 2*time.Second {
+				backoff *= 2
+			}
+		}
+	}
 }
 
 func installConfigMap(m *e2e.Minikube) error {
