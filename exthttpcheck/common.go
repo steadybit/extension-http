@@ -225,6 +225,16 @@ var (
 		Advanced:     extutil.Ptr(true),
 		Order:        extutil.Ptr(22),
 	}
+	insecureSkipVerify = action_kit_api.ActionParameter{
+		Name:         "insecureSkipVerify",
+		Label:        "Ignore Certificate Errors",
+		Description:  extutil.Ptr("Should certificate errors be ignored?"),
+		Type:         action_kit_api.ActionParameterTypeBoolean,
+		DefaultValue: extutil.Ptr("false"),
+		Required:     extutil.Ptr(false),
+		Advanced:     extutil.Ptr(true),
+		Order:        extutil.Ptr(23),
+	}
 	widgetsBackwardCompatiblity = extutil.Ptr([]action_kit_api.Widget{
 		action_kit_api.PredefinedWidget{
 			Type:               action_kit_api.ComSteadybitWidgetPredefined,

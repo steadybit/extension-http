@@ -4,27 +4,48 @@
 package e2e
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_test/e2e"
 	"github.com/steadybit/extension-http/exthttpcheck"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"math/big"
+	"net"
+	"net/http"
+	"os"
+	"sync"
 	"testing"
 	"time"
 )
 
 func TestWithMinikube(t *testing.T) {
+	server := startLocalServerWithSelfSignedCertificate(t)
+	defer server.Close()
+
 	extFactory := e2e.HelmExtensionFactory{
 		Name: "extension-http",
 		Port: 8085,
 		ExtraArgs: func(m *e2e.Minikube) []string {
 			return []string{
 				//"--set", "logging.level=debug",
+				"--set", "extraVolumes[0].name=extra-certs",
+				"--set", "extraVolumes[0].configMap.name=self-signed-cert",
+				"--set", "extraVolumeMounts[0].name=extra-certs",
+				"--set", "extraVolumeMounts[0].mountPath=/etc/ssl/extra-certs",
+				"--set", "extraVolumeMounts[0].readOnly=true",
+				"--set", "extraEnv[0].name=SSL_CERT_DIR",
+				"--set", "extraEnv[0].value=/etc/ssl/extra-certs:/etc/ssl/certs",
 			}
 		},
 	}
 
-	e2e.WithDefaultMinikube(t, &extFactory, []e2e.WithMinikubeTestCase{
+	e2e.WithMinikube(t, e2e.DefaultMinikubeOpts().AfterStart(installConfigMap), &extFactory, []e2e.WithMinikubeTestCase{
 		{
 			Name: "periodically",
 			Test: testPeriodically,
@@ -36,6 +57,85 @@ func TestWithMinikube(t *testing.T) {
 	})
 }
 
+func startLocalServerWithSelfSignedCertificate(t *testing.T) *http.Server {
+	// Start local HTTPS server with self-signed certificate
+	serverCert, err := tls.LoadX509KeyPair("./cert.pem", "./key.pem")
+	require.NoError(t, err)
+
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{serverCert},
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Hello from HTTPS server with self-signed certificate!"))
+	})
+
+	server := &http.Server{
+		Addr:      ":8443",
+		TLSConfig: tlsConfig,
+		Handler:   mux,
+	}
+
+	readyCh := make(chan struct{})
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		log.Info().Msg("Starting HTTPS server on port 8443")
+		close(readyCh) // Signal that the server goroutine has started
+		if err := server.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
+			log.Error().Err(err).Msg("Failed to start HTTPS server")
+		}
+		wg.Done()
+	}()
+
+	// Wait for server to be ready with retry and backoff
+	waitForServerReady(t, "https://localhost:8443", readyCh)
+
+	return server
+}
+
+func waitForServerReady(t *testing.T, url string, readyCh chan struct{}) {
+	timeout := time.After(10 * time.Second)
+	backoff := 100 * time.Millisecond
+	<-readyCh // Wait for server goroutine to start
+	for {
+		select {
+		case <-timeout:
+			t.Fatalf("Server did not become ready in time")
+			return
+		default:
+			tr := &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			}
+			client := &http.Client{Transport: tr}
+			resp, err := client.Get(url)
+			if err == nil && resp.StatusCode == http.StatusOK {
+				resp.Body.Close()
+				return
+			}
+			if resp != nil {
+				resp.Body.Close()
+			}
+			time.Sleep(backoff)
+			if backoff < 2*time.Second {
+				backoff *= 2
+			}
+		}
+	}
+}
+
+func installConfigMap(m *e2e.Minikube) error {
+	err := m.CreateConfigMap("default", "self-signed-cert", "./cert.pem")
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to create ConfigMap with self-signed certificate")
+		return err
+	}
+	return nil
+}
+
 func testPeriodically(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	log.Info().Msg("Starting testPeriodically")
 	netperf := e2e.Netperf{Minikube: m}
@@ -44,10 +144,11 @@ func testPeriodically(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		name          string
-		url           string
-		timeout       float64
-		WantedFailure bool
+		name               string
+		url                string
+		timeout            float64
+		insecureSkipVerify bool
+		WantedFailure      bool
 	}{
 		{
 			name:          "should check status ok",
@@ -60,6 +161,21 @@ func testPeriodically(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			url:           "https://hub-dev.steadybit.com",
 			timeout:       1,
 			WantedFailure: true,
+		}, {
+			name:               "should check status for bad ssl website",
+			url:                "https://self-signed.badssl.com/",
+			insecureSkipVerify: false,
+			WantedFailure:      true,
+		}, {
+			name:               "should check status for bad ssl website with insecureSkipVerify",
+			url:                "https://self-signed.badssl.com/",
+			insecureSkipVerify: true,
+			WantedFailure:      false,
+		}, {
+			name:               "should check status with self-signed certificate",
+			url:                "https://host.minikube.internal:8443",
+			insecureSkipVerify: false,
+			WantedFailure:      false,
 		},
 	}
 
@@ -68,25 +184,27 @@ func testPeriodically(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	for _, tt := range tests {
 
 		config := struct {
-			Duration          int           `json:"duration"`
-			Url               string        `json:"url"`
-			ConnectTimeout    float64       `json:"connectTimeout"`
-			RequestsPerSecond float64       `json:"requestsPerSecond"`
-			Method            string        `json:"method"`
-			MaxConcurrent     float64       `json:"maxConcurrent"`
-			StatusCode        string        `json:"statusCode"`
-			ReadTimeout       float64       `json:"readTimeout"`
-			Headers           []interface{} `json:"headers"`
+			Duration           int           `json:"duration"`
+			Url                string        `json:"url"`
+			ConnectTimeout     float64       `json:"connectTimeout"`
+			RequestsPerSecond  float64       `json:"requestsPerSecond"`
+			Method             string        `json:"method"`
+			MaxConcurrent      float64       `json:"maxConcurrent"`
+			StatusCode         string        `json:"statusCode"`
+			ReadTimeout        float64       `json:"readTimeout"`
+			Headers            []interface{} `json:"headers"`
+			InsecureSkipVerify bool          `json:"insecureSkipVerify"`
 		}{
-			Duration:          10000,
-			Url:               tt.url,
-			ConnectTimeout:    tt.timeout,
-			RequestsPerSecond: 2,
-			Method:            "GET",
-			MaxConcurrent:     1,
-			StatusCode:        "200",
-			ReadTimeout:       tt.timeout,
-			Headers:           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+			Duration:           10000,
+			Url:                tt.url,
+			ConnectTimeout:     tt.timeout,
+			RequestsPerSecond:  2,
+			Method:             "GET",
+			MaxConcurrent:      1,
+			StatusCode:         "200",
+			ReadTimeout:        tt.timeout,
+			Headers:            []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+			InsecureSkipVerify: tt.insecureSkipVerify,
 		}
 
 		t.Run(tt.name, func(t *testing.T) {
@@ -123,10 +241,11 @@ func testFixAmount(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		name          string
-		url           string
-		timeout       float64
-		WantedFailure bool
+		name               string
+		url                string
+		timeout            float64
+		WantedFailure      bool
+		insecureSkipVerify bool
 	}{
 		{
 			name:          "should check status ok",
@@ -140,6 +259,23 @@ func testFixAmount(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			timeout:       1,
 			WantedFailure: true,
 		},
+		{
+			name:               "should check status for bad ssl website",
+			url:                "https://self-signed.badssl.com/",
+			insecureSkipVerify: false,
+			WantedFailure:      true,
+		}, {
+			name:               "should check status for bad ssl website with insecureSkipVerify",
+			url:                "https://self-signed.badssl.com/",
+			insecureSkipVerify: true,
+			WantedFailure:      false,
+		},
+		{
+			name:               "should check status with self-signed certificate",
+			url:                "https://host.minikube.internal:8443",
+			insecureSkipVerify: false,
+			WantedFailure:      false,
+		},
 	}
 
 	require.NoError(t, err)
@@ -147,25 +283,27 @@ func testFixAmount(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	for _, tt := range tests {
 
 		config := struct {
-			Duration         int           `json:"duration"`
-			Url              string        `json:"url"`
-			ConnectTimeout   float64       `json:"connectTimeout"`
-			NumberOfRequests float64       `json:"numberOfRequests"`
-			Method           string        `json:"method"`
-			MaxConcurrent    float64       `json:"maxConcurrent"`
-			StatusCode       string        `json:"statusCode"`
-			ReadTimeout      float64       `json:"readTimeout"`
-			Headers          []interface{} `json:"headers"`
+			Duration           int           `json:"duration"`
+			Url                string        `json:"url"`
+			ConnectTimeout     float64       `json:"connectTimeout"`
+			NumberOfRequests   float64       `json:"numberOfRequests"`
+			Method             string        `json:"method"`
+			MaxConcurrent      float64       `json:"maxConcurrent"`
+			StatusCode         string        `json:"statusCode"`
+			ReadTimeout        float64       `json:"readTimeout"`
+			Headers            []interface{} `json:"headers"`
+			InsecureSkipVerify bool          `json:"insecureSkipVerify"`
 		}{
-			Duration:         10000,
-			Url:              tt.url,
-			ConnectTimeout:   tt.timeout,
-			NumberOfRequests: 20,
-			Method:           "GET",
-			MaxConcurrent:    1,
-			StatusCode:       "200",
-			ReadTimeout:      tt.timeout,
-			Headers:          []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+			Duration:           10000,
+			Url:                tt.url,
+			ConnectTimeout:     tt.timeout,
+			NumberOfRequests:   20,
+			Method:             "GET",
+			MaxConcurrent:      1,
+			StatusCode:         "200",
+			ReadTimeout:        tt.timeout,
+			Headers:            []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+			InsecureSkipVerify: tt.insecureSkipVerify,
 		}
 
 		t.Run(tt.name, func(t *testing.T) {
@@ -189,4 +327,73 @@ func testFixAmount(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			require.NoError(t, action.Cancel())
 		})
 	}
+}
+
+// generateSelfSignedCert creates a self-signed certificate and returns the paths
+// to the certificate and private key files
+func generateSelfSignedCert(t *testing.T) (string, string, error) {
+	// Generate a private key
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return "", "", err
+	}
+
+	// Create certificate template
+	notBefore := time.Now()
+	notAfter := notBefore.Add(24 * time.Hour)
+
+	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	if err != nil {
+		return "", "", err
+	}
+
+	template := x509.Certificate{
+		SerialNumber: serialNumber,
+		Subject: pkix.Name{
+			CommonName:   "localhost",
+			Organization: []string{"Steadybit Test"},
+		},
+		NotBefore:             notBefore,
+		NotAfter:              notAfter,
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+		IPAddresses:           []net.IP{net.ParseIP("127.0.0.1")},
+		DNSNames:              []string{"localhost"},
+	}
+
+	// Create certificate
+	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
+	if err != nil {
+		return "", "", err
+	}
+
+	// Create temporary certificate file
+	certFile, err := os.CreateTemp("", "cert*.pem")
+	if err != nil {
+		return "", "", err
+	}
+	defer certFile.Close()
+
+	// Write certificate to file
+	err = pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
+	if err != nil {
+		return "", "", err
+	}
+
+	// Create temporary key file
+	keyFile, err := os.CreateTemp("", "key*.pem")
+	if err != nil {
+		return "", "", err
+	}
+	defer keyFile.Close()
+
+	// Write private key to file
+	privBytes := x509.MarshalPKCS1PrivateKey(privateKey)
+	err = pem.Encode(keyFile, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: privBytes})
+	if err != nil {
+		return "", "", err
+	}
+
+	return certFile.Name(), keyFile.Name(), nil
 }

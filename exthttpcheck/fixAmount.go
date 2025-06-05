@@ -127,6 +127,7 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 			followRedirects,
 			connectTimeout,
 			readTimeout,
+			insecureSkipVerify,
 		},
 		Status: extutil.Ptr(action_kit_api.MutatingEndpointReferenceWithCallInterval{
 			CallInterval: extutil.Ptr("1s"),

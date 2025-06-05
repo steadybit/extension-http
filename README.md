@@ -68,6 +68,32 @@ information about extension registration and how to verify.
 
 A proxy configuration is currently not supported.
 
+### Importing your own certificates
+
+You may want to import your own certificates. Mount a volume with the certificates and reference it in `extraVolumeMounts` and `extraVolumes` in the helm chart.
+
+This example uses a config map to store the `*.crt`-files in a configmap:
+
+```shell
+kubectl create configmap -n steadybit-agent http-self-signed-ca --from-file=./self-signed-ca.crt
+```
+
+
+```yaml
+extraVolumeMounts:
+	- name: extra-certs
+		mountPath: /etc/ssl/extra-certs
+		readOnly: true
+extraVolumes:
+	- name: extra-certs
+		configMap:
+			name: http-self-signed-ca
+extraEnv:
+	- name: SSL_CERT_DIR
+		value: /etc/ssl/extra-certs:/etc/ssl/certs
+```
+
+
 ## Location Selection
 When multiple HTTP extensions are deployed in different subsystems (e.g., multiple Kubernetes clusters), it can be tricky to ensure that the HTTP check is performed from the right location when testing cluster-internal URLs.
 To solve this, you can activate the location selection feature.
