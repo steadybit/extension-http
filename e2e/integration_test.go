@@ -25,6 +25,10 @@ import (
 )
 
 func TestWithMinikube(t *testing.T) {
+	cleanup, err := generateSelfSignedCert()
+	require.NoError(t, err)
+	defer cleanup()
+
 	server := startLocalServerWithSelfSignedCertificate(t)
 	defer server.Close()
 
@@ -58,8 +62,7 @@ func TestWithMinikube(t *testing.T) {
 }
 
 func startLocalServerWithSelfSignedCertificate(t *testing.T) *http.Server {
-	// Start local HTTPS server with self-signed certificate
-	serverCert, err := tls.LoadX509KeyPair("./cert.pem", "./key.pem")
+	serverCert, err := tls.LoadX509KeyPair(os.Getenv("CERT_FILE"), os.Getenv("KEY_FILE"))
 	require.NoError(t, err)
 
 	tlsConfig := &tls.Config{
@@ -128,7 +131,7 @@ func waitForServerReady(t *testing.T, url string, readyCh chan struct{}) {
 }
 
 func installConfigMap(m *e2e.Minikube) error {
-	err := m.CreateConfigMap("default", "self-signed-cert", "./cert.pem")
+	err := m.CreateConfigMap("default", "self-signed-cert", os.Getenv("CERT_FILE"))
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create ConfigMap with self-signed certificate")
 		return err
@@ -331,11 +334,11 @@ func testFixAmount(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 // generateSelfSignedCert creates a self-signed certificate and returns the paths
 // to the certificate and private key files
-func generateSelfSignedCert(t *testing.T) (string, string, error) {
+func generateSelfSignedCert() (func(), error) {
 	// Generate a private key
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 
 	// Create certificate template
@@ -344,7 +347,7 @@ func generateSelfSignedCert(t *testing.T) (string, string, error) {
 
 	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 
 	template := x509.Certificate{
@@ -365,26 +368,26 @@ func generateSelfSignedCert(t *testing.T) (string, string, error) {
 	// Create certificate
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 
 	// Create temporary certificate file
 	certFile, err := os.CreateTemp("", "cert*.pem")
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 	defer certFile.Close()
 
 	// Write certificate to file
 	err = pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 
 	// Create temporary key file
 	keyFile, err := os.CreateTemp("", "key*.pem")
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 	defer keyFile.Close()
 
@@ -392,8 +395,34 @@ func generateSelfSignedCert(t *testing.T) (string, string, error) {
 	privBytes := x509.MarshalPKCS1PrivateKey(privateKey)
 	err = pem.Encode(keyFile, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: privBytes})
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 
-	return certFile.Name(), keyFile.Name(), nil
+	// publish file path via environment variables
+	err = os.Setenv("CERT_FILE", certFile.Name())
+	if err != nil {
+		return nil, err
+	}
+	err = os.Setenv("KEY_FILE", keyFile.Name())
+	if err != nil {
+		return nil, err
+	}
+
+	cleanup := func() {
+		// delete the temporary files
+		if err := os.Remove(certFile.Name()); err != nil {
+			log.Error().Err(err).Msgf("Failed to remove temporary certificate file: %s", certFile.Name())
+		}
+		if err := os.Remove(keyFile.Name()); err != nil {
+			log.Error().Err(err).Msgf("Failed to remove temporary key file: %s", keyFile.Name())
+		}
+		// Unset environment variables
+		if err := os.Unsetenv("CERT_FILE"); err != nil {
+			log.Error().Err(err).Msg("Failed to unset CERT_FILE environment variable")
+		}
+		if err := os.Unsetenv("KEY_FILE"); err != nil {
+			log.Error().Err(err).Msg("Failed to unset KEY_FILE environment variable")
+		}
+	}
+	return cleanup, nil
 }
