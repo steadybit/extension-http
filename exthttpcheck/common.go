@@ -227,8 +227,8 @@ var (
 	}
 	insecureSkipVerify = action_kit_api.ActionParameter{
 		Name:         "insecureSkipVerify",
-		Label:        "Ignore Certificate Errors",
-		Description:  extutil.Ptr("Should certificate errors be ignored?"),
+		Label:        "Skip certificate verification",
+		Description:  extutil.Ptr("Should the certificate verification be skipped?"),
 		Type:         action_kit_api.ActionParameterTypeBoolean,
 		DefaultValue: extutil.Ptr("false"),
 		Required:     extutil.Ptr(false),
