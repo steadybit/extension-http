@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.0.27 (next)
+## v1.0.27
 
 - ability to import own certificates for TLS connections
 - ability to ignore TLS errors for http connections
