@@ -1,10 +1,10 @@
-// SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: 2025 Steadybit GmbH
+// Copyright 2025 steadybit GmbH. All rights reserved.
 
 package exthttpcheck
 
 import (
 	"crypto/tls"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/extension-kit/extutil"
@@ -120,7 +120,12 @@ func (c *httpChecker) performRequests(state *HTTPCheckState) {
 		tracer := newRequestTracer()
 		req = req.WithContext(httptrace.WithClientTrace(req.Context(), &tracer.ClientTrace))
 
-		log.Debug().Msgf("Requesting %s", req.URL.String())
+		if log.Logger.GetLevel() == zerolog.TraceLevel {
+			log.Trace().Any("headers", req.Header).Str("body", state.Body).Msgf("Requesting %s %s", req.Method, req.URL.String())
+		} else {
+			log.Debug().Msgf("Requesting %s %s", req.Method, req.URL.String())
+		}
+
 		started := time.Now()
 		c.counterReqStarted.Add(1)
 
@@ -132,22 +137,28 @@ func (c *httpChecker) performRequests(state *HTTPCheckState) {
 			responseStatusWasExpected := slices.Contains(state.ExpectedStatusCodes, "error")
 			c.onError(req, err, now.Sub(started).Milliseconds(), responseStatusWasExpected)
 		} else {
-			log.Debug().Msgf("Got response %s", response.Status)
+
+			var bodyBytes []byte
+			var bodyErr error
+			if response.Body != nil {
+				if bodyBytes, bodyErr = io.ReadAll(response.Body); bodyErr != nil {
+					log.Error().Err(err).Msg("Failed to read response body")
+				}
+			}
+
+			if log.Logger.GetLevel() == zerolog.TraceLevel {
+				log.Trace().Str("status", response.Status).Bytes("body", bodyBytes).Any("headers", response.Header).Msgf("Got response for %s %s", req.Method, req.URL.String())
+			} else {
+				log.Debug().Str("status", response.Status).Int("body-size", len(bodyBytes)).Msgf("Got response for %s %s", req.Method, req.URL.String())
+			}
 
 			responseStatusWasExpected := slices.Contains(state.ExpectedStatusCodes, strconv.Itoa(response.StatusCode))
-
 			responseBodyWasSuccessful := true
 			if state.ResponsesContains != "" {
-				if response.Body == nil {
+				if len(bodyBytes) == 0 || bodyErr != nil {
 					responseBodyWasSuccessful = false
 				} else {
-					if bodyBytes, err := io.ReadAll(response.Body); err != nil {
-						log.Error().Err(err).Msg("Failed to read response body")
-						responseBodyWasSuccessful = false
-					} else {
-						bodyString := string(bodyBytes)
-						responseBodyWasSuccessful = strings.Contains(bodyString, state.ResponsesContains)
-					}
+					responseBodyWasSuccessful = strings.Contains(string(bodyBytes), state.ResponsesContains)
 				}
 			}
 
