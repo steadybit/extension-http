@@ -137,7 +137,6 @@ func (c *httpChecker) performRequests(state *HTTPCheckState) {
 			responseStatusWasExpected := slices.Contains(state.ExpectedStatusCodes, "error")
 			c.onError(req, err, now.Sub(started).Milliseconds(), responseStatusWasExpected)
 		} else {
-
 			var bodyBytes []byte
 			var bodyErr error
 			if response.Body != nil {

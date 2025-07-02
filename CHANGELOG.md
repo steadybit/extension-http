@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.28
+
+- chore: trace logging for requests/responses
+
 ## v1.0.27
 
 - ability to import own certificates for TLS connections
