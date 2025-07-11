@@ -161,6 +161,13 @@ func (l *httpCheckActionFixedAmount) Prepare(_ context.Context, state *HTTPCheck
 	}
 	numberOfRequests := extutil.ToUInt64(request.Config["numberOfRequests"])
 	state.RequestsPerSecond = numberOfRequests * uint64(duration) / 1000
+	if state.RequestsPerSecond > 10 {
+		return &action_kit_api.PrepareResult{
+			Error: &action_kit_api.ActionKitError{
+				Title: "Max 10 requests per second are allowed, please reduce the number of requests or increase the duration.",
+			},
+		}, nil
+	}
 	state.DelayBetweenRequestsInMS = getDelayBetweenRequestsInMsFixedAmount(uint64(duration), numberOfRequests)
 
 	return prepare(request, state, func(checker *httpChecker) bool {

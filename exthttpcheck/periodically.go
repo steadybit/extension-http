@@ -82,6 +82,8 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 				Label:        "Requests per second",
 				Description:  extutil.Ptr("The number of requests per second. Should be between 1 and 10."),
 				Type:         action_kit_api.ActionParameterTypeInteger,
+				MinValue:     extutil.Ptr(0),
+				MaxValue:     extutil.Ptr(10),
 				DefaultValue: extutil.Ptr("1"),
 				Required:     extutil.Ptr(true),
 				Order:        extutil.Ptr(7),
