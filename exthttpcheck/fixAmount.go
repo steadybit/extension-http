@@ -160,7 +160,13 @@ func (l *httpCheckActionFixedAmount) Prepare(_ context.Context, state *HTTPCheck
 		return nil, errors.New("duration must be greater than 0")
 	}
 	numberOfRequests := extutil.ToUInt64(request.Config["numberOfRequests"])
-	state.RequestsPerSecond = numberOfRequests * uint64(duration) / 1000
+	durationInSeconds := uint64(duration) / 1000
+	calculatedRPS := numberOfRequests / durationInSeconds
+	if calculatedRPS < 1 {
+		state.RequestsPerSecond = 1
+	} else {
+		state.RequestsPerSecond = calculatedRPS
+	}
 	if state.RequestsPerSecond > 10 {
 		return &action_kit_api.PrepareResult{
 			Error: &action_kit_api.ActionKitError{

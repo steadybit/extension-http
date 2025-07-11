@@ -44,7 +44,7 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 					"responsesContains": "test",
 					"successRate":       100,
 					"maxConcurrent":     10,
-					"numberOfRequests":  5,
+					"numberOfRequests":  20,
 					"readTimeout":       5000,
 					"body":              "test",
 					"url":               "https://steadybit.com",
@@ -58,12 +58,13 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 
 			wantedState: &HTTPCheckState{
 				ExpectedStatusCodes:      []string{"200", "201", "202", "203", "204", "205", "206", "207", "208", "209"},
-				DelayBetweenRequestsInMS: 1250, // 5000 / (5 - 1 (initial request))
+				DelayBetweenRequestsInMS: 263,
 				Timeout:                  time.Now(),
 				ResponsesContains:        "test",
 				SuccessRate:              100,
 				MaxConcurrent:            10,
-				NumberOfRequests:         5,
+				NumberOfRequests:         20,
+				RequestsPerSecond:        4,
 				ReadTimeout:              time.Second * 5,
 				ExecutionID:              uuid.New(),
 				Body:                     "test",
@@ -74,6 +75,47 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 				FollowRedirects:          true,
 			},
 		}, {
+			name: "Should return config and set RequestsPerSecond to 1 if less then one request per second",
+			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
+				Config: map[string]interface{}{
+					"action":            "prepare",
+					"duration":          5000,
+					"statusCode":        "200",
+					"responsesContains": "test",
+					"successRate":       100,
+					"maxConcurrent":     10,
+					"numberOfRequests":  1,
+					"readTimeout":       5000,
+					"body":              "test",
+					"url":               "https://steadybit.com",
+					"method":            "GET",
+					"connectTimeout":    5000,
+					"followRedirects":   true,
+					"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+				},
+				ExecutionId: uuid.New(),
+			}),
+
+			wantedState: &HTTPCheckState{
+				ExpectedStatusCodes:      []string{"200"},
+				DelayBetweenRequestsInMS: 1000,
+				Timeout:                  time.Now(),
+				ResponsesContains:        "test",
+				SuccessRate:              100,
+				MaxConcurrent:            10,
+				NumberOfRequests:         1,
+				RequestsPerSecond:        1,
+				ReadTimeout:              time.Second * 5,
+				ExecutionID:              uuid.New(),
+				Body:                     "test",
+				URL:                      *url,
+				Method:                   "GET",
+				Headers:                  map[string]string{"test": "test"},
+				ConnectionTimeout:        time.Second * 5,
+				FollowRedirects:          true,
+			},
+		},
+		{
 			name: "Should return error for headers",
 			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
 				Config: map[string]interface{}{
@@ -134,6 +176,7 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 				assert.Equal(t, tt.wantedState.MaxConcurrent, state.MaxConcurrent)
 				assert.Equal(t, tt.wantedState.Method, state.Method)
 				assert.Equal(t, tt.wantedState.NumberOfRequests, state.NumberOfRequests)
+				assert.Equal(t, tt.wantedState.RequestsPerSecond, state.RequestsPerSecond)
 				assert.Equal(t, tt.wantedState.ReadTimeout, state.ReadTimeout)
 				assert.Equal(t, tt.wantedState.ResponsesContains, state.ResponsesContains)
 				assert.Equal(t, tt.wantedState.SuccessRate, state.SuccessRate)
@@ -159,7 +202,7 @@ func TestNewHTTPCheckActionFixedAmount_All_Success(t *testing.T) {
 	prepareActionRequestBody := extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
 		Config: map[string]interface{}{
 			"action":            "prepare",
-			"duration":          1000,
+			"duration":          2000,
 			"statusCode":        "200-209",
 			"responsesContains": "test",
 			"successRate":       100,
@@ -196,7 +239,7 @@ func TestNewHTTPCheckActionFixedAmount_All_Success(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, statusResult.Metrics)
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	// Status completed
 	statusResult, err = action.Status(context.Background(), &state)
