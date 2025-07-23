@@ -167,14 +167,14 @@ func (l *httpCheckActionFixedAmount) Prepare(_ context.Context, state *HTTPCheck
 	} else {
 		state.RequestsPerSecond = calculatedRPS
 	}
-	if state.RequestsPerSecond > 10 {
+	state.DelayBetweenRequestsInMS = getDelayBetweenRequestsInMsFixedAmount(uint64(duration), numberOfRequests)
+	if state.DelayBetweenRequestsInMS < 1 {
 		return &action_kit_api.PrepareResult{
 			Error: &action_kit_api.ActionKitError{
-				Title: "Max 10 requests per second are allowed, please reduce the number of requests or increase the duration.",
+				Title: "The given Number of Requests is too high for the given duration. Please reduce the number of requests or increase the duration.",
 			},
 		}, nil
 	}
-	state.DelayBetweenRequestsInMS = getDelayBetweenRequestsInMsFixedAmount(uint64(duration), numberOfRequests)
 
 	return prepare(request, state, func(checker *httpChecker) bool {
 		return checker.counterReqStarted.Load() >= numberOfRequests

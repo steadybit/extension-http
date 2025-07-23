@@ -187,8 +187,6 @@ var (
 		DefaultValue: extutil.Ptr("5"),
 		Required:     extutil.Ptr(true),
 		Advanced:     extutil.Ptr(true),
-		MinValue:     extutil.Ptr(1),
-		MaxValue:     extutil.Ptr(10),
 		Order:        extutil.Ptr(18),
 	}
 	clientSettings = action_kit_api.ActionParameter{

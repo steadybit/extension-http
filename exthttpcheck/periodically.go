@@ -82,8 +82,6 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 				Label:        "Requests per second",
 				Description:  extutil.Ptr("The number of requests per second. Should be between 1 and 10."),
 				Type:         action_kit_api.ActionParameterTypeInteger,
-				MinValue:     extutil.Ptr(0),
-				MaxValue:     extutil.Ptr(10),
 				DefaultValue: extutil.Ptr("1"),
 				Required:     extutil.Ptr(true),
 				Order:        extutil.Ptr(7),
@@ -144,6 +142,13 @@ func getDelayBetweenRequestsInMsPeriodically(requestsPerSecond uint64) uint64 {
 func (l *httpCheckActionPeriodically) Prepare(_ context.Context, state *HTTPCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	state.RequestsPerSecond = extutil.ToUInt64(request.Config["requestsPerSecond"])
 	state.DelayBetweenRequestsInMS = getDelayBetweenRequestsInMsPeriodically(state.RequestsPerSecond)
+	if state.DelayBetweenRequestsInMS < 1 {
+		return &action_kit_api.PrepareResult{
+			Error: &action_kit_api.ActionKitError{
+				Title: "The given Number of Requests is too high for the given duration. Please reduce the number of requests or increase the duration.",
+			},
+		}, nil
+	}
 	return prepare(request, state, nil)
 }
 
