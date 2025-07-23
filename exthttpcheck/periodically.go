@@ -85,6 +85,7 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 				DefaultValue: extutil.Ptr("1"),
 				Required:     extutil.Ptr(true),
 				Order:        extutil.Ptr(7),
+				MinValue:     extutil.Ptr(1),
 			},
 			duration,
 			separator(9),

@@ -94,6 +94,7 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 				Required:     extutil.Ptr(true),
 				DefaultValue: extutil.Ptr("1"),
 				Order:        extutil.Ptr(7),
+				MinValue:     extutil.Ptr(1),
 			},
 			{
 				Name:         "duration",

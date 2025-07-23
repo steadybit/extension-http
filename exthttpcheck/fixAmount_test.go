@@ -119,10 +119,11 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 			name: "Should return error for headers",
 			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
 				Config: map[string]interface{}{
-					"action":     "prepare",
-					"duration":   "5000",
-					"headers":    "test:test",
-					"statusCode": "200",
+					"action":           "prepare",
+					"duration":         "5000",
+					"numberOfRequests": 1,
+					"headers":          "test:test",
+					"statusCode":       "200",
 				},
 				ExecutionId: uuid.New(),
 			}),
