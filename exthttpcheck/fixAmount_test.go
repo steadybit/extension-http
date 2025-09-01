@@ -7,12 +7,6 @@ package exthttpcheck
 import (
 	"context"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/rs/zerolog"
-	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	extension_kit "github.com/steadybit/extension-kit"
-	"github.com/steadybit/extension-kit/extutil"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -21,6 +15,13 @@ import (
 	"runtime/pprof"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/rs/zerolog"
+	"github.com/steadybit/action-kit/go/action_kit_api/v2"
+	extension_kit "github.com/steadybit/extension-kit"
+	"github.com/steadybit/extension-kit/extutil"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
@@ -38,20 +39,20 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 			name: "Should return config",
 			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
 				Config: map[string]interface{}{
-					"action":            "prepare",
-					"duration":          5000,
-					"statusCode":        "200-209",
-					"responsesContains": "test",
-					"successRate":       100,
-					"maxConcurrent":     10,
-					"numberOfRequests":  20,
-					"readTimeout":       5000,
-					"body":              "test",
-					"url":               "https://steadybit.com",
-					"method":            "GET",
-					"connectTimeout":    5000,
-					"followRedirects":   true,
-					"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+					"action":           "prepare",
+					"duration":         5000,
+					"statusCode":       "200-209",
+					"responsesContain": "test",
+					"successRate":      100,
+					"maxConcurrent":    10,
+					"numberOfRequests": 20,
+					"readTimeout":      5000,
+					"body":             "test",
+					"url":              "https://steadybit.com",
+					"method":           "GET",
+					"connectTimeout":   5000,
+					"followRedirects":  true,
+					"headers":          []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
 				},
 				ExecutionId: uuid.New(),
 			}),
@@ -78,20 +79,20 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 			name: "Should return config and set RequestsPerSecond to 1 if less then one request per second",
 			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
 				Config: map[string]interface{}{
-					"action":            "prepare",
-					"duration":          5000,
-					"statusCode":        "200",
-					"responsesContains": "test",
-					"successRate":       100,
-					"maxConcurrent":     10,
-					"numberOfRequests":  1,
-					"readTimeout":       5000,
-					"body":              "test",
-					"url":               "https://steadybit.com",
-					"method":            "GET",
-					"connectTimeout":    5000,
-					"followRedirects":   true,
-					"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+					"action":           "prepare",
+					"duration":         5000,
+					"statusCode":       "200",
+					"responsesContain": "test",
+					"successRate":      100,
+					"maxConcurrent":    10,
+					"numberOfRequests": 1,
+					"readTimeout":      5000,
+					"body":             "test",
+					"url":              "https://steadybit.com",
+					"method":           "GET",
+					"connectTimeout":   5000,
+					"followRedirects":  true,
+					"headers":          []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
 				},
 				ExecutionId: uuid.New(),
 			}),
@@ -133,19 +134,19 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 			name: "Should return error missing duration",
 			requestBody: action_kit_api.PrepareActionRequestBody{
 				Config: map[string]interface{}{
-					"action":            "prepare",
-					"statusCode":        "200-209",
-					"responsesContains": "test",
-					"successRate":       100,
-					"maxConcurrent":     10,
-					"numberOfRequests":  5,
-					"readTimeout":       5000,
-					"body":              "test",
-					"url":               "https://steadybit.com",
-					"method":            "GET",
-					"connectTimeout":    5000,
-					"followRedirects":   true,
-					"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+					"action":           "prepare",
+					"statusCode":       "200-209",
+					"responsesContain": "test",
+					"successRate":      100,
+					"maxConcurrent":    10,
+					"numberOfRequests": 5,
+					"readTimeout":      5000,
+					"body":             "test",
+					"url":              "https://steadybit.com",
+					"method":           "GET",
+					"connectTimeout":   5000,
+					"followRedirects":  true,
+					"headers":          []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
 				},
 				ExecutionId: uuid.New(),
 			},
@@ -202,20 +203,20 @@ func TestNewHTTPCheckActionFixedAmount_All_Success(t *testing.T) {
 	state := action.NewEmptyState()
 	prepareActionRequestBody := extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
 		Config: map[string]interface{}{
-			"action":            "prepare",
-			"duration":          2000,
-			"statusCode":        "200-209",
-			"responsesContains": "test",
-			"successRate":       100,
-			"maxConcurrent":     2,
-			"numberOfRequests":  20,
-			"readTimeout":       5000,
-			"body":              "test",
-			"url":               testServer.URL,
-			"method":            "GET",
-			"connectTimeout":    5000,
-			"followRedirects":   true,
-			"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+			"action":           "prepare",
+			"duration":         2000,
+			"statusCode":       "200-209",
+			"responsesContain": "test",
+			"successRate":      100,
+			"maxConcurrent":    2,
+			"numberOfRequests": 20,
+			"readTimeout":      5000,
+			"body":             "test",
+			"url":              testServer.URL,
+			"method":           "GET",
+			"connectTimeout":   5000,
+			"followRedirects":  true,
+			"headers":          []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
 		},
 		ExecutionId: uuid.New(),
 	})
@@ -269,20 +270,20 @@ func TestNewHTTPCheckActionFixedAmount_All_Failure(t *testing.T) {
 	state := action.NewEmptyState()
 	prepareActionRequestBody := extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
 		Config: map[string]interface{}{
-			"action":            "prepare",
-			"duration":          1000,
-			"statusCode":        "200-209",
-			"responsesContains": "test",
-			"successRate":       100,
-			"maxConcurrent":     10,
-			"numberOfRequests":  2,
-			"readTimeout":       5000,
-			"body":              "test",
-			"url":               testServer.URL,
-			"method":            "GET",
-			"connectTimeout":    5000,
-			"followRedirects":   true,
-			"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+			"action":           "prepare",
+			"duration":         1000,
+			"statusCode":       "200-209",
+			"responsesContain": "test",
+			"successRate":      100,
+			"maxConcurrent":    10,
+			"numberOfRequests": 2,
+			"readTimeout":      5000,
+			"body":             "test",
+			"url":              testServer.URL,
+			"method":           "GET",
+			"connectTimeout":   5000,
+			"followRedirects":  true,
+			"headers":          []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
 		},
 		ExecutionId: uuid.New(),
 	})
@@ -340,20 +341,20 @@ func TestNewHTTPCheckActionFixedAmount_start_directly(t *testing.T) {
 	state := action.NewEmptyState()
 	prepareActionRequestBody := extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
 		Config: map[string]interface{}{
-			"action":            "prepare",
-			"duration":          2000,
-			"statusCode":        "200-209",
-			"responsesContains": "test",
-			"successRate":       100,
-			"maxConcurrent":     1,
-			"numberOfRequests":  3,
-			"readTimeout":       5000,
-			"body":              "test",
-			"url":               testServer.URL,
-			"method":            "GET",
-			"connectTimeout":    5000,
-			"followRedirects":   true,
-			"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+			"action":           "prepare",
+			"duration":         2000,
+			"statusCode":       "200-209",
+			"responsesContain": "test",
+			"successRate":      100,
+			"maxConcurrent":    1,
+			"numberOfRequests": 3,
+			"readTimeout":      5000,
+			"body":             "test",
+			"url":              testServer.URL,
+			"method":           "GET",
+			"connectTimeout":   5000,
+			"followRedirects":  true,
+			"headers":          []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
 		},
 		ExecutionId: uuid.New(),
 	})
@@ -391,20 +392,20 @@ func TestNewHTTPCheckActionFixedAmount_start_multiples(t *testing.T) {
 	//prepare the action
 	request := extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
 		Config: map[string]interface{}{
-			"action":            "prepare",
-			"duration":          50,
-			"statusCode":        "200-209",
-			"responsesContains": "test",
-			"successRate":       100,
-			"maxConcurrent":     5,
-			"numberOfRequests":  2,
-			"readTimeout":       5000,
-			"body":              "test",
-			"url":               testServer.URL,
-			"method":            "GET",
-			"connectTimeout":    5000,
-			"followRedirects":   true,
-			"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+			"action":           "prepare",
+			"duration":         50,
+			"statusCode":       "200-209",
+			"responsesContain": "test",
+			"successRate":      100,
+			"maxConcurrent":    5,
+			"numberOfRequests": 2,
+			"readTimeout":      5000,
+			"body":             "test",
+			"url":              testServer.URL,
+			"method":           "GET",
+			"connectTimeout":   5000,
+			"followRedirects":  true,
+			"headers":          []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
 		},
 		ExecutionId: uuid.New(),
 	})

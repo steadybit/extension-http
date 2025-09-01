@@ -6,6 +6,7 @@ package exthttpcheck
 
 import (
 	"context"
+
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
@@ -95,7 +96,7 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 			resultVerification,
 			successRate,
 			statusCode,
-			responsesContains,
+			responsesContain,
 			responseTimeMode,
 			responseTime,
 			separator(16),
