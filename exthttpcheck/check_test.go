@@ -5,16 +5,15 @@
 package exthttpcheck
 
 import (
-	"net/url"
-	"sync/atomic"
-	"testing"
-	"time"
-
 	"github.com/google/uuid"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	extension_kit "github.com/steadybit/extension-kit"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/stretchr/testify/assert"
+	"net/url"
+	"sync/atomic"
+	"testing"
+	"time"
 )
 
 func TestAction_Prepare(t *testing.T) {
@@ -31,19 +30,19 @@ func TestAction_Prepare(t *testing.T) {
 			name: "Should return config",
 			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
 				Config: map[string]interface{}{
-					"action":           "prepare",
-					"duration":         5000,
-					"statusCode":       "200-209",
-					"responsesContain": "test",
-					"successRate":      100,
-					"maxConcurrent":    10,
-					"numberOfRequests": 5,
-					"readTimeout":      5000,
-					"body":             "test",
-					"url":              "https://steadybit.com",
-					"method":           "GET",
-					"connectTimeout":   5000,
-					"followRedirects":  true,
+					"action":            "prepare",
+					"duration":          5000,
+					"statusCode":        "200-209",
+					"responsesContains": "test",
+					"successRate":       100,
+					"maxConcurrent":     10,
+					"numberOfRequests":  5,
+					"readTimeout":       5000,
+					"body":              "test",
+					"url":               "https://steadybit.com",
+					"method":            "GET",
+					"connectTimeout":    5000,
+					"followRedirects":   true,
 					"headers": []any{
 						map[string]any{"key": "test", "value": "test"},
 					},
@@ -84,17 +83,17 @@ func TestAction_Prepare(t *testing.T) {
 			name: "Should return error for missing url",
 			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
 				Config: map[string]interface{}{
-					"action":           "prepare",
-					"statusCode":       "200-209",
-					"responsesContain": "test",
-					"successRate":      100,
-					"maxConcurrent":    10,
-					"numberOfRequests": 5,
-					"readTimeout":      5000,
-					"body":             "test",
-					"method":           "GET",
-					"connectTimeout":   5000,
-					"followRedirects":  true,
+					"action":            "prepare",
+					"statusCode":        "200-209",
+					"responsesContains": "test",
+					"successRate":       100,
+					"maxConcurrent":     10,
+					"numberOfRequests":  5,
+					"readTimeout":       5000,
+					"body":              "test",
+					"method":            "GET",
+					"connectTimeout":    5000,
+					"followRedirects":   true,
 					"headers": []any{
 						map[string]any{"key": "test", "value": "test"},
 					},

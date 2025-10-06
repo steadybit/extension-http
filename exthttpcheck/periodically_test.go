@@ -6,17 +6,16 @@ package exthttpcheck
 
 import (
 	"context"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
-	"testing"
-	"time"
-
 	"github.com/google/uuid"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	extension_kit "github.com/steadybit/extension-kit"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/stretchr/testify/assert"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"testing"
+	"time"
 )
 
 func TestNewHTTPCheckActionPeriodically_Prepare(t *testing.T) {
@@ -37,7 +36,7 @@ func TestNewHTTPCheckActionPeriodically_Prepare(t *testing.T) {
 					"action":            "prepare",
 					"duration":          5000,
 					"statusCode":        "200-209",
-					"responsesContain":  "test",
+					"responsesContains": "test",
 					"successRate":       100,
 					"maxConcurrent":     10,
 					"numberOfRequests":  0,
@@ -135,7 +134,7 @@ func TestNewHTTPCheckActionPeriodically_All_Success(t *testing.T) {
 			"action":            "prepare",
 			"duration":          1000,
 			"statusCode":        "200-209",
-			"responsesContain":  "test",
+			"responsesContains": "test",
 			"successRate":       100,
 			"maxConcurrent":     10,
 			"requestsPerSecond": 2,
@@ -201,7 +200,7 @@ func TestNewHTTPCheckActionPeriodically_All_Failure(t *testing.T) {
 			"action":            "prepare",
 			"duration":          1000,
 			"statusCode":        "200-209",
-			"responsesContain":  "test",
+			"responsesContains": "test",
 			"successRate":       100,
 			"maxConcurrent":     10,
 			"requestsPerSecond": 2,

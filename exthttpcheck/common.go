@@ -133,9 +133,9 @@ var (
 		Required:     extutil.Ptr(true),
 		Order:        extutil.Ptr(12),
 	}
-	responsesContain = action_kit_api.ActionParameter{
-		Name:        "responsesContain",
-		Label:       "Responses contain",
+	responsesContains = action_kit_api.ActionParameter{
+		Name:        "responsesContains",
+		Label:       "Responses contains",
 		Description: extutil.Ptr("The responses must contain the given string, otherwise the step will fail."),
 		Type:        action_kit_api.ActionParameterTypeString,
 		Required:    extutil.Ptr(false),

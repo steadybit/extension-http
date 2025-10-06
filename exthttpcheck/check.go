@@ -6,14 +6,13 @@ package exthttpcheck
 
 import (
 	"fmt"
-	"net/url"
-	"sync"
-	"time"
-
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/extension-kit/extutil"
+	"net/url"
+	"sync"
+	"time"
 )
 
 var (
@@ -52,7 +51,7 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckSt
 		}, nil
 	}
 	state.ExpectedStatusCodes = expectedStatusCodes
-	state.ResponsesContains = extutil.ToString(request.Config["responsesContain"])
+	state.ResponsesContains = extutil.ToString(request.Config["responsesContains"])
 	state.SuccessRate = extutil.ToInt(request.Config["successRate"])
 	state.ResponseTimeMode = extutil.ToString(request.Config["responseTimeMode"])
 	state.ResponseTime = extutil.Ptr(time.Duration(extutil.ToInt64(request.Config["responseTime"])) * time.Millisecond)
