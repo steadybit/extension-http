@@ -3,6 +3,26 @@
 ## v1.0.30
 
 - Fix: `Responses contain` verification parameters were renamed with v1.0.29. Existing experiment design will not verify the response if a paramter was set. This fix will revert the change and use the old parameter name.
+  - If you have designed experiments with HTTP check `v1.0.29` and used the `Responses contain` verification parameter, you need to migrate experiment designs after updating to `v1.0.30`.
+  - **Migration for SaaS Customers** Please reach out to us.
+  - **Migration for On-Prem Customers**
+    - How to check whether you're affected? If the query below returns any rows, you need to migrate after updating to `v1.0.30` and having a database backup in place
+        ```sql
+        SELECT es.experiment_key, es.custom_label, esa.action_id, es.parameters
+          FROM sb_onprem.experiment_step es JOIN sb_onprem.experiment_step_attack esa ON es.id = esa.id
+          WHERE esa.action_id IN ('com.steadybit.extension_http.check.periodically', 'com.steadybit.extension_http.check.fixed_amount')
+          AND parameters ? 'responsesContain';
+        ```
+    - How to migrate existing experiments? After you've done a database backup, execute the following SQL
+        ```sql
+         UPDATE sb_onprem.experiment_step SET parameters = jsonb_set(parameters - 'responsesContain','{responsesContains}', parameters -> 'responsesContain')
+           WHERE id IN (
+             SELECT es.id
+               FROM sb_onprem.experiment_step es JOIN sb_onprem.experiment_step_attack esa ON es.id = esa.id
+               WHERE esa.action_id IN ('com.steadybit.extension_http.check.periodically', 'com.steadybit.extension_http.check.fixed_amount')
+               AND parameters ? 'responsesContain'
+           );
+        ```
 
 ## v1.0.29
 
