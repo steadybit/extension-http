@@ -137,7 +137,7 @@ var (
 		Name:        "responsesContains",
 		Label:       "Responses contain",
 		Description: extutil.Ptr("The responses must contain the given string, otherwise the step will fail."),
-		Type:        action_kit_api.ActionParameterTypeString,
+		Type:        action_kit_api.ActionParameterTypeTextarea,
 		Required:    extutil.Ptr(false),
 		Order:       extutil.Ptr(13),
 	}
