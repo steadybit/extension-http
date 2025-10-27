@@ -11,6 +11,35 @@ entries:
         - name: Steadybit reliability hub
           url: https://hub.steadybit.com
     apiVersion: v2
+    appVersion: v1.0.31
+    created: "2025-10-27T08:39:56.696363034Z"
+    dependencies:
+    - name: extensionlib
+      repository: https://steadybit.github.io/helm-charts
+      version: ^1.4.4
+    description: Steadybit action implementation to check HTTP endpoints.
+    digest: d29190576c78216acaa35dd9193a6a5e6a349625696aeb796320bb5f3bbdf114
+    home: https://www.steadybit.com/
+    icon: https://steadybit-website-assets.s3.amazonaws.com/logo-symbol-transparent.png
+    maintainers:
+    - email: ansgar.schulte@steadybit.com
+      name: ansgarschulte
+    name: steadybit-extension-http
+    sources:
+    - https://github.com/steadybit/extension-http
+    urls:
+    - https://github.com/steadybit/extension-http/releases/download/steadybit-extension-http-1.1.29/steadybit-extension-http-1.1.29.tgz
+    version: 1.1.29
+  - annotations:
+      artifacthub.io/images: |
+        - name: logo
+          image: https://steadybit-website-assets.s3.amazonaws.com/logo-symbol-transparent.png
+      artifacthub.io/links: |-
+        - name: Steadybit website
+          url: https://www.steadybit.com
+        - name: Steadybit reliability hub
+          url: https://hub.steadybit.com
+    apiVersion: v2
     appVersion: v1.0.30
     created: "2025-10-06T12:22:35.394162333Z"
     dependencies:
@@ -1364,4 +1393,4 @@ entries:
     urls:
     - https://github.com/steadybit/extension-http/releases/download/steadybit-extension-http-1.0.4/steadybit-extension-http-1.0.4.tgz
     version: 1.0.4
-generated: "2025-10-06T12:22:35.394639375Z"
+generated: "2025-10-27T08:39:56.696804149Z"
