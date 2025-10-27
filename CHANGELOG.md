@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.0.31
+- `Responses contain` verification input was changed to a textarea to allow multi-line inputs.
+
 ## v1.0.30
 
 - Fix: `Responses contain` verification parameters were renamed with v1.0.29. Existing experiment design will not verify the response if a paramter was set. This fix will revert the change and use the old parameter name.
