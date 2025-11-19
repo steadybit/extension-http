@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.32
+
+- Update dependencies
+
 ## v1.0.31
 - `Responses contain` verification input was changed to a textarea to allow multi-line inputs.
 
