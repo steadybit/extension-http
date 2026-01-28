@@ -1,15 +1,17 @@
 /*
- * Copyright 2023 steadybit GmbH. All rights reserved.
+ * Copyright 2026 steadybit GmbH. All rights reserved.
  */
 
 package exthttpcheck
 
 import (
 	"fmt"
-	"github.com/rs/zerolog/log"
-	"github.com/steadybit/action-kit/go/action_kit_api/v2"
+	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/rs/zerolog/log"
+	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 )
 
 // resolveStatusCodeExpression resolves the given status code expression into a list of status codes
@@ -76,4 +78,46 @@ func resolveStatusCodeExpression(statusCodes string) ([]string, *action_kit_api.
 		}
 	}
 	return result, nil
+}
+
+// parseBitrate parses a bitrate string (e.g., "10mbit", "1024kbit", "1gbit") and returns bits per second
+func parseBitrate(s string) (int64, error) {
+	if s == "" {
+		return 0, fmt.Errorf("empty bitrate string")
+	}
+
+	s = strings.ToLower(strings.TrimSpace(s))
+
+	// Regular expression to match number and unit
+	re := regexp.MustCompile(`^(\d+(?:\.\d+)?)\s*(bit|kbit|mbit|gbit|bps|kbps|mbps|gbps)?$`)
+	matches := re.FindStringSubmatch(s)
+	if matches == nil {
+		return 0, fmt.Errorf("invalid bitrate format: %s", s)
+	}
+
+	value, err := strconv.ParseFloat(matches[1], 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid bitrate value: %s", matches[1])
+	}
+
+	unit := matches[2]
+	if unit == "" {
+		unit = "bit"
+	}
+
+	var multiplier float64
+	switch unit {
+	case "bit", "bps":
+		multiplier = 1
+	case "kbit", "kbps":
+		multiplier = 1000
+	case "mbit", "mbps":
+		multiplier = 1_000_000
+	case "gbit", "gbps":
+		multiplier = 1_000_000_000
+	default:
+		return 0, fmt.Errorf("unknown bitrate unit: %s", unit)
+	}
+
+	return int64(value * multiplier), nil
 }
