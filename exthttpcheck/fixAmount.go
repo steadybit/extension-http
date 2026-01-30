@@ -7,6 +7,7 @@ package exthttpcheck
 import (
 	"context"
 	"errors"
+
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
@@ -52,7 +53,6 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 		Widgets:         widgetToUse,
 
 		Technology: extutil.Ptr("HTTP"),
-		Category:   extutil.Ptr("HTTP"), //Can be removed in Q1/24 - support for backward compatibility of old sidebar
 
 		// To clarify the purpose of the action:
 		//   Check: Will perform checks on the targets
@@ -178,7 +178,7 @@ func (l *httpCheckActionFixedAmount) Prepare(_ context.Context, state *HTTPCheck
 	}
 
 	return prepare(request, state, func(checker *httpChecker) bool {
-		return checker.counterReqStarted.Load() >= numberOfRequests
+		return checker.counters.started.Load() >= numberOfRequests
 	})
 }
 
@@ -198,8 +198,8 @@ func (l *httpCheckActionFixedAmount) Status(_ context.Context, state *HTTPCheckS
 		return nil, err
 	}
 
-	completed := checker.shouldEnd()
-	latestMetrics := retrieveLatestMetrics(checker.metrics)
+	completed := checker.shouldStop()
+	latestMetrics := checker.getLatestMetrics()
 
 	return &action_kit_api.StatusResult{
 		Completed: completed,

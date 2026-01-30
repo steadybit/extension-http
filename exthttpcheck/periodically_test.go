@@ -175,14 +175,14 @@ func TestNewHTTPCheckActionPeriodically_All_Success(t *testing.T) {
 
 	executionRunData, err := action.getExecutionRunData(state.ExecutionID)
 	assert.NoError(t, err)
-	assert.Greater(t, executionRunData.counterReqStarted.Load(), uint64(0))
+	assert.Greater(t, executionRunData.counters.started.Load(), uint64(0))
 
 	// Stop
 	stopResult, err := action.Stop(context.Background(), &state)
 	assert.NoError(t, err)
 	assert.NotNil(t, stopResult.Metrics)
 	assert.Nil(t, stopResult.Error)
-	assert.Greater(t, executionRunData.counterReqSuccess.Load(), uint64(0))
+	assert.Greater(t, executionRunData.counters.success.Load(), uint64(0))
 }
 
 func TestNewHTTPCheckActionPeriodically_All_Failure(t *testing.T) {
@@ -240,7 +240,7 @@ func TestNewHTTPCheckActionPeriodically_All_Failure(t *testing.T) {
 
 	executionRunData, err := action.getExecutionRunData(state.ExecutionID)
 	assert.NoError(t, err)
-	assert.Greater(t, executionRunData.counterReqStarted.Load(), uint64(0))
+	assert.Greater(t, executionRunData.counters.started.Load(), uint64(0))
 
 	// Stop
 	stopResult, err := action.Stop(context.Background(), &state)
@@ -248,5 +248,5 @@ func TestNewHTTPCheckActionPeriodically_All_Failure(t *testing.T) {
 	assert.NotNil(t, stopResult.Metrics)
 	assert.NotNil(t, stopResult.Error)
 	assert.Equal(t, stopResult.Error.Title, "Success Rate (0.00%) was below 100%")
-	assert.Equal(t, executionRunData.counterReqSuccess.Load(), uint64(0))
+	assert.Equal(t, executionRunData.counters.success.Load(), uint64(0))
 }

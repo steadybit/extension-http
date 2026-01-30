@@ -7,12 +7,6 @@ package exthttpcheck
 import (
 	"context"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/rs/zerolog"
-	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	extension_kit "github.com/steadybit/extension-kit"
-	"github.com/steadybit/extension-kit/extutil"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -21,6 +15,13 @@ import (
 	"runtime/pprof"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/rs/zerolog"
+	"github.com/steadybit/action-kit/go/action_kit_api/v2"
+	extension_kit "github.com/steadybit/extension-kit"
+	"github.com/steadybit/extension-kit/extutil"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
@@ -247,14 +248,14 @@ func TestNewHTTPCheckActionFixedAmount_All_Success(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, statusResult.Completed, true)
 	assert.Greater(t, len(*statusResult.Metrics), 0)
-	assert.Equal(t, checker.counterReqStarted.Load(), uint64(20))
+	assert.Equal(t, checker.counters.started.Load(), uint64(20))
 
 	// Stop
 	stopResult, err := action.Stop(context.Background(), &state)
 	assert.NoError(t, err)
 	assert.NotNil(t, stopResult.Metrics)
 	assert.Nil(t, stopResult.Error)
-	assert.Equal(t, checker.counterReqSuccess.Load(), uint64(20))
+	assert.Equal(t, checker.counters.success.Load(), uint64(20))
 }
 
 func TestNewHTTPCheckActionFixedAmount_All_Failure(t *testing.T) {
@@ -313,7 +314,7 @@ func TestNewHTTPCheckActionFixedAmount_All_Failure(t *testing.T) {
 
 	executionRunData, err := action.getHttpChecker(state.ExecutionID)
 	assert.NoError(t, err)
-	assert.Greater(t, executionRunData.counterReqStarted.Load(), uint64(0))
+	assert.Greater(t, executionRunData.counters.started.Load(), uint64(0))
 
 	// Stop
 	stopResult, err := action.Stop(context.Background(), &state)
@@ -321,7 +322,7 @@ func TestNewHTTPCheckActionFixedAmount_All_Failure(t *testing.T) {
 	assert.NotNil(t, stopResult.Metrics)
 	assert.NotNil(t, stopResult.Error)
 	assert.Equal(t, stopResult.Error.Title, "Success Rate (0.00%) was below 100%")
-	assert.Equal(t, executionRunData.counterReqSuccess.Load(), uint64(0))
+	assert.Equal(t, executionRunData.counters.success.Load(), uint64(0))
 }
 
 func TestNewHTTPCheckActionFixedAmount_start_directly(t *testing.T) {

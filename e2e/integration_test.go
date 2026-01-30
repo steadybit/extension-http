@@ -10,11 +10,6 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"github.com/rs/zerolog/log"
-	"github.com/steadybit/action-kit/go/action_kit_test/e2e"
-	"github.com/steadybit/extension-http/exthttpcheck"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"math/big"
 	"net"
 	"net/http"
@@ -22,6 +17,12 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/rs/zerolog/log"
+	"github.com/steadybit/action-kit/go/action_kit_test/e2e"
+	"github.com/steadybit/extension-http/exthttpcheck"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestWithMinikube(t *testing.T) {
