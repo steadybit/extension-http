@@ -5,20 +5,19 @@
 package exthttpcheck
 
 import (
+	"net/url"
+	"testing"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	extension_kit "github.com/steadybit/extension-kit"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/stretchr/testify/assert"
-	"net/url"
-	"sync/atomic"
-	"testing"
-	"time"
 )
 
 func TestAction_Prepare(t *testing.T) {
-
-	url, _ := url.Parse("https://steadybit.com")
+	testUrl, _ := url.Parse("https://steadybit.com")
 
 	tests := []struct {
 		name        string
@@ -61,7 +60,7 @@ func TestAction_Prepare(t *testing.T) {
 				ReadTimeout:              time.Second * 5,
 				ExecutionID:              uuid.New(),
 				Body:                     "test",
-				URL:                      *url,
+				URL:                      *testUrl,
 				Method:                   "GET",
 				Headers:                  map[string]string{"test": "test"},
 				ConnectionTimeout:        time.Second * 5,
@@ -138,8 +137,8 @@ func TestAction_Prepare(t *testing.T) {
 		})
 	}
 }
-func TestAction_Stop(t *testing.T) {
 
+func TestAction_Stop(t *testing.T) {
 	tests := []struct {
 		name        string
 		requestBody action_kit_api.StopActionRequestBody
@@ -189,14 +188,11 @@ func TestAction_Stop(t *testing.T) {
 }
 
 func getChecker(successCounter uint64, counter uint64) *httpChecker {
-	data := &httpChecker{
-		counterReqSuccess: atomic.Uint64{},
-		counterReqStarted: atomic.Uint64{},
-		counterReqFailed:  atomic.Uint64{},
+	checker := &httpChecker{
+		stopSignal: make(chan struct{}, 1),
 	}
-	data.counterReqStarted.Store(counter)
-	data.counterReqSuccess.Store(successCounter)
-	data.counterReqFailed.Store(counter - successCounter)
-	return data
-
+	checker.counters.started.Store(counter)
+	checker.counters.success.Store(successCounter)
+	checker.counters.failed.Store(counter - successCounter)
+	return checker
 }

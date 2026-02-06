@@ -6,6 +6,7 @@ package exthttpcheck
 
 import (
 	"context"
+
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
@@ -50,7 +51,6 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 		Widgets:         widgetToUse,
 
 		Technology: extutil.Ptr("HTTP"),
-		Category:   extutil.Ptr("HTTP"), //Can be removed in Q1/24 - support for backward compatibility of old sidebar
 
 		// To clarify the purpose of the action:
 		//   Check: Will perform checks on the targets
@@ -163,12 +163,12 @@ func (l *httpCheckActionPeriodically) Start(_ context.Context, state *HTTPCheckS
 
 // Status is called to get the current status of the action
 func (l *httpCheckActionPeriodically) Status(_ context.Context, state *HTTPCheckState) (*action_kit_api.StatusResult, error) {
-	executionRunData, err := loadHttpChecker(state.ExecutionID)
+	checker, err := loadHttpChecker(state.ExecutionID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to load execution run data")
 		return nil, err
 	}
-	latestMetrics := retrieveLatestMetrics(executionRunData.metrics)
+	latestMetrics := checker.getLatestMetrics()
 	return &action_kit_api.StatusResult{
 		Completed: false,
 		Metrics:   extutil.Ptr(latestMetrics),

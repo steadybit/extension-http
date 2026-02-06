@@ -6,13 +6,14 @@ package exthttpcheck
 
 import (
 	"fmt"
+	"net/url"
+	"sync"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/extension-kit/extutil"
-	"net/url"
-	"sync"
-	"time"
 )
 
 var (
@@ -89,12 +90,11 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckSt
 }
 
 func loadHttpChecker(executionID uuid.UUID) (*httpChecker, error) {
-	erd, ok := httpCheckers.Load(executionID)
+	item, ok := httpCheckers.Load(executionID)
 	if !ok {
 		return nil, fmt.Errorf("failed to load associated http checker")
 	}
-	checker := erd.(*httpChecker)
-	return checker, nil
+	return item.(*httpChecker), nil
 }
 
 func start(state *HTTPCheckState) {
@@ -106,54 +106,40 @@ func start(state *HTTPCheckState) {
 	checker.start()
 }
 
-func retrieveLatestMetrics(metrics chan action_kit_api.Metric) []action_kit_api.Metric {
-	statusMetrics := make([]action_kit_api.Metric, 0, len(metrics))
-	for {
-		select {
-		case metric, ok := <-metrics:
-			if ok {
-				log.Debug().Msgf("Status Metric: %v", metric)
-				statusMetrics = append(statusMetrics, metric)
-			} else {
-				log.Debug().Msg("Channel closed")
-				return statusMetrics
-			}
-		default:
-			log.Debug().Msg("No metrics available")
-			return statusMetrics
-		}
+func loadAndDeleteHttpChecker(id uuid.UUID) (*httpChecker, error) {
+	item, ok := httpCheckers.LoadAndDelete(id)
+	if !ok {
+		return nil, fmt.Errorf("failed to load associated http checker")
 	}
+	return item.(*httpChecker), nil
 }
 
 func stop(state *HTTPCheckState) (*action_kit_api.StopResult, error) {
-	checker, err := loadHttpChecker(state.ExecutionID)
+	checker, err := loadAndDeleteHttpChecker(state.ExecutionID)
 	if err != nil {
 		log.Debug().Err(err).Msg("Execution run data not found, stop was already called")
 		return nil, nil
 	}
 
 	checker.stop()
-	httpCheckers.Delete(state.ExecutionID)
 
-	latestMetrics := retrieveLatestMetrics(checker.metrics)
-	success := checker.counterReqSuccess.Load()
-	failed := checker.counterReqFailed.Load()
+	latestMetrics := checker.getLatestMetrics()
+	success := checker.counters.success.Load()
+	failed := checker.counters.failed.Load()
 	total := success + failed
 
-	successRate := float64(success) / float64(total) * 100.0
+	result := action_kit_api.StopResult{Metrics: &latestMetrics}
 
-	log.Debug().Msgf("Success Rate: %.2f%% (%d of %d)", successRate, success, total)
-	if successRate < float64(state.SuccessRate) {
-		log.Info().Msgf("Success Rate (%.2f%%) was below %v%%", successRate, state.SuccessRate)
-		return &action_kit_api.StopResult{
-			Metrics: &latestMetrics,
-			Error: &action_kit_api.ActionKitError{
-				Title:  fmt.Sprintf("Success Rate (%.2f%%) was below %v%%", successRate, state.SuccessRate),
-				Status: extutil.Ptr(action_kit_api.Failed),
-			},
-		}, nil
+	if successRate := float64(success) / float64(total) * 100.0; successRate >= float64(state.SuccessRate) {
+		log.Info().Msgf("Success Rate %.2f%% (%d of %d) was greater or equal than %d%%", successRate, success, failed, state.SuccessRate)
+	} else {
+		log.Info().Msgf("Success Rate %.2f%% (%d of %d) was less than %d%%", successRate, success, failed, state.SuccessRate)
+		result.Error = &action_kit_api.ActionKitError{
+			Title:  fmt.Sprintf("Success Rate (%.2f%%) was below %d%%", successRate, state.SuccessRate),
+			Detail: extutil.Ptr(fmt.Sprintf("%d of %d requests were successful.", success, total)),
+			Status: extutil.Ptr(action_kit_api.Failed),
+		}
 	}
 
-	log.Info().Msgf("Success Rate (%.2f%%) was above/equal %v%%", successRate, state.SuccessRate)
-	return &action_kit_api.StopResult{Metrics: &latestMetrics}, nil
+	return &result, nil
 }
