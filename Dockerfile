@@ -13,12 +13,7 @@ ARG REVISION=unknown
 
 WORKDIR /app
 
-COPY go.mod ./
-COPY go.sum ./
-RUN go mod download
-
 COPY . .
-
 RUN GOOS=$TARGETOS GOARCH=$TARGETARCH GOTOOLCHAIN=auto goreleaser build --snapshot="${BUILD_SNAPSHOT}" --single-target -o extension
 
 ##
