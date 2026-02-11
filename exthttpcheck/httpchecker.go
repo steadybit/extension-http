@@ -100,7 +100,13 @@ func (c *httpChecker) start() {
 			select {
 			case t := <-ticker.C:
 				log.Debug().Msgf("Schedule Request at %v", t)
-				c.work <- struct{}{}
+				select {
+				case c.work <- struct{}{}:
+				case <-c.stopSignal:
+					return
+				default:
+					log.Debug().Msgf("Dropping tick at %v, all workers busy", t)
+				}
 
 			case <-c.stopSignal:
 				return
