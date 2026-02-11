@@ -77,9 +77,7 @@ func (c *httpChecker) startWorkers(state *HTTPCheckState) {
 					break
 				}
 
-				if c.performRequest(state, client) {
-					return
-				}
+				c.performRequest(state, client)
 			}
 		})
 	}
@@ -116,12 +114,12 @@ func (c *httpChecker) start() {
 	}()
 }
 
-func (c *httpChecker) performRequest(state *HTTPCheckState, client http.Client) bool {
+func (c *httpChecker) performRequest(state *HTTPCheckState, client http.Client) {
 	req, err := createRequest(state)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create request")
 		c.onError(req, err, 0, false)
-		return true
+		return
 	}
 
 	tracer := newRequestTracer()
@@ -184,7 +182,6 @@ func (c *httpChecker) performRequest(state *HTTPCheckState, client http.Client) 
 			_ = response.Body.Close()
 		}
 	}
-	return false
 }
 
 func createHttpClient(state *HTTPCheckState) http.Client {
