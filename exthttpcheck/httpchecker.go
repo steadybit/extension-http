@@ -93,6 +93,7 @@ func (c *httpChecker) start() {
 
 	go func() {
 		defer func() {
+			ticker.Stop()
 			close(c.work)
 		}()
 
