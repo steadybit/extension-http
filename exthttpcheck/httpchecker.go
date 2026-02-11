@@ -21,12 +21,11 @@ import (
 	"github.com/steadybit/extension-kit/extutil"
 )
 
-type checkEndedFn func(checker *httpChecker) bool
-
 type counters struct {
-	started atomic.Uint64 // stores the number of requests for each execution
-	success atomic.Uint64 // stores the number of successful requests for each execution
-	failed  atomic.Uint64 // stores the number of failed requests for each execution
+	requested atomic.Uint64 // stores the number of requests for each execution
+	started   atomic.Uint64 // stores the number of requests for each execution
+	success   atomic.Uint64 // stores the number of successful requests for each execution
+	failed    atomic.Uint64 // stores the number of failed requests for each execution
 }
 
 type httpChecker struct {
@@ -34,28 +33,19 @@ type httpChecker struct {
 	work        chan struct{} // stores the work for each execution
 	stopSignal  chan struct{} // stores the stop signal for each execution
 	metrics     chan action_kit_api.Metric
-	shouldStop  func() bool // function to determine whether the check should end
-	counters    counters    // stores the counters for each execution
+	counters    counters // stores the counters for each execution
 	tickerDelay time.Duration
+	maxRequests uint64
 }
 
-func newHttpChecker(state *HTTPCheckState, fnStop checkEndedFn) *httpChecker {
+func newHttpChecker(state *HTTPCheckState) *httpChecker {
 	checker := &httpChecker{
 		work:        make(chan struct{}, state.MaxConcurrent),
 		stopSignal:  make(chan struct{}, 1),
 		metrics:     make(chan action_kit_api.Metric, state.RequestsPerSecond*2),
 		counters:    counters{},
 		tickerDelay: time.Duration(state.DelayBetweenRequestsInMS) * time.Millisecond,
-	}
-
-	if fnStop != nil {
-		checker.shouldStop = func() bool {
-			return fnStop(checker)
-		}
-	} else {
-		checker.shouldStop = func() bool {
-			return false
-		}
+		maxRequests: state.NumberOfRequests,
 	}
 
 	go func(c *httpChecker) {
@@ -73,10 +63,6 @@ func (c *httpChecker) startWorkers(state *HTTPCheckState) {
 			client := createHttpClient(state)
 
 			for range c.work {
-				if c.shouldStop() {
-					break
-				}
-
 				c.performRequest(state, client)
 			}
 		})
@@ -88,6 +74,7 @@ func (c *httpChecker) start() {
 
 	log.Debug().Msgf("Schedule first Request at %v", time.Now())
 	c.work <- struct{}{}
+	c.counters.requested.Add(1)
 
 	go func() {
 		defer func() {
@@ -98,9 +85,13 @@ func (c *httpChecker) start() {
 		for {
 			select {
 			case t := <-ticker.C:
-				log.Debug().Msgf("Schedule Request at %v", t)
 				select {
 				case c.work <- struct{}{}:
+					log.Debug().Msgf("Scheduled Request at %v", t)
+					counter := c.counters.requested.Add(1)
+					if c.maxRequests > 0 && counter > c.maxRequests {
+						return
+					}
 				case <-c.stopSignal:
 					return
 				default:
@@ -248,6 +239,10 @@ func (c *httpChecker) onResponse(req *http.Request, res *http.Response, tracer *
 func (c *httpChecker) stop() {
 	c.stopSignal <- struct{}{}
 	c.wg.Wait()
+}
+
+func (c *httpChecker) isCompleted() bool {
+	return c.maxRequests > 0 && c.counters.requested.Load() >= c.maxRequests
 }
 
 func (c *httpChecker) getLatestMetrics() []action_kit_api.Metric {

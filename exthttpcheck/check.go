@@ -42,7 +42,7 @@ type HTTPCheckState struct {
 	InsecureSkipVerify       bool
 }
 
-func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckState, checkEnded checkEndedFn) (*action_kit_api.PrepareResult, error) {
+func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckState) (*action_kit_api.PrepareResult, error) {
 	duration := extutil.ToInt64(request.Config["duration"])
 	state.Timeout = time.Now().Add(time.Millisecond * time.Duration(duration))
 	expectedStatusCodes, statusCodeErr := resolveStatusCodeExpression(extutil.ToString(request.Config["statusCode"]))
@@ -83,7 +83,7 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckSt
 	}
 	state.URL = *parsedUrl
 
-	checker := newHttpChecker(state, checkEnded)
+	checker := newHttpChecker(state)
 	httpCheckers.Store(state.ExecutionID, checker)
 
 	return nil, nil

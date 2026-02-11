@@ -150,7 +150,7 @@ func (l *httpCheckActionPeriodically) Prepare(_ context.Context, state *HTTPChec
 			},
 		}, nil
 	}
-	return prepare(request, state, nil)
+	return prepare(request, state)
 }
 
 // Start is called to start the action
