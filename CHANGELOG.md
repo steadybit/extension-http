@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.35
+
+- Wait for inflight requests when stopping
+- Update dependencies
+
 ## v1.0.34
 
 - Update dependencies
