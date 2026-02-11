@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 steadybit GmbH. All rights reserved.
+ * Copyright 2026 steadybit GmbH. All rights reserved.
  */
 
 package main
@@ -53,6 +53,9 @@ func main() {
 
 	action_kit_sdk.RegisterAction(exthttpcheck.NewHTTPCheckActionFixedAmount())
 	action_kit_sdk.RegisterAction(exthttpcheck.NewHTTPCheckActionPeriodically())
+	if config.Config.EnableBandwidthCheck {
+		action_kit_sdk.RegisterAction(exthttpcheck.NewHTTPCheckActionBandwidth())
+	}
 	discovery_kit_sdk.Register(exthttpcheck.NewDiscovery())
 
 	//This will install a signal handler, that will stop active actions when receiving a SIGURS1, SIGTERM or SIGINT
