@@ -114,14 +114,14 @@ func loadAndDeleteHttpChecker(id uuid.UUID) (*httpChecker, error) {
 	return item.(*httpChecker), nil
 }
 
-func stop(state *HTTPCheckState) (*action_kit_api.StopResult, error) {
+func stop(state *HTTPCheckState, cancelInFlightChecks bool) (*action_kit_api.StopResult, error) {
 	checker, err := loadAndDeleteHttpChecker(state.ExecutionID)
 	if err != nil {
 		log.Debug().Err(err).Msg("Execution run data not found, stop was already called")
 		return nil, nil
 	}
 
-	checker.stop()
+	checker.shutdown(cancelInFlightChecks)
 
 	latestMetrics := checker.getLatestMetrics()
 	success := checker.counters.success.Load()

@@ -206,7 +206,7 @@ func (l *httpCheckActionFixedAmount) Status(_ context.Context, state *HTTPCheckS
 }
 
 func (l *httpCheckActionFixedAmount) Stop(_ context.Context, state *HTTPCheckState) (*action_kit_api.StopResult, error) {
-	return stop(state)
+	return stop(state, false)
 }
 
 func (l *httpCheckActionFixedAmount) getHttpChecker(executionID uuid.UUID) (*httpChecker, error) {

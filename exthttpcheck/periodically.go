@@ -176,7 +176,7 @@ func (l *httpCheckActionPeriodically) Status(_ context.Context, state *HTTPCheck
 }
 
 func (l *httpCheckActionPeriodically) Stop(_ context.Context, state *HTTPCheckState) (*action_kit_api.StopResult, error) {
-	return stop(state)
+	return stop(state, true)
 }
 
 func (l *httpCheckActionPeriodically) getExecutionRunData(executionID uuid.UUID) (*httpChecker, error) {

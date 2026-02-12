@@ -168,16 +168,19 @@ func testPeriodically(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		}, {
 			name:               "should check status for bad ssl website",
 			url:                "https://self-signed.badssl.com/",
+			timeout:            30000,
 			insecureSkipVerify: false,
 			WantedFailure:      true,
 		}, {
 			name:               "should check status for bad ssl website with insecureSkipVerify",
 			url:                "https://self-signed.badssl.com/",
+			timeout:            30000,
 			insecureSkipVerify: true,
 			WantedFailure:      false,
 		}, {
 			name:               "should check status with self-signed certificate",
 			url:                "https://host.minikube.internal:8443",
+			timeout:            30000,
 			insecureSkipVerify: false,
 			WantedFailure:      false,
 		},
@@ -266,17 +269,20 @@ func testFixAmount(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		{
 			name:               "should check status for bad ssl website",
 			url:                "https://self-signed.badssl.com/",
+			timeout:            30000,
 			insecureSkipVerify: false,
 			WantedFailure:      true,
 		}, {
 			name:               "should check status for bad ssl website with insecureSkipVerify",
 			url:                "https://self-signed.badssl.com/",
+			timeout:            30000,
 			insecureSkipVerify: true,
 			WantedFailure:      false,
 		},
 		{
 			name:               "should check status with self-signed certificate",
 			url:                "https://host.minikube.internal:8443",
+			timeout:            30000,
 			insecureSkipVerify: false,
 			WantedFailure:      false,
 		},
