@@ -123,7 +123,7 @@ func (a *httpCheckActionBandwidth) Describe() action_kit_api.ActionDescription {
 
 	description := action_kit_api.ActionDescription{
 		Id:              ActionIDBandwidth,
-		Label:           "HTTP (Bandwidth)",
+		Label:           "HTTP Bandwidth",
 		Description:     "Measures download bandwidth from an HTTP endpoint and validates against thresholds",
 		Version:         extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:            extutil.Ptr(actionIconBandwidth),
@@ -242,7 +242,7 @@ func (a *httpCheckActionBandwidth) Prepare(_ context.Context, state *BandwidthCh
 	if minBandwidthStr == "" && maxBandwidthStr == "" {
 		return &action_kit_api.PrepareResult{
 			Error: &action_kit_api.ActionKitError{
-				Title: "At least one of minimum or maximum bandwidth must be specified.",
+				Title: "At least one of minimum or maximum bandwidth must be specified",
 			},
 		}, nil
 	}
@@ -272,7 +272,7 @@ func (a *httpCheckActionBandwidth) Prepare(_ context.Context, state *BandwidthCh
 	if state.MinBandwidthBps > 0 && state.MaxBandwidthBps > 0 && state.MinBandwidthBps > state.MaxBandwidthBps {
 		return &action_kit_api.PrepareResult{
 			Error: &action_kit_api.ActionKitError{
-				Title: "Minimum bandwidth cannot be greater than maximum bandwidth.",
+				Title: "Minimum bandwidth cannot be greater than maximum bandwidth",
 			},
 		}, nil
 	}
@@ -286,12 +286,14 @@ func (a *httpCheckActionBandwidth) Prepare(_ context.Context, state *BandwidthCh
 	state.InsecureSkipVerify = extutil.ToBool(request.Config["insecureSkipVerify"])
 	state.MaxConcurrent = extutil.ToInt(request.Config["maxConcurrent"])
 	if state.MaxConcurrent < 1 {
-		state.MaxConcurrent = 5
+		return &action_kit_api.PrepareResult{
+			Error: &action_kit_api.ActionKitError{
+				Title: "Concurrent requests must be at least 1",
+			},
+		}, nil
 	}
 
-	// Create and store the bandwidth checker
-	checker := newBandwidthChecker(state)
-	bandwidthCheckers.Store(state.ExecutionID, checker)
+	bandwidthCheckers.Store(state.ExecutionID, newBandwidthChecker(state))
 
 	return nil, nil
 }

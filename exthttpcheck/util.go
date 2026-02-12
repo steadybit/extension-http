@@ -89,7 +89,7 @@ func parseBitrate(s string) (int64, error) {
 	s = strings.ToLower(strings.TrimSpace(s))
 
 	// Regular expression to match number and unit
-	re := regexp.MustCompile(`^(\d+(?:\.\d+)?)\s*(bit|kbit|mbit|gbit|bps|kbps|mbps|gbps)?$`)
+	re := regexp.MustCompile(`^(\d+(?:\.\d+)?)\s*(bit|kbit|mbit|gbit|tbit|bps|kbps|mbps|gbps|tbps)?$`)
 	matches := re.FindStringSubmatch(s)
 	if matches == nil {
 		return 0, fmt.Errorf("invalid bitrate format: %s", s)
@@ -107,14 +107,26 @@ func parseBitrate(s string) (int64, error) {
 
 	var multiplier float64
 	switch unit {
-	case "bit", "bps":
+	case "bit":
 		multiplier = 1
-	case "kbit", "kbps":
+	case "kbit":
 		multiplier = 1000
-	case "mbit", "mbps":
+	case "mbit":
 		multiplier = 1_000_000
-	case "gbit", "gbps":
+	case "gbit":
 		multiplier = 1_000_000_000
+	case "tbit":
+		multiplier = 1_000_000_000_000
+	case "bps":
+		multiplier = 8
+	case "kbps":
+		multiplier = 8_000
+	case "mbps":
+		multiplier = 8_000_000
+	case "gbps":
+		multiplier = 8_000_000_000
+	case "tbps":
+		multiplier = 8_000_000_000_000
 	default:
 		return 0, fmt.Errorf("unknown bitrate unit: %s", unit)
 	}

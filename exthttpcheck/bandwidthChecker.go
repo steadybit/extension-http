@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"net/http"
 	"strconv"
@@ -241,7 +242,7 @@ func (c *bandwidthChecker) emitWindowMetric() *action_kit_api.Metric {
 			"within_threshold": strconv.FormatBool(withinThreshold),
 			"bandwidth":        strconv.FormatFloat(bandwidthMbps, 'g', -1, 64),
 		},
-		Value:     bandwidthMbps,
+		Value:     math.Trunc(bandwidthMbps*100) / 100,
 		Timestamp: time.Now(),
 	}
 

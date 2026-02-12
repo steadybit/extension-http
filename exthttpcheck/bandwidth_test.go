@@ -30,11 +30,13 @@ func TestParseBitrate(t *testing.T) {
 		{"1mbit", 1_000_000, false},
 		{"10mbit", 10_000_000, false},
 		{"1gbit", 1_000_000_000, false},
+		{"1tbit", 1_000_000_000_000, false},
 		{"1024kbit", 1_024_000, false},
-		{"1bps", 1, false},
-		{"1kbps", 1000, false},
-		{"1mbps", 1_000_000, false},
-		{"1gbps", 1_000_000_000, false},
+		{"1bps", 8, false},
+		{"1kbps", 8_000, false},
+		{"1mbps", 8_000_000, false},
+		{"1gbps", 8_000_000_000, false},
+		{"1tbps", 8_000_000_000_000, false},
 		{"100", 100, false},
 		{"", 0, true},
 		{"invalid", 0, true},
@@ -59,7 +61,7 @@ func TestBandwidthCheckAction_Describe(t *testing.T) {
 	desc := action.Describe()
 
 	assert.Equal(t, ActionIDBandwidth, desc.Id)
-	assert.Equal(t, "HTTP (Bandwidth)", desc.Label)
+	assert.Equal(t, "HTTP Bandwidth", desc.Label)
 	assert.Equal(t, action_kit_api.Check, desc.Kind)
 	assert.Equal(t, action_kit_api.TimeControlExternal, desc.TimeControl)
 	assert.NotEmpty(t, desc.Parameters)
@@ -128,14 +130,15 @@ func TestBandwidthCheckAction_Prepare_Success(t *testing.T) {
 	execID := uuid.New()
 	request := action_kit_api.PrepareActionRequestBody{
 		Config: map[string]interface{}{
-			"url":               "http://example.com",
-			"minBandwidth":      "1mbit",
-			"maxBandwidth":      "100mbit",
-			"successRate":       80,
-			"connectTimeout":    5000,
-			"readTimeout":       5000,
-			"followRedirects":   true,
-			"headers":           []interface{}{},
+			"url":             "http://example.com",
+			"minBandwidth":    "1mbit",
+			"maxBandwidth":    "100mbit",
+			"successRate":     80,
+			"connectTimeout":  5000,
+			"readTimeout":     5000,
+			"followRedirects": true,
+			"maxConcurrent":   1,
+			"headers":         []interface{}{},
 		},
 		ExecutionId: execID,
 	}
@@ -170,14 +173,14 @@ func TestBandwidthCheckAction_FullCycle(t *testing.T) {
 	execID := uuid.New()
 	request := action_kit_api.PrepareActionRequestBody{
 		Config: map[string]interface{}{
-			"url":               server.URL,
-			"minBandwidth":      "1kbit", // Very low threshold to ensure success
-			"successRate":       100,
-			"connectTimeout":    5000,
-			"readTimeout":       5000,
-			"followRedirects":   true,
-			"maxConcurrent":     10,
-			"headers":           []interface{}{},
+			"url":             server.URL,
+			"minBandwidth":    "1kbit", // Very low threshold to ensure success
+			"successRate":     100,
+			"connectTimeout":  5000,
+			"readTimeout":     5000,
+			"followRedirects": true,
+			"maxConcurrent":   10,
+			"headers":         []interface{}{},
 		},
 		ExecutionId: execID,
 	}
@@ -245,14 +248,14 @@ func TestBandwidthCheckAction_BigFileDownload(t *testing.T) {
 	execID := uuid.New()
 	request := action_kit_api.PrepareActionRequestBody{
 		Config: map[string]interface{}{
-			"url":               server.URL,
-			"minBandwidth":      "1kbit",
-			"successRate":       100,
-			"connectTimeout":    10000,
-			"readTimeout":       10000,
-			"followRedirects":   true,
-			"maxConcurrent":     1,
-			"headers":           []interface{}{},
+			"url":             server.URL,
+			"minBandwidth":    "1kbit",
+			"successRate":     100,
+			"connectTimeout":  10000,
+			"readTimeout":     10000,
+			"followRedirects": true,
+			"maxConcurrent":   1,
+			"headers":         []interface{}{},
 		},
 		ExecutionId: execID,
 	}
@@ -334,14 +337,14 @@ func TestBandwidthCheckAction_NonSuccessStatusCode(t *testing.T) {
 	execID := uuid.New()
 	request := action_kit_api.PrepareActionRequestBody{
 		Config: map[string]interface{}{
-			"url":               server.URL,
-			"minBandwidth":      "1kbit",
-			"successRate":       100,
-			"connectTimeout":    5000,
-			"readTimeout":       5000,
-			"followRedirects":   true,
-			"maxConcurrent":     2,
-			"headers":           []interface{}{},
+			"url":             server.URL,
+			"minBandwidth":    "1kbit",
+			"successRate":     100,
+			"connectTimeout":  5000,
+			"readTimeout":     5000,
+			"followRedirects": true,
+			"maxConcurrent":   2,
+			"headers":         []interface{}{},
 		},
 		ExecutionId: execID,
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 steadybit GmbH. All rights reserved.
+ * Copyright 2026 steadybit GmbH. All rights reserved.
  */
 
 package config
@@ -19,7 +19,6 @@ type Specification struct {
 	KubernetesNamespace               string `json:"kubernetesNamespace" split_words:"true" required:"false"`
 	EnableLocationSelection           bool   `json:"enableLocationSelection" split_words:"true" required:"false"`
 	EnableWidgetBackwardCompatibility bool   `json:"enableWidgetBackwardCompatibility" split_words:"true" required:"false" default:"true"`
-	EnableBandwidthCheck              bool   `json:"enableBandwidthCheck" split_words:"true" required:"false" default:"false"`
 }
 
 var (
