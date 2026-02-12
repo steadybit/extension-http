@@ -22,11 +22,6 @@ import (
 )
 
 type bandwidthChecker struct {
-	// Request scheduling
-	work        chan struct{}
-	ticker      *time.Ticker
-	tickerDelay time.Duration
-
 	// Window aggregation
 	windowMu              sync.Mutex
 	windowStartTime       time.Time
@@ -46,14 +41,9 @@ type bandwidthChecker struct {
 var bandwidthCheckers = sync.Map{}
 
 func newBandwidthChecker(state *BandwidthCheckState) *bandwidthChecker {
-	delayMs := uint64(1000) / state.RequestsPerSecond
-	checker := &bandwidthChecker{
-		work:        make(chan struct{}, 10),
-		tickerDelay: time.Duration(delayMs) * time.Millisecond,
-		state:       state,
+	return &bandwidthChecker{
+		state: state,
 	}
-
-	return checker
 }
 
 func (c *bandwidthChecker) start() {
@@ -65,39 +55,16 @@ func (c *bandwidthChecker) start() {
 	c.windowErrorCount = 0
 	c.windowMu.Unlock()
 
-	// Start request ticker
-	c.ticker = time.NewTicker(c.tickerDelay)
-
-	// Start workers for performing requests
+	// Start workers that continuously perform requests without delay
 	for w := 1; w <= c.state.MaxConcurrent; w++ {
 		go c.performBandwidthRequests()
 	}
 
-	// Schedule first request immediately
-	log.Debug().Msgf("Schedule first bandwidth request at %v", time.Now())
-	c.work <- struct{}{}
-
-	// Request scheduler goroutine
-	go func() {
-		for range c.ticker.C {
-			if c.stopped.Load() {
-				return
-			}
-			log.Trace().Msgf("Schedule bandwidth request at %v", time.Now())
-			select {
-			case c.work <- struct{}{}:
-			default:
-				// Work channel full, skip this tick
-			}
-		}
-	}()
+	log.Debug().Msgf("Started %d bandwidth workers", c.state.MaxConcurrent)
 }
 
 func (c *bandwidthChecker) stop() {
 	c.stopped.Store(true)
-	if c.ticker != nil {
-		c.ticker.Stop()
-	}
 }
 
 func (c *bandwidthChecker) performBandwidthRequests() {
@@ -123,11 +90,7 @@ func (c *bandwidthChecker) performBandwidthRequests() {
 		}
 	}
 
-	for range c.work {
-		if c.stopped.Load() {
-			break
-		}
-
+	for !c.stopped.Load() {
 		req, err := http.NewRequest("GET", c.state.URL.String(), nil)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to create bandwidth request")

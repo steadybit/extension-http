@@ -36,7 +36,6 @@ type BandwidthCheckState struct {
 	ReadTimeout        time.Duration
 	FollowRedirects    bool
 	InsecureSkipVerify bool
-	RequestsPerSecond  uint64
 	MaxConcurrent      int
 }
 
@@ -150,15 +149,15 @@ func (a *httpCheckActionBandwidth) Describe() action_kit_api.ActionDescription {
 			//------------------------
 			repetitionControl,
 			{
-				Name:         "requestsPerSecond",
-				Label:        "Requests per second",
-				Description:  extutil.Ptr("The number of requests per second. Should be between 1 and 10."),
+				Name:         "maxConcurrent",
+				Label:        "Concurrent Requests",
+				Description:  extutil.Ptr("Number of parallel requests to execute simultaneously without delay. More concurrent requests generate more traffic to saturate the available bandwidth."),
 				Type:         action_kit_api.ActionParameterTypeInteger,
-				DefaultValue: extutil.Ptr("1"),
+				DefaultValue: extutil.Ptr("5"),
 				Required:     extutil.Ptr(true),
 				Order:        extutil.Ptr(7),
 				MinValue:     extutil.Ptr(1),
-				MaxValue:     extutil.Ptr(10),
+				MaxValue:     extutil.Ptr(50),
 			},
 			duration,
 			separator(9),
@@ -193,10 +192,6 @@ func (a *httpCheckActionBandwidth) Describe() action_kit_api.ActionDescription {
 			// Target Selection
 			//------------------------
 			targetSelectionParameter,
-			//------------------------
-			// Additional Settings
-			//------------------------
-			maxConcurrent,
 			//------------------------
 			// Client Settings
 			//------------------------
@@ -289,7 +284,6 @@ func (a *httpCheckActionBandwidth) Prepare(_ context.Context, state *BandwidthCh
 	state.ReadTimeout = time.Duration(extutil.ToInt64(request.Config["readTimeout"])) * time.Millisecond
 	state.FollowRedirects = extutil.ToBool(request.Config["followRedirects"])
 	state.InsecureSkipVerify = extutil.ToBool(request.Config["insecureSkipVerify"])
-	state.RequestsPerSecond = extutil.ToUInt64(request.Config["requestsPerSecond"])
 	state.MaxConcurrent = extutil.ToInt(request.Config["maxConcurrent"])
 	if state.MaxConcurrent < 1 {
 		state.MaxConcurrent = 5
