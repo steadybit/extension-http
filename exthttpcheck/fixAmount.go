@@ -196,7 +196,7 @@ func (l *httpCheckActionFixedAmount) Status(_ context.Context, state *HTTPCheckS
 		return nil, err
 	}
 
-	completed := checker.isCompleted()
+	completed := checker.outOfRequests()
 	latestMetrics := checker.getLatestMetrics()
 
 	return &action_kit_api.StatusResult{
@@ -206,7 +206,14 @@ func (l *httpCheckActionFixedAmount) Status(_ context.Context, state *HTTPCheckS
 }
 
 func (l *httpCheckActionFixedAmount) Stop(_ context.Context, state *HTTPCheckState) (*action_kit_api.StopResult, error) {
-	return stop(state, false)
+	cancel := true
+	if checker, _ := loadHttpChecker(state.ExecutionID); checker != nil {
+		//if we requested the wanted number of requests, we want these to all finish.
+		//if the stop was called before, we want to cancel all in-flight requests immediately.
+		cancel = !checker.outOfRequests()
+	}
+
+	return stop(state, cancel)
 }
 
 func (l *httpCheckActionFixedAmount) getHttpChecker(executionID uuid.UUID) (*httpChecker, error) {

@@ -257,7 +257,8 @@ func (c *httpChecker) shutdown(cancel bool) {
 	}
 }
 
-func (c *httpChecker) isCompleted() bool {
+// outOfRequests checks if the number of requested requests has reached the maximum number of requests configured for this execution.
+func (c *httpChecker) outOfRequests() bool {
 	return c.maxRequests > 0 && c.counters.requested.Load() >= c.maxRequests
 }
 
@@ -267,7 +268,7 @@ func (c *httpChecker) getLatestMetrics() []action_kit_api.Metric {
 		select {
 		case metric, ok := <-c.metrics:
 			if ok {
-				log.Debug().Msgf("Status Metric: %v", metric)
+				log.Trace().Msgf("Status Metric: %v", metric)
 				metrics = append(metrics, metric)
 			} else {
 				log.Trace().Msg("Channel closed")

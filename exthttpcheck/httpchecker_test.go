@@ -136,7 +136,7 @@ func TestHttpChecker_ShouldStop(t *testing.T) {
 			}
 			checker.counters.requested.Store(tt.requested)
 
-			assert.Equal(t, tt.want, checker.isCompleted())
+			assert.Equal(t, tt.want, checker.outOfRequests())
 		})
 	}
 }
