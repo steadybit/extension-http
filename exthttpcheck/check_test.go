@@ -5,6 +5,7 @@
 package exthttpcheck
 
 import (
+	"context"
 	"net/url"
 	"testing"
 	"time"
@@ -109,7 +110,7 @@ func TestAction_Prepare(t *testing.T) {
 			state := HTTPCheckState{}
 			request := tt.requestBody
 			//When
-			_, err := prepare(request, &state, nil)
+			_, err := prepare(request, &state)
 
 			//Then
 			if tt.wantedError != nil {
@@ -171,7 +172,7 @@ func TestAction_Stop(t *testing.T) {
 			//Given
 			httpCheckers.Store(tt.state.ExecutionID, tt.checker)
 			//When
-			result, err := stop(tt.state)
+			result, err := stop(tt.state, true)
 
 			//Then
 			if tt.wantedError != nil && result.Error == nil {
@@ -188,8 +189,10 @@ func TestAction_Stop(t *testing.T) {
 }
 
 func getChecker(successCounter uint64, counter uint64) *httpChecker {
+	ctx, cancel := context.WithCancel(context.Background())
 	checker := &httpChecker{
-		stopSignal: make(chan struct{}, 1),
+		ctx:    ctx,
+		cancel: cancel,
 	}
 	checker.counters.started.Store(counter)
 	checker.counters.success.Store(successCounter)

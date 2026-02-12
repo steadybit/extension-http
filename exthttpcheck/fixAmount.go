@@ -177,9 +177,7 @@ func (l *httpCheckActionFixedAmount) Prepare(_ context.Context, state *HTTPCheck
 		}, nil
 	}
 
-	return prepare(request, state, func(checker *httpChecker) bool {
-		return checker.counters.started.Load() >= numberOfRequests
-	})
+	return prepare(request, state)
 }
 
 // Start is called to start the action
@@ -198,7 +196,7 @@ func (l *httpCheckActionFixedAmount) Status(_ context.Context, state *HTTPCheckS
 		return nil, err
 	}
 
-	completed := checker.shouldStop()
+	completed := checker.isCompleted()
 	latestMetrics := checker.getLatestMetrics()
 
 	return &action_kit_api.StatusResult{
@@ -208,7 +206,7 @@ func (l *httpCheckActionFixedAmount) Status(_ context.Context, state *HTTPCheckS
 }
 
 func (l *httpCheckActionFixedAmount) Stop(_ context.Context, state *HTTPCheckState) (*action_kit_api.StopResult, error) {
-	return stop(state)
+	return stop(state, false)
 }
 
 func (l *httpCheckActionFixedAmount) getHttpChecker(executionID uuid.UUID) (*httpChecker, error) {

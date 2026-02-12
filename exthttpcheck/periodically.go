@@ -135,9 +135,8 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 func getDelayBetweenRequestsInMsPeriodically(requestsPerSecond uint64) uint64 {
 	if requestsPerSecond > 0 {
 		return 1000 / requestsPerSecond
-	} else {
-		return 1000 / 1
 	}
+	return 1000 / 1
 }
 
 func (l *httpCheckActionPeriodically) Prepare(_ context.Context, state *HTTPCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
@@ -150,7 +149,7 @@ func (l *httpCheckActionPeriodically) Prepare(_ context.Context, state *HTTPChec
 			},
 		}, nil
 	}
-	return prepare(request, state, nil)
+	return prepare(request, state)
 }
 
 // Start is called to start the action
@@ -176,7 +175,7 @@ func (l *httpCheckActionPeriodically) Status(_ context.Context, state *HTTPCheck
 }
 
 func (l *httpCheckActionPeriodically) Stop(_ context.Context, state *HTTPCheckState) (*action_kit_api.StopResult, error) {
-	return stop(state)
+	return stop(state, true)
 }
 
 func (l *httpCheckActionPeriodically) getExecutionRunData(executionID uuid.UUID) (*httpChecker, error) {

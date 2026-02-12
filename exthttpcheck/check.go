@@ -42,7 +42,7 @@ type HTTPCheckState struct {
 	InsecureSkipVerify       bool
 }
 
-func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckState, checkEnded checkEndedFn) (*action_kit_api.PrepareResult, error) {
+func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckState) (*action_kit_api.PrepareResult, error) {
 	duration := extutil.ToInt64(request.Config["duration"])
 	state.Timeout = time.Now().Add(time.Millisecond * time.Duration(duration))
 	expectedStatusCodes, statusCodeErr := resolveStatusCodeExpression(extutil.ToString(request.Config["statusCode"]))
@@ -83,7 +83,7 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckSt
 	}
 	state.URL = *parsedUrl
 
-	checker := newHttpChecker(state, checkEnded)
+	checker := newHttpChecker(state)
 	httpCheckers.Store(state.ExecutionID, checker)
 
 	return nil, nil
@@ -114,14 +114,14 @@ func loadAndDeleteHttpChecker(id uuid.UUID) (*httpChecker, error) {
 	return item.(*httpChecker), nil
 }
 
-func stop(state *HTTPCheckState) (*action_kit_api.StopResult, error) {
+func stop(state *HTTPCheckState, cancelInFlightChecks bool) (*action_kit_api.StopResult, error) {
 	checker, err := loadAndDeleteHttpChecker(state.ExecutionID)
 	if err != nil {
 		log.Debug().Err(err).Msg("Execution run data not found, stop was already called")
 		return nil, nil
 	}
 
-	checker.stop()
+	checker.shutdown(cancelInFlightChecks)
 
 	latestMetrics := checker.getLatestMetrics()
 	success := checker.counters.success.Load()
@@ -130,7 +130,13 @@ func stop(state *HTTPCheckState) (*action_kit_api.StopResult, error) {
 
 	result := action_kit_api.StopResult{Metrics: &latestMetrics}
 
-	if successRate := float64(success) / float64(total) * 100.0; successRate >= float64(state.SuccessRate) {
+	if total == 0 {
+		log.Warn().Msg("No requests completed")
+		result.Error = &action_kit_api.ActionKitError{
+			Title:  "No requests completed",
+			Status: extutil.Ptr(action_kit_api.Failed),
+		}
+	} else if successRate := float64(success) / float64(total) * 100.0; successRate >= float64(state.SuccessRate) {
 		log.Info().Msgf("Success Rate %.2f%% (%d of %d) was greater or equal than %d%%", successRate, success, failed, state.SuccessRate)
 	} else {
 		log.Info().Msgf("Success Rate %.2f%% (%d of %d) was less than %d%%", successRate, success, failed, state.SuccessRate)

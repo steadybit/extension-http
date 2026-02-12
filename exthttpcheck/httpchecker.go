@@ -3,7 +3,9 @@
 package exthttpcheck
 
 import (
+	"context"
 	"crypto/tls"
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -21,41 +23,34 @@ import (
 	"github.com/steadybit/extension-kit/extutil"
 )
 
-type checkEndedFn func(checker *httpChecker) bool
-
 type counters struct {
-	started atomic.Uint64 // stores the number of requests for each execution
-	success atomic.Uint64 // stores the number of successful requests for each execution
-	failed  atomic.Uint64 // stores the number of failed requests for each execution
+	requested atomic.Uint64 // stores the number of requests for each execution
+	started   atomic.Uint64 // stores the number of requests for each execution
+	success   atomic.Uint64 // stores the number of successful requests for each execution
+	failed    atomic.Uint64 // stores the number of failed requests for each execution
 }
 
 type httpChecker struct {
 	wg          sync.WaitGroup
 	work        chan struct{} // stores the work for each execution
-	stopSignal  chan struct{} // stores the stop signal for each execution
+	ctx         context.Context
+	cancel      context.CancelFunc
 	metrics     chan action_kit_api.Metric
-	shouldStop  func() bool // function to determine whether the check should end
-	counters    counters    // stores the counters for each execution
+	counters    counters // stores the counters for each execution
 	tickerDelay time.Duration
+	maxRequests uint64
 }
 
-func newHttpChecker(state *HTTPCheckState, fnStop checkEndedFn) *httpChecker {
+func newHttpChecker(state *HTTPCheckState) *httpChecker {
+	ctx, cancel := context.WithCancel(context.Background())
 	checker := &httpChecker{
 		work:        make(chan struct{}, state.MaxConcurrent),
-		stopSignal:  make(chan struct{}, 1),
+		ctx:         ctx,
+		cancel:      cancel,
 		metrics:     make(chan action_kit_api.Metric, state.RequestsPerSecond*2),
 		counters:    counters{},
 		tickerDelay: time.Duration(state.DelayBetweenRequestsInMS) * time.Millisecond,
-	}
-
-	if fnStop != nil {
-		checker.shouldStop = func() bool {
-			return fnStop(checker)
-		}
-	} else {
-		checker.shouldStop = func() bool {
-			return false
-		}
+		maxRequests: state.NumberOfRequests,
 	}
 
 	go func(c *httpChecker) {
@@ -73,12 +68,10 @@ func (c *httpChecker) startWorkers(state *HTTPCheckState) {
 			client := createHttpClient(state)
 
 			for range c.work {
-				if c.shouldStop() {
-					break
-				}
-
-				if c.performRequest(state, client) {
-					return
+				if req, err := createRequest(c.ctx, state); err == nil {
+					c.performRequest(req, state, client)
+				} else {
+					log.Error().Err(err).Msg("Failed to create request")
 				}
 			}
 		})
@@ -88,35 +81,38 @@ func (c *httpChecker) startWorkers(state *HTTPCheckState) {
 func (c *httpChecker) start() {
 	ticker := time.NewTicker(c.tickerDelay)
 
-	log.Debug().Msgf("Schedule first Request at %v", time.Now())
 	c.work <- struct{}{}
+	c.counters.requested.Add(1)
+	log.Debug().Msgf("Scheduled first Request at %v", time.Now())
 
 	go func() {
 		defer func() {
+			ticker.Stop()
 			close(c.work)
 		}()
 
 		for {
 			select {
 			case t := <-ticker.C:
-				log.Debug().Msgf("Schedule Request at %v", t)
-				c.work <- struct{}{}
+				select {
+				case c.work <- struct{}{}:
+					counter := c.counters.requested.Add(1)
+					log.Debug().Msgf("Scheduled Request at %v", t)
+					if c.maxRequests > 0 && counter >= c.maxRequests {
+						return
+					}
+				default:
+					log.Debug().Msgf("Dropping tick at %v, all workers busy", t)
+				}
 
-			case <-c.stopSignal:
+			case <-c.ctx.Done():
 				return
 			}
 		}
 	}()
 }
 
-func (c *httpChecker) performRequest(state *HTTPCheckState, client http.Client) bool {
-	req, err := createRequest(state)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to create request")
-		c.onError(req, err, 0, false)
-		return true
-	}
-
+func (c *httpChecker) performRequest(req *http.Request, state *HTTPCheckState, client http.Client) {
 	tracer := newRequestTracer()
 	req = req.WithContext(httptrace.WithClientTrace(req.Context(), &tracer.ClientTrace))
 
@@ -131,11 +127,14 @@ func (c *httpChecker) performRequest(state *HTTPCheckState, client http.Client) 
 
 	response, err := client.Do(req)
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			return
+		}
 		log.Error().Err(err).Msg("Failed to execute request")
 		now := time.Now()
 
 		responseStatusWasExpected := slices.Contains(state.ExpectedStatusCodes, "error")
-		c.onError(req, err, now.Sub(started).Milliseconds(), responseStatusWasExpected)
+		c.onError(req, err, float64(now.Sub(started).Milliseconds()), responseStatusWasExpected)
 	} else {
 		var bodyBytes []byte
 		var bodyErr error
@@ -177,7 +176,6 @@ func (c *httpChecker) performRequest(state *HTTPCheckState, client http.Client) 
 			_ = response.Body.Close()
 		}
 	}
-	return false
 }
 
 func createHttpClient(state *HTTPCheckState) http.Client {
@@ -201,7 +199,7 @@ func createHttpClient(state *HTTPCheckState) http.Client {
 	return client
 }
 
-func (c *httpChecker) onError(req *http.Request, err error, value int64, responseStatusWasExpected bool) {
+func (c *httpChecker) onError(req *http.Request, err error, responseTime float64, responseStatusWasExpected bool) {
 	c.metrics <- action_kit_api.Metric{
 		Metric: map[string]string{
 			"url":                  req.URL.String(),
@@ -209,7 +207,7 @@ func (c *httpChecker) onError(req *http.Request, err error, value int64, respons
 			"expected_http_status": strconv.FormatBool(responseStatusWasExpected),
 		},
 		Name:      extutil.Ptr("response_time"),
-		Value:     float64(value),
+		Value:     responseTime,
 		Timestamp: time.Now(),
 	}
 
@@ -241,9 +239,26 @@ func (c *httpChecker) onResponse(req *http.Request, res *http.Response, tracer *
 	}
 }
 
-func (c *httpChecker) stop() {
-	c.stopSignal <- struct{}{}
-	c.wg.Wait()
+func (c *httpChecker) shutdown(cancel bool) {
+	if cancel {
+		c.cancel()
+	}
+
+	done := make(chan struct{})
+	go func() {
+		c.wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(30 * time.Second):
+		log.Warn().Msg("Timed out waiting for inflight requests to complete after 30s")
+	}
+}
+
+func (c *httpChecker) isCompleted() bool {
+	return c.maxRequests > 0 && c.counters.requested.Load() >= c.maxRequests
 }
 
 func (c *httpChecker) getLatestMetrics() []action_kit_api.Metric {
@@ -265,7 +280,7 @@ func (c *httpChecker) getLatestMetrics() []action_kit_api.Metric {
 	}
 }
 
-func createRequest(state *HTTPCheckState) (*http.Request, error) {
+func createRequest(ctx context.Context, state *HTTPCheckState) (*http.Request, error) {
 	var body io.Reader
 	if state.Body != "" {
 		body = strings.NewReader(state.Body)
@@ -275,7 +290,7 @@ func createRequest(state *HTTPCheckState) (*http.Request, error) {
 		method = state.Method
 	}
 
-	request, err := http.NewRequest(strings.ToUpper(method), state.URL.String(), body)
+	request, err := http.NewRequestWithContext(ctx, strings.ToUpper(method), state.URL.String(), body)
 	if err == nil {
 		for k, v := range state.Headers {
 			request.Header.Add(k, v)

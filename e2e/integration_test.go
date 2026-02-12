@@ -10,10 +10,13 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"errors"
+	"fmt"
 	"math/big"
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -31,14 +34,14 @@ func TestWithMinikube(t *testing.T) {
 	defer cleanup()
 
 	server := startLocalServerWithSelfSignedCertificate(t)
-	defer server.Close()
+	defer closeSilent(server)
 
 	extFactory := e2e.HelmExtensionFactory{
 		Name: "extension-http",
 		Port: 8085,
 		ExtraArgs: func(m *e2e.Minikube) []string {
 			return []string{
-				//"--set", "logging.level=debug",
+				"--set", "logging.level=trace",
 				"--set", "extraVolumes[0].name=extra-certs",
 				"--set", "extraVolumes[0].configMap.name=self-signed-cert",
 				"--set", "extraVolumeMounts[0].name=extra-certs",
@@ -73,7 +76,7 @@ func startLocalServerWithSelfSignedCertificate(t *testing.T) *http.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Hello from HTTPS server with self-signed certificate!"))
+		_, _ = w.Write([]byte("Hello from HTTPS server with self-signed certificate!"))
 	})
 
 	server := &http.Server{
@@ -89,7 +92,7 @@ func startLocalServerWithSelfSignedCertificate(t *testing.T) *http.Server {
 	go func() {
 		log.Info().Msg("Starting HTTPS server on port 8443")
 		close(readyCh) // Signal that the server goroutine has started
-		if err := server.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
+		if err := server.ListenAndServeTLS("", ""); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Error().Err(err).Msg("Failed to start HTTPS server")
 		}
 		wg.Done()
@@ -117,11 +120,11 @@ func waitForServerReady(t *testing.T, url string, readyCh chan struct{}) {
 			client := &http.Client{Transport: tr}
 			resp, err := client.Get(url)
 			if err == nil && resp.StatusCode == http.StatusOK {
-				resp.Body.Close()
+				_ = resp.Body.Close()
 				return
 			}
 			if resp != nil {
-				resp.Body.Close()
+				_ = resp.Body.Close()
 			}
 			time.Sleep(backoff)
 			if backoff < 2*time.Second {
@@ -140,6 +143,14 @@ func installConfigMap(m *e2e.Minikube) error {
 	return nil
 }
 
+type closable interface {
+	Close() error
+}
+
+func closeSilent(c closable) {
+	_ = c.Close()
+}
+
 func testPeriodically(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	log.Info().Msg("Starting testPeriodically")
 	netperf := e2e.Netperf{Minikube: m}
@@ -152,41 +163,41 @@ func testPeriodically(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		url                string
 		timeout            float64
 		insecureSkipVerify bool
-		WantedFailure      bool
+		WantedFailure      string
 	}{
 		{
 			name:          "should check status ok",
-			url:           "https://hub-dev.steadybit.com",
-			timeout:       3000,
-			WantedFailure: false,
+			url:           "https://steadybit.com",
+			timeout:       5000,
+			WantedFailure: "",
 		},
 		{
-			name:          "should check status not ok",
-			url:           "https://hub-dev.steadybit.com",
+			name:          "should check status timed out",
+			url:           "https://steadybit.com",
 			timeout:       1,
-			WantedFailure: true,
+			WantedFailure: "<timeout>",
 		}, {
 			name:               "should check status for bad ssl website",
 			url:                "https://self-signed.badssl.com/",
+			timeout:            30000,
 			insecureSkipVerify: false,
-			WantedFailure:      true,
+			WantedFailure:      "failed to verify certificate",
 		}, {
 			name:               "should check status for bad ssl website with insecureSkipVerify",
 			url:                "https://self-signed.badssl.com/",
+			timeout:            30000,
 			insecureSkipVerify: true,
-			WantedFailure:      false,
+			WantedFailure:      "",
 		}, {
 			name:               "should check status with self-signed certificate",
 			url:                "https://host.minikube.internal:8443",
+			timeout:            30000,
 			insecureSkipVerify: false,
-			WantedFailure:      false,
+			WantedFailure:      "",
 		},
 	}
 
-	require.NoError(t, err)
-
 	for _, tt := range tests {
-
 		config := struct {
 			Duration           int           `json:"duration"`
 			Url                string        `json:"url"`
@@ -218,16 +229,17 @@ func testPeriodically(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 			assert.EventuallyWithT(t, func(c *assert.CollectT) {
 				metrics := action.Metrics()
+				assert.NotEmpty(c, metrics, tt.name)
+
 				for _, metric := range metrics {
-					if !tt.WantedFailure {
-						if metric.Metric["error"] != "" {
-							log.Info().Msgf("Metric error: %v", metric.Metric["error"])
-						}
+					fmt.Printf("Metric: %+v", metric)
+					if tt.WantedFailure == "" {
+						assert.Empty(c, metric.Metric["error"], "expected no error")
 						assert.Equal(c, "200", metric.Metric["http_status"])
+					} else if tt.WantedFailure == "<timeout>" {
+						assert.True(c, strings.Contains(metric.Metric["error"], "i/o timeout") || strings.Contains(metric.Metric["error"], "context deadline exceeded"))
 					} else {
-						assert.NotEqual(c, "200", metric.Metric["http_status"])
-						//error -> Get "https://hub-dev.steadybit.com": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-						assert.Contains(c, metric.Metric["error"], "context deadline exceeded")
+						assert.Contains(c, metric.Metric["error"], tt.WantedFailure)
 					}
 				}
 			}, 5*time.Second, 500*time.Millisecond)
@@ -248,44 +260,44 @@ func testFixAmount(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		name               string
 		url                string
 		timeout            float64
-		WantedFailure      bool
+		WantedFailure      string
 		insecureSkipVerify bool
 	}{
 		{
 			name:          "should check status ok",
-			url:           "https://hub-dev.steadybit.com",
-			timeout:       3000,
-			WantedFailure: false,
+			url:           "https://steadybit.com",
+			timeout:       5000,
+			WantedFailure: "",
 		},
 		{
-			name:          "should check status not ok",
-			url:           "https://hub-dev.steadybit.com",
+			name:          "should check status timed out",
+			url:           "https://steadybit.com",
 			timeout:       1,
-			WantedFailure: true,
+			WantedFailure: "<timeout>",
 		},
 		{
 			name:               "should check status for bad ssl website",
 			url:                "https://self-signed.badssl.com/",
+			timeout:            30000,
 			insecureSkipVerify: false,
-			WantedFailure:      true,
+			WantedFailure:      "failed to verify certificate",
 		}, {
 			name:               "should check status for bad ssl website with insecureSkipVerify",
 			url:                "https://self-signed.badssl.com/",
+			timeout:            30000,
 			insecureSkipVerify: true,
-			WantedFailure:      false,
+			WantedFailure:      "",
 		},
 		{
 			name:               "should check status with self-signed certificate",
 			url:                "https://host.minikube.internal:8443",
+			timeout:            30000,
 			insecureSkipVerify: false,
-			WantedFailure:      false,
+			WantedFailure:      "",
 		},
 	}
 
-	require.NoError(t, err)
-
 	for _, tt := range tests {
-
 		config := struct {
 			Duration           int           `json:"duration"`
 			Url                string        `json:"url"`
@@ -317,13 +329,16 @@ func testFixAmount(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 			assert.EventuallyWithT(t, func(c *assert.CollectT) {
 				metrics := action.Metrics()
+				assert.NotEmpty(c, metrics)
+
 				for _, metric := range metrics {
-					if !tt.WantedFailure {
-						assert.Equal(c, metric.Metric["http_status"], "200")
+					if tt.WantedFailure == "" {
+						assert.Empty(c, metric.Metric["error"], "expected no error")
+						assert.Equal(c, "200", metric.Metric["http_status"])
+					} else if tt.WantedFailure == "<timeout>" {
+						assert.True(c, strings.Contains(metric.Metric["error"], "i/o timeout") || strings.Contains(metric.Metric["error"], "context deadline exceeded"))
 					} else {
-						assert.NotEqual(c, metric.Metric["http_status"], "200")
-						//error -> Get "https://hub-dev.steadybit.com": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-						assert.Contains(c, metric.Metric["error"], "context deadline exceeded")
+						assert.Contains(c, metric.Metric["error"], tt.WantedFailure)
 					}
 				}
 			}, 5*time.Second, 500*time.Millisecond)
@@ -363,7 +378,7 @@ func generateSelfSignedCert() (func(), error) {
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
 		IPAddresses:           []net.IP{net.ParseIP("127.0.0.1")},
-		DNSNames:              []string{"localhost"},
+		DNSNames:              []string{"localhost", "host.minikube.internal"},
 	}
 
 	// Create certificate
@@ -377,7 +392,7 @@ func generateSelfSignedCert() (func(), error) {
 	if err != nil {
 		return nil, err
 	}
-	defer certFile.Close()
+	defer closeSilent(certFile)
 
 	// Write certificate to file
 	err = pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
@@ -390,7 +405,7 @@ func generateSelfSignedCert() (func(), error) {
 	if err != nil {
 		return nil, err
 	}
-	defer keyFile.Close()
+	defer closeSilent(keyFile)
 
 	// Write private key to file
 	privBytes := x509.MarshalPKCS1PrivateKey(privateKey)
