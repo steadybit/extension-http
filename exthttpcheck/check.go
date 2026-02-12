@@ -130,7 +130,13 @@ func stop(state *HTTPCheckState, cancelInFlightChecks bool) (*action_kit_api.Sto
 
 	result := action_kit_api.StopResult{Metrics: &latestMetrics}
 
-	if successRate := float64(success) / float64(total) * 100.0; successRate >= float64(state.SuccessRate) {
+	if total == 0 {
+		log.Warn().Msg("No requests completed")
+		result.Error = &action_kit_api.ActionKitError{
+			Title:  "No requests completed",
+			Status: extutil.Ptr(action_kit_api.Failed),
+		}
+	} else if successRate := float64(success) / float64(total) * 100.0; successRate >= float64(state.SuccessRate) {
 		log.Info().Msgf("Success Rate %.2f%% (%d of %d) was greater or equal than %d%%", successRate, success, failed, state.SuccessRate)
 	} else {
 		log.Info().Msgf("Success Rate %.2f%% (%d of %d) was less than %d%%", successRate, success, failed, state.SuccessRate)
