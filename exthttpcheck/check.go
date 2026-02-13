@@ -142,12 +142,10 @@ func stop(state *HTTPCheckState) (*action_kit_api.StopResult, error) {
 
 	checker.shutdown()
 
-	latestMetrics := checker.getLatestMetrics()
 	success := checker.counters.success.Load()
 	failed := checker.counters.failed.Load()
 	total := success + failed
-
-	result := action_kit_api.StopResult{Metrics: &latestMetrics}
+	result := action_kit_api.StopResult{Metrics: extutil.Ptr(checker.getLatestMetrics())}
 
 	if total == 0 {
 		log.Warn().Msg("No requests completed")
