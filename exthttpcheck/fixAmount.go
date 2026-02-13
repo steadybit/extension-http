@@ -9,7 +9,6 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/extension-http/config"
@@ -190,30 +189,11 @@ func (l *httpCheckActionFixedAmount) Start(_ context.Context, state *HTTPCheckSt
 
 // Status is called to get the current status of the action
 func (l *httpCheckActionFixedAmount) Status(_ context.Context, state *HTTPCheckState) (*action_kit_api.StatusResult, error) {
-	checker, err := loadHttpChecker(state.ExecutionID)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to load execution run data")
-		return nil, err
-	}
-
-	completed := checker.outOfRequests()
-	latestMetrics := checker.getLatestMetrics()
-
-	return &action_kit_api.StatusResult{
-		Completed: completed,
-		Metrics:   extutil.Ptr(latestMetrics),
-	}, nil
+	return status(state)
 }
 
 func (l *httpCheckActionFixedAmount) Stop(_ context.Context, state *HTTPCheckState) (*action_kit_api.StopResult, error) {
-	cancel := true
-	if checker, _ := loadHttpChecker(state.ExecutionID); checker != nil {
-		//if we requested the wanted number of requests, we want these to all finish.
-		//if the stop was called before, we want to cancel all in-flight requests immediately.
-		cancel = !checker.outOfRequests()
-	}
-
-	return stop(state, cancel)
+	return stop(state)
 }
 
 func (l *httpCheckActionFixedAmount) getHttpChecker(executionID uuid.UUID) (*httpChecker, error) {

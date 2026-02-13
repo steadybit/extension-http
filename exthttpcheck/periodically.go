@@ -8,7 +8,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/extension-http/config"
@@ -162,20 +161,11 @@ func (l *httpCheckActionPeriodically) Start(_ context.Context, state *HTTPCheckS
 
 // Status is called to get the current status of the action
 func (l *httpCheckActionPeriodically) Status(_ context.Context, state *HTTPCheckState) (*action_kit_api.StatusResult, error) {
-	checker, err := loadHttpChecker(state.ExecutionID)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to load execution run data")
-		return nil, err
-	}
-	latestMetrics := checker.getLatestMetrics()
-	return &action_kit_api.StatusResult{
-		Completed: false,
-		Metrics:   extutil.Ptr(latestMetrics),
-	}, nil
+	return status(state)
 }
 
 func (l *httpCheckActionPeriodically) Stop(_ context.Context, state *HTTPCheckState) (*action_kit_api.StopResult, error) {
-	return stop(state, true)
+	return stop(state)
 }
 
 func (l *httpCheckActionPeriodically) getExecutionRunData(executionID uuid.UUID) (*httpChecker, error) {

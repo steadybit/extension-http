@@ -172,7 +172,7 @@ func TestAction_Stop(t *testing.T) {
 			//Given
 			httpCheckers.Store(tt.state.ExecutionID, tt.checker)
 			//When
-			result, err := stop(tt.state, true)
+			result, err := stop(tt.state)
 
 			//Then
 			if tt.wantedError != nil && result.Error == nil {

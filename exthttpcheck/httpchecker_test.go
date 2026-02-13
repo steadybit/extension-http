@@ -44,7 +44,7 @@ func TestHttpChecker_ExecutesExactlyMaxRequests(t *testing.T) {
 		return checker.counters.started.Load() >= 5
 	}, 5*time.Second, 10*time.Millisecond)
 
-	checker.shutdown(false)
+	checker.shutdown()
 
 	assert.Equal(t, int32(5), requestCount.Load())
 	assert.Equal(t, uint64(5), checker.counters.started.Load())
@@ -79,7 +79,7 @@ func TestHttpChecker_ShutdownCancelsInFlightRequests(t *testing.T) {
 
 	stopDone := make(chan struct{})
 	go func() {
-		checker.shutdown(true)
+		checker.shutdown()
 		close(stopDone)
 	}()
 
@@ -90,55 +90,6 @@ func TestHttpChecker_ShutdownCancelsInFlightRequests(t *testing.T) {
 	}
 
 	assert.Zero(t, checker.counters.failed.Load(), "cancelled requests should not be counted as failures")
-}
-
-func TestHttpChecker_ShouldStop(t *testing.T) {
-	tests := []struct {
-		name        string
-		maxRequests uint64
-		requested   uint64
-		want        bool
-	}{
-		{
-			name:        "unlimited requests never stops",
-			maxRequests: 0,
-			requested:   100,
-			want:        false,
-		},
-		{
-			name:        "not yet reached",
-			maxRequests: 10,
-			requested:   5,
-			want:        false,
-		},
-		{
-			name:        "exactly reached",
-			maxRequests: 10,
-			requested:   10,
-			want:        true,
-		},
-		{
-			name:        "exceeded",
-			maxRequests: 10,
-			requested:   15,
-			want:        true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-			checker := &httpChecker{
-				ctx:         ctx,
-				cancel:      cancel,
-				maxRequests: tt.maxRequests,
-			}
-			checker.counters.requested.Store(tt.requested)
-
-			assert.Equal(t, tt.want, checker.outOfRequests())
-		})
-	}
 }
 
 func TestCreateRequest_SetsMethodHeadersAndBody(t *testing.T) {

@@ -100,7 +100,7 @@ func loadHttpChecker(executionID uuid.UUID) (*httpChecker, error) {
 func start(state *HTTPCheckState) {
 	checker, err := loadHttpChecker(state.ExecutionID)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to load execution run data")
+		log.Error().Err(err).Msg("failed to load associated http checker")
 	}
 
 	checker.start()
@@ -114,14 +114,33 @@ func loadAndDeleteHttpChecker(id uuid.UUID) (*httpChecker, error) {
 	return item.(*httpChecker), nil
 }
 
-func stop(state *HTTPCheckState, cancelInFlightChecks bool) (*action_kit_api.StopResult, error) {
+func status(state *HTTPCheckState) (*action_kit_api.StatusResult, error) {
+	checker, err := loadHttpChecker(state.ExecutionID)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to load associated http checker")
+		return nil, err
+	}
+
+	completed := false
+	if state.NumberOfRequests > 0 {
+		total := checker.counters.success.Load() + checker.counters.failed.Load()
+		completed = total >= checker.maxRequests || time.Now().After(state.Timeout)
+	}
+
+	return &action_kit_api.StatusResult{
+		Completed: completed,
+		Metrics:   extutil.Ptr(checker.getLatestMetrics()),
+	}, nil
+}
+
+func stop(state *HTTPCheckState) (*action_kit_api.StopResult, error) {
 	checker, err := loadAndDeleteHttpChecker(state.ExecutionID)
 	if err != nil {
-		log.Debug().Err(err).Msg("Execution run data not found, stop was already called")
+		log.Debug().Err(err).Msg("failed to load associated http checker, stop was already called")
 		return nil, nil
 	}
 
-	checker.shutdown(cancelInFlightChecks)
+	checker.shutdown()
 
 	latestMetrics := checker.getLatestMetrics()
 	success := checker.counters.success.Load()

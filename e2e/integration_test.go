@@ -78,20 +78,26 @@ type testcase struct {
 	timeout            float64
 	insecureSkipVerify bool
 	wantedFailure      string
+	wantedSuccessCount int
+	wantedFailureCount int
 }
 
 var httpCheckTests = []testcase{
 	{
-		name:          "should check status ok",
-		url:           "https://steadybit.com",
-		timeout:       5000,
-		wantedFailure: "",
+		name:               "should check status ok",
+		url:                "https://steadybit.com",
+		timeout:            5000,
+		wantedFailure:      "",
+		wantedSuccessCount: 20,
+		wantedFailureCount: 0,
 	},
 	{
-		name:          "should check status timed out",
-		url:           "https://steadybit.com",
-		timeout:       1,
-		wantedFailure: "<timeout>",
+		name:               "should check status timed out",
+		url:                "https://steadybit.com",
+		timeout:            1,
+		wantedFailure:      "<timeout>",
+		wantedSuccessCount: 0,
+		wantedFailureCount: 20,
 	},
 	{
 		name:               "should check status for bad ssl website",
@@ -99,6 +105,8 @@ var httpCheckTests = []testcase{
 		timeout:            30000,
 		insecureSkipVerify: false,
 		wantedFailure:      "failed to verify certificate",
+		wantedSuccessCount: 0,
+		wantedFailureCount: 20,
 	},
 	{
 		name:               "should check status for bad ssl website with insecureSkipVerify",
@@ -106,6 +114,8 @@ var httpCheckTests = []testcase{
 		timeout:            30000,
 		insecureSkipVerify: true,
 		wantedFailure:      "",
+		wantedSuccessCount: 20,
+		wantedFailureCount: 0,
 	},
 	{
 		name:               "should check status with self-signed certificate",
@@ -113,6 +123,8 @@ var httpCheckTests = []testcase{
 		timeout:            30000,
 		insecureSkipVerify: false,
 		wantedFailure:      "",
+		wantedSuccessCount: 20,
+		wantedFailureCount: 0,
 	},
 }
 
@@ -140,24 +152,34 @@ func runHTTPCheckTests(actionID string, buildConfig func(tt testcase) map[string
 				defer func() { _ = action.Cancel() }()
 				require.NoError(t, err)
 
-				assert.EventuallyWithT(t, func(c *assert.CollectT) {
-					metrics := action.Metrics()
-					assert.NotEmpty(c, metrics)
-
-					for _, metric := range metrics {
-						if tt.wantedFailure == "" {
-							assert.Empty(c, metric.Metric["error"], "expected no error")
-							assert.Equal(c, "200", metric.Metric["http_status"])
-						} else if tt.wantedFailure == "<timeout>" {
-							assert.True(c, strings.Contains(metric.Metric["error"], "i/o timeout") || strings.Contains(metric.Metric["error"], "context deadline exceeded"))
-						} else {
-							assert.Contains(c, metric.Metric["error"], tt.wantedFailure)
-						}
-					}
-				}, 5*time.Second, 500*time.Millisecond)
-
 				require.NoError(t, action.Wait())
 
+				metrics := action.Metrics()
+				assert.NotEmpty(t, metrics)
+
+				var failures, successes int
+				for _, metric := range metrics {
+					if _, ok := metric.Metric["error"]; ok {
+						failures++
+					} else {
+						successes++
+					}
+
+					if tt.wantedFailure == "" {
+						assert.Empty(t, metric.Metric["error"], "expected no error")
+						assert.Equal(t, "200", metric.Metric["http_status"])
+					} else if tt.wantedFailure == "<timeout>" {
+						assert.True(t, strings.Contains(metric.Metric["error"], "i/o timeout") || strings.Contains(metric.Metric["error"], "context deadline exceeded"))
+					} else {
+						assert.Contains(t, metric.Metric["error"], tt.wantedFailure)
+					}
+				}
+
+				assert.InDelta(t, tt.wantedSuccessCount, successes, 1, "unexpected number of successful requests")
+				assert.InDelta(t, tt.wantedFailureCount, failures, 1, "unexpected number of failed requests")
+
+				configDuration := time.Duration(config["duration"].(int)) * time.Millisecond
+				assert.InDelta(t, configDuration, action.Duration(), 2*float64(time.Second), "action duration should be close to configured duration")
 			})
 		}
 	}

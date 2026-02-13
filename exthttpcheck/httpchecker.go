@@ -239,27 +239,9 @@ func (c *httpChecker) onResponse(req *http.Request, res *http.Response, tracer *
 	}
 }
 
-func (c *httpChecker) shutdown(cancel bool) {
-	if cancel {
-		c.cancel()
-	}
-
-	done := make(chan struct{})
-	go func() {
-		c.wg.Wait()
-		close(done)
-	}()
-
-	select {
-	case <-done:
-	case <-time.After(30 * time.Second):
-		log.Warn().Msg("Timed out waiting for inflight requests to complete after 30s")
-	}
-}
-
-// outOfRequests checks if the number of requested requests has reached the maximum number of requests configured for this execution.
-func (c *httpChecker) outOfRequests() bool {
-	return c.maxRequests > 0 && c.counters.requested.Load() >= c.maxRequests
+func (c *httpChecker) shutdown() {
+	c.cancel()
+	c.wg.Wait()
 }
 
 func (c *httpChecker) getLatestMetrics() []action_kit_api.Metric {
