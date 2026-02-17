@@ -34,11 +34,13 @@ type httpChecker struct {
 	wg          sync.WaitGroup
 	work        chan struct{} // stores the work for each execution
 	ctx         context.Context
-	cancel      context.CancelFunc
+	ctxCancel   context.CancelFunc
 	metrics     chan action_kit_api.Metric
 	counters    counters // stores the counters for each execution
 	tickerDelay time.Duration
 	maxRequests uint64
+	logger      zerolog.Logger
+	httpClient  http.Client
 }
 
 func newHttpChecker(state *HTTPCheckState) *httpChecker {
@@ -46,32 +48,29 @@ func newHttpChecker(state *HTTPCheckState) *httpChecker {
 	checker := &httpChecker{
 		work:        make(chan struct{}, state.MaxConcurrent),
 		ctx:         ctx,
-		cancel:      cancel,
+		ctxCancel:   cancel,
 		metrics:     make(chan action_kit_api.Metric, state.RequestsPerSecond*2),
 		counters:    counters{},
 		tickerDelay: time.Duration(state.DelayBetweenRequestsInMS) * time.Millisecond,
 		maxRequests: state.NumberOfRequests,
+		logger:      log.With().Str("executionId", state.ExecutionID.String()).Logger(),
+		httpClient:  createHttpClient(state),
 	}
 
-	go func(c *httpChecker) {
-		checker.startWorkers(state)
-		c.wg.Wait()
-		close(c.metrics)
-	}(checker)
+	go checker.startWorkers(state)
 
 	return checker
 }
 
 func (c *httpChecker) startWorkers(state *HTTPCheckState) {
+
 	for w := 1; w <= state.MaxConcurrent; w++ {
 		c.wg.Go(func() {
-			client := createHttpClient(state)
-
 			for range c.work {
 				if req, err := createRequest(c.ctx, state); err == nil {
-					c.performRequest(req, state, client)
+					c.performRequest(req, state)
 				} else {
-					log.Error().Err(err).Msg("Failed to create request")
+					c.logger.Error().Err(err).Msg("Failed to create request")
 				}
 			}
 		})
@@ -83,7 +82,7 @@ func (c *httpChecker) start() {
 
 	c.work <- struct{}{}
 	c.counters.requested.Add(1)
-	log.Debug().Msgf("Scheduled first Request at %v", time.Now())
+	c.logger.Debug().Msgf("Scheduled first Request at %v", time.Now())
 
 	go func() {
 		defer func() {
@@ -97,12 +96,12 @@ func (c *httpChecker) start() {
 				select {
 				case c.work <- struct{}{}:
 					counter := c.counters.requested.Add(1)
-					log.Debug().Msgf("Scheduled Request at %v", t)
+					c.logger.Debug().Msgf("Scheduled Request at %v", t)
 					if c.maxRequests > 0 && counter >= c.maxRequests {
 						return
 					}
 				default:
-					log.Debug().Msgf("Dropping tick at %v, all workers busy", t)
+					c.logger.Debug().Msgf("Dropping tick at %v, all workers busy", t)
 				}
 
 			case <-c.ctx.Done():
@@ -112,25 +111,25 @@ func (c *httpChecker) start() {
 	}()
 }
 
-func (c *httpChecker) performRequest(req *http.Request, state *HTTPCheckState, client http.Client) {
+func (c *httpChecker) performRequest(req *http.Request, state *HTTPCheckState) {
 	tracer := newRequestTracer()
 	req = req.WithContext(httptrace.WithClientTrace(req.Context(), &tracer.ClientTrace))
 
-	if log.Logger.GetLevel() == zerolog.TraceLevel {
-		log.Trace().Any("headers", req.Header).Str("body", state.Body).Msgf("Requesting %s %s", req.Method, req.URL.String())
+	if c.logger.GetLevel() == zerolog.TraceLevel {
+		c.logger.Trace().Any("headers", req.Header).Str("body", state.Body).Msgf("Requesting %s %s", req.Method, req.URL.String())
 	} else {
-		log.Debug().Msgf("Requesting %s %s", req.Method, req.URL.String())
+		c.logger.Debug().Msgf("Requesting %s %s", req.Method, req.URL.String())
 	}
 
 	started := time.Now()
 	c.counters.started.Add(1)
 
-	response, err := client.Do(req)
+	response, err := c.httpClient.Do(req)
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			return
 		}
-		log.Error().Err(err).Msg("Failed to execute request")
+		c.logger.Error().Err(err).Msg("Failed to execute request")
 		now := time.Now()
 
 		responseStatusWasExpected := slices.Contains(state.ExpectedStatusCodes, "error")
@@ -140,14 +139,14 @@ func (c *httpChecker) performRequest(req *http.Request, state *HTTPCheckState, c
 		var bodyErr error
 		if response.Body != nil {
 			if bodyBytes, bodyErr = io.ReadAll(response.Body); bodyErr != nil {
-				log.Error().Err(err).Msg("Failed to read response body")
+				c.logger.Error().Err(err).Msg("Failed to read response body")
 			}
 		}
 
-		if log.Logger.GetLevel() == zerolog.TraceLevel {
-			log.Trace().Str("status", response.Status).Bytes("body", bodyBytes).Any("headers", response.Header).Msgf("Got response for %s %s", req.Method, req.URL.String())
+		if c.logger.GetLevel() == zerolog.TraceLevel {
+			c.logger.Trace().Str("status", response.Status).Bytes("body", bodyBytes).Any("headers", response.Header).Msgf("Got response for %s %s", req.Method, req.URL.String())
 		} else {
-			log.Debug().Str("status", response.Status).Int("body-size", len(bodyBytes)).Msgf("Got response for %s %s", req.Method, req.URL.String())
+			c.logger.Debug().Str("status", response.Status).Int("body-size", len(bodyBytes)).Msgf("Got response for %s %s", req.Method, req.URL.String())
 		}
 
 		responseStatusWasExpected := slices.Contains(state.ExpectedStatusCodes, strconv.Itoa(response.StatusCode))
@@ -240,7 +239,7 @@ func (c *httpChecker) onResponse(req *http.Request, res *http.Response, tracer *
 }
 
 func (c *httpChecker) shutdown() {
-	c.cancel()
+	c.ctxCancel()
 	c.wg.Wait()
 }
 
@@ -248,16 +247,11 @@ func (c *httpChecker) getLatestMetrics() []action_kit_api.Metric {
 	metrics := make([]action_kit_api.Metric, 0, len(c.metrics))
 	for {
 		select {
-		case metric, ok := <-c.metrics:
-			if ok {
-				log.Trace().Msgf("Status Metric: %v", metric)
-				metrics = append(metrics, metric)
-			} else {
-				log.Trace().Msg("Channel closed")
-				return metrics
-			}
+		case metric := <-c.metrics:
+			c.logger.Trace().Msgf("Status Metric: %v", metric)
+			metrics = append(metrics, metric)
 		default:
-			log.Trace().Msg("No metrics available")
+			c.logger.Trace().Msg("No more metrics available")
 			return metrics
 		}
 	}

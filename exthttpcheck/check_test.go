@@ -191,8 +191,8 @@ func TestAction_Stop(t *testing.T) {
 func getChecker(successCounter uint64, counter uint64) *httpChecker {
 	ctx, cancel := context.WithCancel(context.Background())
 	checker := &httpChecker{
-		ctx:    ctx,
-		cancel: cancel,
+		ctx:       ctx,
+		ctxCancel: cancel,
 	}
 	checker.counters.started.Store(counter)
 	checker.counters.success.Store(successCounter)

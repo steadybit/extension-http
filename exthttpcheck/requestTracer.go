@@ -20,7 +20,6 @@ func (t requestTracer) responseTime() time.Duration {
 func newRequestTracer() *requestTracer {
 	t := &requestTracer{}
 
-	// see seems to break a configured proxy. maybe we can use it in the future and configure the proxy here
 	t.ClientTrace = httptrace.ClientTrace{
 		WroteRequest: func(info httptrace.WroteRequestInfo) {
 			t.requestWritten = time.Now()
