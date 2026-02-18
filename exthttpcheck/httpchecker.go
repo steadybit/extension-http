@@ -65,6 +65,7 @@ func newHttpChecker(state *HTTPCheckState) *httpChecker {
 func (c *httpChecker) startWorkers(state *HTTPCheckState) {
 	for w := 1; w <= state.MaxConcurrent; w++ {
 		c.wg.Go(func() {
+			c.logger.Trace().Msgf("Started worker %d", w)
 			for range c.work {
 				if req, err := createRequest(c.ctx, state); err == nil {
 					c.performRequest(req, state)
@@ -72,6 +73,7 @@ func (c *httpChecker) startWorkers(state *HTTPCheckState) {
 					c.logger.Error().Err(err).Msg("Failed to create request")
 				}
 			}
+			c.logger.Trace().Msgf("Worker %d done", w)
 		})
 	}
 }
