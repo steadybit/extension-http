@@ -63,7 +63,6 @@ func newHttpChecker(state *HTTPCheckState) *httpChecker {
 }
 
 func (c *httpChecker) startWorkers(state *HTTPCheckState) {
-
 	for w := 1; w <= state.MaxConcurrent; w++ {
 		c.wg.Go(func() {
 			for range c.work {
@@ -115,7 +114,7 @@ func (c *httpChecker) performRequest(req *http.Request, state *HTTPCheckState) {
 	tracer := newRequestTracer()
 	req = req.WithContext(httptrace.WithClientTrace(req.Context(), &tracer.ClientTrace))
 
-	if c.logger.GetLevel() == zerolog.TraceLevel {
+	if zerolog.GlobalLevel() == zerolog.TraceLevel {
 		c.logger.Trace().Any("headers", req.Header).Str("body", state.Body).Msgf("Requesting %s %s", req.Method, req.URL.String())
 	} else {
 		c.logger.Debug().Msgf("Requesting %s %s", req.Method, req.URL.String())
@@ -143,7 +142,7 @@ func (c *httpChecker) performRequest(req *http.Request, state *HTTPCheckState) {
 			}
 		}
 
-		if c.logger.GetLevel() == zerolog.TraceLevel {
+		if zerolog.GlobalLevel() == zerolog.TraceLevel {
 			c.logger.Trace().Str("status", response.Status).Bytes("body", bodyBytes).Any("headers", response.Header).Msgf("Got response for %s %s", req.Method, req.URL.String())
 		} else {
 			c.logger.Debug().Str("status", response.Status).Int("body-size", len(bodyBytes)).Msgf("Got response for %s %s", req.Method, req.URL.String())
