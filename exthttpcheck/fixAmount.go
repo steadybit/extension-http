@@ -7,6 +7,8 @@ package exthttpcheck
 import (
 	"context"
 	"errors"
+	"math"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
@@ -145,30 +147,15 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 	return description
 }
 
-func getDelayBetweenRequestsInMsFixedAmount(duration uint64, numberOfRequests uint64) uint64 {
-	actualRequests := numberOfRequests - 1
-	if actualRequests > 0 {
-		return duration / actualRequests
-	} else {
-		return 1000 / 1
-	}
-}
-
 func (l *httpCheckActionFixedAmount) Prepare(_ context.Context, state *HTTPCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
-	duration := extutil.ToInt64(request.Config["duration"])
+	duration := time.Duration(extutil.ToInt64(request.Config["duration"])) * time.Millisecond
 	if duration <= 0 {
 		return nil, errors.New("duration must be greater than 0")
 	}
 	numberOfRequests := extutil.ToUInt64(request.Config["numberOfRequests"])
-	durationInSeconds := uint64(duration) / 1000
-	calculatedRPS := numberOfRequests / durationInSeconds
-	if calculatedRPS < 1 {
-		state.RequestsPerSecond = 1
-	} else {
-		state.RequestsPerSecond = calculatedRPS
-	}
-	state.DelayBetweenRequestsInMS = getDelayBetweenRequestsInMsFixedAmount(uint64(duration), numberOfRequests)
-	if state.DelayBetweenRequestsInMS < 1 {
+	state.RequestsPerSecond = uint64(math.Floor(max(1.0, float64(numberOfRequests)/duration.Seconds())))
+	state.DelayBetweenRequests = getDelayBetweenRequests(state.RequestsPerSecond)
+	if state.DelayBetweenRequests < 1*time.Millisecond {
 		return &action_kit_api.PrepareResult{
 			Error: &action_kit_api.ActionKitError{
 				Title: "The given Number of Requests is too high for the given duration. Please reduce the number of requests or increase the duration.",

@@ -26,15 +26,15 @@ func TestHttpChecker_ExecutesExactlyMaxRequests(t *testing.T) {
 
 	serverURL, _ := url.Parse(server.URL)
 	state := &HTTPCheckState{
-		MaxConcurrent:            1,
-		NumberOfRequests:         5,
-		RequestsPerSecond:        50,
-		DelayBetweenRequestsInMS: 20,
-		ExpectedStatusCodes:      []string{"200"},
-		URL:                      *serverURL,
-		Method:                   "GET",
-		ReadTimeout:              5 * time.Second,
-		ConnectionTimeout:        5 * time.Second,
+		MaxConcurrent:        1,
+		NumberOfRequests:     5,
+		RequestsPerSecond:    50,
+		DelayBetweenRequests: 20,
+		ExpectedStatusCodes:  []string{"200"},
+		URL:                  *serverURL,
+		Method:               "GET",
+		ReadTimeout:          5 * time.Second,
+		ConnectionTimeout:    5 * time.Second,
 	}
 
 	checker := newHttpChecker(state)
@@ -61,15 +61,15 @@ func TestHttpChecker_ShutdownCancelsInFlightRequests(t *testing.T) {
 
 	serverURL, _ := url.Parse(server.URL)
 	state := &HTTPCheckState{
-		MaxConcurrent:            2,
-		NumberOfRequests:         0,
-		RequestsPerSecond:        10,
-		DelayBetweenRequestsInMS: 100,
-		ExpectedStatusCodes:      []string{"200"},
-		URL:                      *serverURL,
-		Method:                   "GET",
-		ReadTimeout:              5 * time.Second,
-		ConnectionTimeout:        5 * time.Second,
+		MaxConcurrent:        2,
+		NumberOfRequests:     0,
+		RequestsPerSecond:    10,
+		DelayBetweenRequests: 100,
+		ExpectedStatusCodes:  []string{"200"},
+		URL:                  *serverURL,
+		Method:               "GET",
+		ReadTimeout:          5 * time.Second,
+		ConnectionTimeout:    5 * time.Second,
 	}
 
 	checker := newHttpChecker(state)

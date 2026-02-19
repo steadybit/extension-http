@@ -6,6 +6,7 @@ package exthttpcheck
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
@@ -131,17 +132,17 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 	return description
 }
 
-func getDelayBetweenRequestsInMsPeriodically(requestsPerSecond uint64) uint64 {
+func getDelayBetweenRequests(requestsPerSecond uint64) time.Duration {
 	if requestsPerSecond > 0 {
-		return 1000 / requestsPerSecond
+		return time.Duration(uint64(time.Second) / requestsPerSecond)
 	}
-	return 1000 / 1
+	return time.Second
 }
 
 func (l *httpCheckActionPeriodically) Prepare(_ context.Context, state *HTTPCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	state.RequestsPerSecond = extutil.ToUInt64(request.Config["requestsPerSecond"])
-	state.DelayBetweenRequestsInMS = getDelayBetweenRequestsInMsPeriodically(state.RequestsPerSecond)
-	if state.DelayBetweenRequestsInMS < 1 {
+	state.DelayBetweenRequests = getDelayBetweenRequests(state.RequestsPerSecond)
+	if state.DelayBetweenRequests < 1 {
 		return &action_kit_api.PrepareResult{
 			Error: &action_kit_api.ActionKitError{
 				Title: "The given Number of Requests is too high for the given duration. Please reduce the number of requests or increase the duration.",

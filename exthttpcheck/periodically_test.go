@@ -6,16 +6,17 @@ package exthttpcheck
 
 import (
 	"context"
-	"github.com/google/uuid"
-	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	extension_kit "github.com/steadybit/extension-kit"
-	"github.com/steadybit/extension-kit/extutil"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/steadybit/action-kit/go/action_kit_api/v2"
+	extension_kit "github.com/steadybit/extension-kit"
+	"github.com/steadybit/extension-kit/extutil"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewHTTPCheckActionPeriodically_Prepare(t *testing.T) {
@@ -53,21 +54,21 @@ func TestNewHTTPCheckActionPeriodically_Prepare(t *testing.T) {
 			}),
 
 			wantedState: &HTTPCheckState{
-				ExpectedStatusCodes:      []string{"200", "201", "202", "203", "204", "205", "206", "207", "208", "209"},
-				DelayBetweenRequestsInMS: 500,
-				Timeout:                  time.Now(),
-				ResponsesContains:        "test",
-				SuccessRate:              100,
-				MaxConcurrent:            10,
-				NumberOfRequests:         0,
-				ReadTimeout:              time.Second * 5,
-				ExecutionID:              uuid.New(),
-				Body:                     "test",
-				URL:                      *url,
-				Method:                   "GET",
-				Headers:                  map[string]string{"test": "test"},
-				ConnectionTimeout:        time.Second * 5,
-				FollowRedirects:          true,
+				ExpectedStatusCodes:  []string{"200", "201", "202", "203", "204", "205", "206", "207", "208", "209"},
+				DelayBetweenRequests: 500 * time.Millisecond,
+				Timeout:              time.Now(),
+				ResponsesContains:    "test",
+				SuccessRate:          100,
+				MaxConcurrent:        10,
+				NumberOfRequests:     0,
+				ReadTimeout:          time.Second * 5,
+				ExecutionID:          uuid.New(),
+				Body:                 "test",
+				URL:                  *url,
+				Method:               "GET",
+				Headers:              map[string]string{"test": "test"},
+				ConnectionTimeout:    time.Second * 5,
+				FollowRedirects:      true,
 			},
 		}, {
 			name: "Should return error for headers",
@@ -101,7 +102,7 @@ func TestNewHTTPCheckActionPeriodically_Prepare(t *testing.T) {
 				assert.Equal(t, tt.wantedState.ReadTimeout, state.ReadTimeout)
 				assert.Equal(t, tt.wantedState.FollowRedirects, state.FollowRedirects)
 				assert.Equal(t, tt.wantedState.ConnectionTimeout, state.ConnectionTimeout)
-				assert.Equal(t, tt.wantedState.DelayBetweenRequestsInMS, state.DelayBetweenRequestsInMS)
+				assert.Equal(t, tt.wantedState.DelayBetweenRequests, state.DelayBetweenRequests)
 				assert.Equal(t, tt.wantedState.ExpectedStatusCodes, state.ExpectedStatusCodes)
 				assert.Equal(t, tt.wantedState.Headers, state.Headers)
 				assert.Equal(t, tt.wantedState.MaxConcurrent, state.MaxConcurrent)
@@ -153,7 +154,7 @@ func TestNewHTTPCheckActionPeriodically_All_Success(t *testing.T) {
 	prepareResult, err := action.Prepare(context.Background(), &state, prepareActionRequestBody)
 	assert.NoError(t, err)
 	assert.Nil(t, prepareResult)
-	assert.Greater(t, state.DelayBetweenRequestsInMS, extutil.ToUInt64(0))
+	assert.Greater(t, state.DelayBetweenRequests, time.Duration(0))
 
 	// Start
 	startResult, err := action.Start(context.Background(), &state)
@@ -219,7 +220,7 @@ func TestNewHTTPCheckActionPeriodically_All_Failure(t *testing.T) {
 	prepareResult, err := action.Prepare(context.Background(), &state, prepareActionRequestBody)
 	assert.NoError(t, err)
 	assert.Nil(t, prepareResult)
-	assert.Greater(t, state.DelayBetweenRequestsInMS, extutil.ToUInt64(0))
+	assert.Greater(t, state.DelayBetweenRequests, time.Duration(0))
 
 	// Start
 	startResult, err := action.Start(context.Background(), &state)
