@@ -58,22 +58,22 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 			}),
 
 			wantedState: &HTTPCheckState{
-				ExpectedStatusCodes:      []string{"200", "201", "202", "203", "204", "205", "206", "207", "208", "209"},
-				DelayBetweenRequestsInMS: 263,
-				Timeout:                  time.Now(),
-				ResponsesContains:        "test",
-				SuccessRate:              100,
-				MaxConcurrent:            10,
-				NumberOfRequests:         20,
-				RequestsPerSecond:        4,
-				ReadTimeout:              time.Second * 5,
-				ExecutionID:              uuid.New(),
-				Body:                     "test",
-				URL:                      *url,
-				Method:                   "GET",
-				Headers:                  map[string]string{"test": "test"},
-				ConnectionTimeout:        time.Second * 5,
-				FollowRedirects:          true,
+				ExpectedStatusCodes:  []string{"200", "201", "202", "203", "204", "205", "206", "207", "208", "209"},
+				DelayBetweenRequests: time.Duration(250) * time.Millisecond,
+				Timeout:              time.Now(),
+				ResponsesContains:    "test",
+				SuccessRate:          100,
+				MaxConcurrent:        10,
+				NumberOfRequests:     20,
+				RequestsPerSecond:    4,
+				ReadTimeout:          time.Second * 5,
+				ExecutionID:          uuid.New(),
+				Body:                 "test",
+				URL:                  *url,
+				Method:               "GET",
+				Headers:              map[string]string{"test": "test"},
+				ConnectionTimeout:    time.Second * 5,
+				FollowRedirects:      true,
 			},
 		}, {
 			name: "Should return config and set RequestsPerSecond to 1 if less then one request per second",
@@ -98,22 +98,22 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 			}),
 
 			wantedState: &HTTPCheckState{
-				ExpectedStatusCodes:      []string{"200"},
-				DelayBetweenRequestsInMS: 1000,
-				Timeout:                  time.Now(),
-				ResponsesContains:        "test",
-				SuccessRate:              100,
-				MaxConcurrent:            10,
-				NumberOfRequests:         1,
-				RequestsPerSecond:        1,
-				ReadTimeout:              time.Second * 5,
-				ExecutionID:              uuid.New(),
-				Body:                     "test",
-				URL:                      *url,
-				Method:                   "GET",
-				Headers:                  map[string]string{"test": "test"},
-				ConnectionTimeout:        time.Second * 5,
-				FollowRedirects:          true,
+				ExpectedStatusCodes:  []string{"200"},
+				DelayBetweenRequests: 1 * time.Second,
+				Timeout:              time.Now(),
+				ResponsesContains:    "test",
+				SuccessRate:          100,
+				MaxConcurrent:        10,
+				NumberOfRequests:     1,
+				RequestsPerSecond:    1,
+				ReadTimeout:          time.Second * 5,
+				ExecutionID:          uuid.New(),
+				Body:                 "test",
+				URL:                  *url,
+				Method:               "GET",
+				Headers:              map[string]string{"test": "test"},
+				ConnectionTimeout:    time.Second * 5,
+				FollowRedirects:      true,
 			},
 		},
 		{
@@ -172,7 +172,7 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 				assert.Equal(t, tt.wantedState.ReadTimeout, state.ReadTimeout)
 				assert.Equal(t, tt.wantedState.FollowRedirects, state.FollowRedirects)
 				assert.Equal(t, tt.wantedState.ConnectionTimeout, state.ConnectionTimeout)
-				assert.Equal(t, tt.wantedState.DelayBetweenRequestsInMS, state.DelayBetweenRequestsInMS)
+				assert.Equal(t, tt.wantedState.DelayBetweenRequests, state.DelayBetweenRequests)
 				assert.Equal(t, tt.wantedState.ExpectedStatusCodes, state.ExpectedStatusCodes)
 				assert.Equal(t, tt.wantedState.Headers, state.Headers)
 				assert.Equal(t, tt.wantedState.MaxConcurrent, state.MaxConcurrent)
@@ -225,7 +225,7 @@ func TestNewHTTPCheckActionFixedAmount_All_Success(t *testing.T) {
 	prepareResult, err := action.Prepare(context.Background(), &state, prepareActionRequestBody)
 	assert.NoError(t, err)
 	assert.Nil(t, prepareResult)
-	assert.Greater(t, state.DelayBetweenRequestsInMS, extutil.ToUInt64(0))
+	assert.Greater(t, state.DelayBetweenRequests, time.Duration(0))
 
 	checker, err := action.getHttpChecker(state.ExecutionID)
 	assert.NoError(t, err)
@@ -292,7 +292,7 @@ func TestNewHTTPCheckActionFixedAmount_All_Failure(t *testing.T) {
 	prepareResult, err := action.Prepare(context.Background(), &state, prepareActionRequestBody)
 	assert.NoError(t, err)
 	assert.Nil(t, prepareResult)
-	assert.Greater(t, state.DelayBetweenRequestsInMS, extutil.ToUInt64(0))
+	assert.Greater(t, state.DelayBetweenRequests, time.Duration(0))
 
 	// Start
 	startResult, err := action.Start(context.Background(), &state)

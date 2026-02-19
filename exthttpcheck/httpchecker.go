@@ -49,9 +49,9 @@ func newHttpChecker(state *HTTPCheckState) *httpChecker {
 		work:        make(chan struct{}, state.MaxConcurrent),
 		ctx:         ctx,
 		ctxCancel:   cancel,
-		metrics:     make(chan action_kit_api.Metric, state.RequestsPerSecond*2),
+		metrics:     make(chan action_kit_api.Metric, 1000), // buffered channel to avoid blocking on metrics collection
 		counters:    counters{},
-		tickerDelay: time.Duration(state.DelayBetweenRequestsInMS) * time.Millisecond,
+		tickerDelay: state.DelayBetweenRequests,
 		maxRequests: state.NumberOfRequests,
 		logger:      log.With().Str("executionId", state.ExecutionID.String()).Logger(),
 		httpClient:  createHttpClient(state),
@@ -63,7 +63,7 @@ func newHttpChecker(state *HTTPCheckState) *httpChecker {
 }
 
 func (c *httpChecker) startWorkers(state *HTTPCheckState) {
-	for w := 1; w <= state.MaxConcurrent; w++ {
+	for w := 1; w <= int(state.MaxConcurrent); w++ {
 		c.wg.Go(func() {
 			c.logger.Trace().Msgf("Started worker %d", w)
 			for range c.work {
@@ -79,6 +79,7 @@ func (c *httpChecker) startWorkers(state *HTTPCheckState) {
 }
 
 func (c *httpChecker) start() {
+	c.logger.Trace().Msg("Starting httpChecker")
 	ticker := time.NewTicker(c.tickerDelay)
 
 	c.work <- struct{}{}
@@ -128,9 +129,10 @@ func (c *httpChecker) performRequest(req *http.Request, state *HTTPCheckState) {
 	response, err := c.httpClient.Do(req)
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
+			c.logger.Trace().Msg("Request was cancelled")
 			return
 		}
-		c.logger.Error().Err(err).Msg("Failed to execute request")
+		c.logger.Warn().Err(err).Msg("Failed to execute request")
 		now := time.Now()
 
 		responseStatusWasExpected := slices.Contains(state.ExpectedStatusCodes, "error")
@@ -163,9 +165,9 @@ func (c *httpChecker) performRequest(req *http.Request, state *HTTPCheckState) {
 		var responseTimeWasSuccessful bool
 		switch state.ResponseTimeMode {
 		case "SHORTER_THAN":
-			responseTimeWasSuccessful = tracer.responseTime() <= *state.ResponseTime
+			responseTimeWasSuccessful = tracer.responseTime() <= state.ResponseTime
 		case "LONGER_THAN":
-			responseTimeWasSuccessful = tracer.responseTime() >= *state.ResponseTime
+			responseTimeWasSuccessful = tracer.responseTime() >= state.ResponseTime
 		default:
 			responseTimeWasSuccessful = true
 		}
@@ -240,8 +242,10 @@ func (c *httpChecker) onResponse(req *http.Request, res *http.Response, tracer *
 }
 
 func (c *httpChecker) shutdown() {
+	c.logger.Trace().Msg("Shutting down httpChecker")
 	c.ctxCancel()
 	c.wg.Wait()
+	c.logger.Trace().Msg("Shutdown httpChecker")
 }
 
 func (c *httpChecker) getLatestMetrics() []action_kit_api.Metric {

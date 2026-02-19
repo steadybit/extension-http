@@ -21,30 +21,29 @@ var (
 )
 
 type HTTPCheckState struct {
-	ExpectedStatusCodes      []string
-	DelayBetweenRequestsInMS uint64
-	Timeout                  time.Time
-	ResponsesContains        string
-	SuccessRate              int
-	ResponseTimeMode         string
-	ResponseTime             *time.Duration
-	MaxConcurrent            int
-	NumberOfRequests         uint64
-	RequestsPerSecond        uint64
-	ReadTimeout              time.Duration
-	ExecutionID              uuid.UUID
-	Body                     string
-	URL                      url.URL
-	Method                   string
-	Headers                  map[string]string
-	ConnectionTimeout        time.Duration
-	FollowRedirects          bool
-	InsecureSkipVerify       bool
+	ExpectedStatusCodes  []string
+	DelayBetweenRequests time.Duration
+	Timeout              time.Time
+	ResponsesContains    string
+	SuccessRate          uint64
+	ResponseTimeMode     string
+	ResponseTime         time.Duration
+	MaxConcurrent        uint64
+	NumberOfRequests     uint64
+	RequestsPerSecond    uint64
+	ReadTimeout          time.Duration
+	ExecutionID          uuid.UUID
+	Body                 string
+	URL                  url.URL
+	Method               string
+	Headers              map[string]string
+	ConnectionTimeout    time.Duration
+	FollowRedirects      bool
+	InsecureSkipVerify   bool
 }
 
 func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckState) (*action_kit_api.PrepareResult, error) {
-	duration := extutil.ToInt64(request.Config["duration"])
-	state.Timeout = time.Now().Add(time.Millisecond * time.Duration(duration))
+	state.Timeout = time.Now().Add(time.Duration(extutil.ToInt64(request.Config["duration"])) * time.Millisecond)
 	expectedStatusCodes, statusCodeErr := resolveStatusCodeExpression(extutil.ToString(request.Config["statusCode"]))
 	if statusCodeErr != nil {
 		return &action_kit_api.PrepareResult{
@@ -53,10 +52,10 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckSt
 	}
 	state.ExpectedStatusCodes = expectedStatusCodes
 	state.ResponsesContains = extutil.ToString(request.Config["responsesContains"])
-	state.SuccessRate = extutil.ToInt(request.Config["successRate"])
+	state.SuccessRate = extutil.ToUInt64(request.Config["successRate"])
 	state.ResponseTimeMode = extutil.ToString(request.Config["responseTimeMode"])
-	state.ResponseTime = extutil.Ptr(time.Duration(extutil.ToInt64(request.Config["responseTime"])) * time.Millisecond)
-	state.MaxConcurrent = extutil.ToInt(request.Config["maxConcurrent"])
+	state.ResponseTime = time.Duration(extutil.ToInt64(request.Config["responseTime"])) * time.Millisecond
+	state.MaxConcurrent = extutil.ToUInt64(request.Config["maxConcurrent"])
 	state.NumberOfRequests = extutil.ToUInt64(request.Config["numberOfRequests"])
 	state.ReadTimeout = time.Duration(extutil.ToInt64(request.Config["readTimeout"])) * time.Millisecond
 	state.ExecutionID = request.ExecutionId
@@ -154,9 +153,9 @@ func stop(state *HTTPCheckState) (*action_kit_api.StopResult, error) {
 			Status: extutil.Ptr(action_kit_api.Failed),
 		}
 	} else if successRate := float64(success) / float64(total) * 100.0; successRate >= float64(state.SuccessRate) {
-		log.Info().Msgf("Success Rate %.2f%% (%d of %d) was greater or equal than %d%%", successRate, success, failed, state.SuccessRate)
+		log.Info().Msgf("Success Rate %.2f%% (%d of %d) was greater or equal than %d%%", successRate, success, total, state.SuccessRate)
 	} else {
-		log.Info().Msgf("Success Rate %.2f%% (%d of %d) was less than %d%%", successRate, success, failed, state.SuccessRate)
+		log.Info().Msgf("Success Rate %.2f%% (%d of %d) was less than %d%%", successRate, success, total, state.SuccessRate)
 		result.Error = &action_kit_api.ActionKitError{
 			Title:  fmt.Sprintf("Success Rate (%.2f%%) was below %d%%", successRate, state.SuccessRate),
 			Detail: extutil.Ptr(fmt.Sprintf("%d of %d requests were successful.", success, total)),

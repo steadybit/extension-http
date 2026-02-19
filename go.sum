@@ -171,6 +171,14 @@ github.com/steadybit/discovery-kit/go/discovery_kit_test v1.2.1 h1:CabRtfE70gt/4
 github.com/steadybit/discovery-kit/go/discovery_kit_test v1.2.1/go.mod h1:PPJh5gSdVRKG/0qJCGJK5XnGxXat/v6UT8/2ilIbbX8=
 github.com/steadybit/extension-kit v1.10.2 h1:ny62/TPgZIhZibY0+L8zuFEKqx3XuCEXZgij0Z2SDyM=
 github.com/steadybit/extension-kit v1.10.2/go.mod h1:vjcSUw8/eR11sQxR7cTEkU2oPoNvoKTihXQIqh3jlHM=
+github.com/steadybit/extension-kit v1.10.3-0.20260218120433-11b52e97c234 h1:zN0H5Y1enAJnbdNTVwqbEaKRxHQq43mnUoiZqWW5+yg=
+github.com/steadybit/extension-kit v1.10.3-0.20260218120433-11b52e97c234/go.mod h1:vjcSUw8/eR11sQxR7cTEkU2oPoNvoKTihXQIqh3jlHM=
+github.com/steadybit/extension-kit v1.10.3-0.20260218211127-cecab065d0e1 h1:Ob3/HdlaezZtOnNGaD5krL99s97w/kNa+4PnHdsZuzY=
+github.com/steadybit/extension-kit v1.10.3-0.20260218211127-cecab065d0e1/go.mod h1:vjcSUw8/eR11sQxR7cTEkU2oPoNvoKTihXQIqh3jlHM=
+github.com/steadybit/extension-kit v1.10.3-0.20260218211550-269a9ffaf9ea h1:KjvZTVlUwdalcFGy5aA9IzWipF5lYAfH+rN41JopnRQ=
+github.com/steadybit/extension-kit v1.10.3-0.20260218211550-269a9ffaf9ea/go.mod h1:vjcSUw8/eR11sQxR7cTEkU2oPoNvoKTihXQIqh3jlHM=
+github.com/steadybit/extension-kit v1.10.3 h1:4qMsfF0YqVwLDUARkbd6MZRcsVgHMQ0BXVAY1g8y33A=
+github.com/steadybit/extension-kit v1.10.3/go.mod h1:vjcSUw8/eR11sQxR7cTEkU2oPoNvoKTihXQIqh3jlHM=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.5.3 h1:jmXUvGomnU1o3W/V5h2VEradbpJDwGrzugQQvL0POH4=
 github.com/stretchr/objx v0.5.3/go.mod h1:rDQraq+vQZU7Fde9LOZLr8Tax6zZvy4kuNKF+QYS+U0=
