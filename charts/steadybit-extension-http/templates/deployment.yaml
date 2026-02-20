@@ -59,9 +59,9 @@ spec:
             - name: STEADYBIT_EXTENSION_ENABLE_LOCATION_SELECTION
               value: "true"
             {{- end }}
-            {{ if or (and .Values.global .Values.global.clusterName) .Values.kubernetes.clusterName }}
+            {{- with (.Values.kubernetes.clusterName | default (dig "clusterName" nil (.Values.global | default dict))) }}
             - name: STEADYBIT_EXTENSION_KUBERNETES_CLUSTER_NAME
-              value: {{ if and .Values.global .Values.global.clusterName }}{{ .Values.global.clusterName | quote }}{{ else }}{{ .Values.kubernetes.clusterName }}{{ end }}
+              value: {{ . | quote }}
             {{- end }}
             - name: STEADYBIT_EXTENSION_KUBERNETES_NODE_NAME
               valueFrom:
