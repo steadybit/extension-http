@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 steadybit GmbH. All rights reserved.
+ * Copyright 2026 steadybit GmbH. All rights reserved.
  */
 
 package exthttpcheck
@@ -30,13 +30,14 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 	url, _ := url.Parse("https://steadybit.com")
 
 	tests := []struct {
-		name        string
-		requestBody action_kit_api.PrepareActionRequestBody
-		wantedError error
-		wantedState *HTTPCheckState
+		name              string
+		requestBody       action_kit_api.PrepareActionRequestBody
+		wantedError       error
+		wantedResultError *action_kit_api.ActionKitError
+		wantedState       *HTTPCheckState
 	}{
 		{
-			name: "Should return config",
+			name: "Should return config with more than 1 request per second",
 			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
 				Config: map[string]interface{}{
 					"action":            "prepare",
@@ -59,13 +60,12 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 
 			wantedState: &HTTPCheckState{
 				ExpectedStatusCodes:  []string{"200", "201", "202", "203", "204", "205", "206", "207", "208", "209"},
-				DelayBetweenRequests: time.Duration(250) * time.Millisecond,
+				DelayBetweenRequests: 250 * time.Millisecond,
 				Timeout:              time.Now(),
 				ResponsesContains:    "test",
 				SuccessRate:          100,
 				MaxConcurrent:        10,
 				NumberOfRequests:     20,
-				RequestsPerSecond:    4,
 				ReadTimeout:          time.Second * 5,
 				ExecutionID:          uuid.New(),
 				Body:                 "test",
@@ -76,16 +76,16 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 				FollowRedirects:      true,
 			},
 		}, {
-			name: "Should return config and set RequestsPerSecond to 1 if less then one request per second",
+			name: "Should distribute requests evenly across the full duration",
 			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
 				Config: map[string]interface{}{
 					"action":            "prepare",
-					"duration":          5000,
+					"duration":          30000,
 					"statusCode":        "200",
 					"responsesContains": "test",
 					"successRate":       100,
 					"maxConcurrent":     10,
-					"numberOfRequests":  1,
+					"numberOfRequests":  10,
 					"readTimeout":       5000,
 					"body":              "test",
 					"url":               "https://steadybit.com",
@@ -99,13 +99,12 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 
 			wantedState: &HTTPCheckState{
 				ExpectedStatusCodes:  []string{"200"},
-				DelayBetweenRequests: 1 * time.Second,
+				DelayBetweenRequests: 3 * time.Second,
 				Timeout:              time.Now(),
 				ResponsesContains:    "test",
 				SuccessRate:          100,
 				MaxConcurrent:        10,
-				NumberOfRequests:     1,
-				RequestsPerSecond:    1,
+				NumberOfRequests:     10,
 				ReadTimeout:          time.Second * 5,
 				ExecutionID:          uuid.New(),
 				Body:                 "test",
@@ -130,6 +129,22 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 			}),
 
 			wantedError: extension_kit.ToError("failed to interpret config value for headers as a key/value array", nil),
+		},
+		{
+			name: "Should fail if more than one request per millisecond",
+			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
+				Config: map[string]interface{}{
+					"action":           "prepare",
+					"duration":         "1000",
+					"numberOfRequests": 1002,
+					"statusCode":       "200",
+				},
+				ExecutionId: uuid.New(),
+			}),
+
+			wantedResultError: &action_kit_api.ActionKitError{
+				Title: "The given Number of Requests is too high for the given duration. Please reduce the number of requests or increase the duration.",
+			},
 		}, {
 			name: "Should return error missing duration",
 			requestBody: action_kit_api.PrepareActionRequestBody{
@@ -160,9 +175,12 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 			state := action.NewEmptyState()
 			request := tt.requestBody
 			//When
-			_, err := action.Prepare(context.Background(), &state, request)
+			result, err := action.Prepare(context.Background(), &state, request)
 
 			//Then
+			if tt.wantedResultError != nil {
+				assert.Equal(t, tt.wantedResultError, result.Error)
+			}
 			if tt.wantedError != nil {
 				assert.EqualError(t, err, tt.wantedError.Error())
 			}
@@ -178,7 +196,6 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 				assert.Equal(t, tt.wantedState.MaxConcurrent, state.MaxConcurrent)
 				assert.Equal(t, tt.wantedState.Method, state.Method)
 				assert.Equal(t, tt.wantedState.NumberOfRequests, state.NumberOfRequests)
-				assert.Equal(t, tt.wantedState.RequestsPerSecond, state.RequestsPerSecond)
 				assert.Equal(t, tt.wantedState.ReadTimeout, state.ReadTimeout)
 				assert.Equal(t, tt.wantedState.ResponsesContains, state.ResponsesContains)
 				assert.Equal(t, tt.wantedState.SuccessRate, state.SuccessRate)
@@ -241,7 +258,7 @@ func TestNewHTTPCheckActionFixedAmount_All_Success(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, statusResult.Metrics)
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(2500 * time.Millisecond)
 
 	// Status completed
 	statusResult, err = action.Status(context.Background(), &state)
@@ -326,7 +343,7 @@ func TestNewHTTPCheckActionFixedAmount_All_Failure(t *testing.T) {
 }
 
 func TestNewHTTPCheckActionFixedAmount_start_directly(t *testing.T) {
-	// write receive timestamps to the channel to check the delay between requests
+	// write received timestamps to the channel to check the delay between requests
 	var receivedRequests = make(chan time.Time)
 
 	// generate a test server so we can capture and inspect the request
@@ -342,8 +359,8 @@ func TestNewHTTPCheckActionFixedAmount_start_directly(t *testing.T) {
 	prepareActionRequestBody := extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
 		Config: map[string]interface{}{
 			"action":            "prepare",
-			"duration":          2000,
-			"statusCode":        "200-209",
+			"duration":          3000,
+			"statusCode":        "200",
 			"responsesContains": "test",
 			"successRate":       100,
 			"maxConcurrent":     1,

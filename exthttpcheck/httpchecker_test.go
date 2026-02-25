@@ -28,7 +28,6 @@ func TestHttpChecker_ExecutesExactlyMaxRequests(t *testing.T) {
 	state := &HTTPCheckState{
 		MaxConcurrent:        1,
 		NumberOfRequests:     5,
-		RequestsPerSecond:    50,
 		DelayBetweenRequests: 20,
 		ExpectedStatusCodes:  []string{"200"},
 		URL:                  *serverURL,
@@ -63,7 +62,6 @@ func TestHttpChecker_ShutdownCancelsInFlightRequests(t *testing.T) {
 	state := &HTTPCheckState{
 		MaxConcurrent:        2,
 		NumberOfRequests:     0,
-		RequestsPerSecond:    10,
 		DelayBetweenRequests: 100,
 		ExpectedStatusCodes:  []string{"200"},
 		URL:                  *serverURL,

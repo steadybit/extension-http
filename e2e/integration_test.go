@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: 2023 Steadybit GmbH
+// SPDX-FileCopyrightText: 2026 Steadybit GmbH
 
 package e2e
 
@@ -77,6 +77,7 @@ type testcase struct {
 	url                string
 	timeout            float64
 	insecureSkipVerify bool
+	countDelta         int
 	wantedFailure      string
 	wantedSuccessCount int
 	wantedFailureCount int
@@ -107,6 +108,7 @@ var httpCheckTests = []testcase{
 		wantedFailure:      "failed to verify certificate",
 		wantedSuccessCount: 0,
 		wantedFailureCount: 20,
+		countDelta:         2, // badssl is pretty slow sometimes, so that not all expected requests are finished
 	},
 	{
 		name:               "should check status for bad ssl website with insecureSkipVerify",
@@ -116,6 +118,7 @@ var httpCheckTests = []testcase{
 		wantedFailure:      "",
 		wantedSuccessCount: 20,
 		wantedFailureCount: 0,
+		countDelta:         2, // badssl is pretty slow sometimes, so that not all expected requests are finished
 	},
 	{
 		name:               "should check status with self-signed certificate",
@@ -175,8 +178,9 @@ func runHTTPCheckTests(actionID string, buildConfig func(tt testcase) map[string
 					}
 				}
 
-				assert.InDelta(t, tt.wantedSuccessCount, successes, 1, "unexpected number of successful requests")
-				assert.InDelta(t, tt.wantedFailureCount, failures, 1, "unexpected number of failed requests")
+				delta := float64(max(1, tt.countDelta))
+				assert.InDelta(t, tt.wantedSuccessCount, successes, delta, "unexpected number of successful requests")
+				assert.InDelta(t, tt.wantedFailureCount, failures, delta, "unexpected number of failed requests")
 
 				configDuration := time.Duration(config["duration"].(int)) * time.Millisecond
 				assert.InDelta(t, configDuration, action.Duration(), 2*float64(time.Second), "action duration should be close to configured duration")

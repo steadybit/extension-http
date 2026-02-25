@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 steadybit GmbH. All rights reserved.
+ * Copyright 2026 steadybit GmbH. All rights reserved.
  */
 
 package exthttpcheck
@@ -30,7 +30,6 @@ type HTTPCheckState struct {
 	ResponseTime         time.Duration
 	MaxConcurrent        uint64
 	NumberOfRequests     uint64
-	RequestsPerSecond    uint64
 	ReadTimeout          time.Duration
 	ExecutionID          uuid.UUID
 	Body                 string
@@ -88,35 +87,22 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckSt
 	return nil, nil
 }
 
-func loadHttpChecker(executionID uuid.UUID) (*httpChecker, error) {
-	item, ok := httpCheckers.Load(executionID)
-	if !ok {
-		return nil, fmt.Errorf("failed to load associated http checker")
-	}
-	return item.(*httpChecker), nil
-}
-
-func start(state *HTTPCheckState) {
+func start(state *HTTPCheckState) (*action_kit_api.StartResult, error) {
 	checker, err := loadHttpChecker(state.ExecutionID)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to load associated http checker")
+		log.Error().Err(err).Msg("failed to start checker")
+		return nil, err
 	}
 
 	checker.start()
-}
 
-func loadAndDeleteHttpChecker(id uuid.UUID) (*httpChecker, error) {
-	item, ok := httpCheckers.LoadAndDelete(id)
-	if !ok {
-		return nil, fmt.Errorf("failed to load associated http checker")
-	}
-	return item.(*httpChecker), nil
+	return nil, nil
 }
 
 func status(state *HTTPCheckState) (*action_kit_api.StatusResult, error) {
 	checker, err := loadHttpChecker(state.ExecutionID)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to load associated http checker")
+		log.Error().Err(err).Msg("failed to load checker status")
 		return nil, err
 	}
 
@@ -135,7 +121,7 @@ func status(state *HTTPCheckState) (*action_kit_api.StatusResult, error) {
 func stop(state *HTTPCheckState) (*action_kit_api.StopResult, error) {
 	checker, err := loadAndDeleteHttpChecker(state.ExecutionID)
 	if err != nil {
-		log.Debug().Err(err).Msg("failed to load associated http checker, stop was already called")
+		log.Debug().Err(err).Msg("failed to stop checker, stop was already called")
 		return nil, nil
 	}
 
@@ -164,4 +150,20 @@ func stop(state *HTTPCheckState) (*action_kit_api.StopResult, error) {
 	}
 
 	return &result, nil
+}
+
+func loadHttpChecker(id uuid.UUID) (*httpChecker, error) {
+	item, ok := httpCheckers.Load(id)
+	if !ok {
+		return nil, fmt.Errorf("failed to load http checker %s", id)
+	}
+	return item.(*httpChecker), nil
+}
+
+func loadAndDeleteHttpChecker(id uuid.UUID) (*httpChecker, error) {
+	item, ok := httpCheckers.LoadAndDelete(id)
+	if !ok {
+		return nil, fmt.Errorf("failed to load and delete http checker %s", id)
+	}
+	return item.(*httpChecker), nil
 }

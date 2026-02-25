@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 steadybit GmbH. All rights reserved.
+ * Copyright 2026 steadybit GmbH. All rights reserved.
  */
 
 package exthttpcheck
@@ -18,12 +18,10 @@ import (
 
 type httpCheckActionPeriodically struct{}
 
-// Make sure Action implements all required interfaces
 var (
 	_ action_kit_sdk.Action[HTTPCheckState]           = (*httpCheckActionPeriodically)(nil)
 	_ action_kit_sdk.ActionWithStatus[HTTPCheckState] = (*httpCheckActionPeriodically)(nil)
-
-	_ action_kit_sdk.ActionWithStop[HTTPCheckState] = (*httpCheckActionPeriodically)(nil)
+	_ action_kit_sdk.ActionWithStop[HTTPCheckState]   = (*httpCheckActionPeriodically)(nil)
 )
 
 func NewHTTPCheckActionPeriodically() action_kit_sdk.Action[HTTPCheckState] {
@@ -34,7 +32,6 @@ func (l *httpCheckActionPeriodically) NewEmptyState() HTTPCheckState {
 	return HTTPCheckState{}
 }
 
-// Describe returns the action description for the platform with all required information.
 func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescription {
 	widgetToUse := widgets
 	if config.Config.EnableWidgetBackwardCompatibility {
@@ -49,20 +46,9 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 		Icon:            extutil.Ptr(actionIconPeriodically),
 		TargetSelection: targetSelection,
 		Widgets:         widgetToUse,
-
-		Technology: extutil.Ptr("HTTP"),
-
-		// To clarify the purpose of the action:
-		//   Check: Will perform checks on the targets
-		Kind: action_kit_api.Check,
-
-		// How the action is controlled over time.
-		//   External: The agent takes care and calls stop then the time has passed. Requires a duration parameter. Use this when the duration is known in advance.
-		//   Internal: The action has to implement the status endpoint to signal when the action is done. Use this when the duration is not known in advance.
-		//   Instantaneous: The action is done immediately. Use this for actions that happen immediately, e.g. a reboot.
-		TimeControl: action_kit_api.TimeControlExternal,
-
-		// The parameters for the action
+		Technology:      extutil.Ptr("HTTP"),
+		Kind:            action_kit_api.Check,
+		TimeControl:     action_kit_api.TimeControlExternal,
 		Parameters: []action_kit_api.ActionParameter{
 			//------------------------
 			// Request Definition
@@ -74,7 +60,7 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 			headers,
 			separator(5),
 			//------------------------
-			// Repitions
+			// Repetitions
 			//------------------------
 			repetitionControl,
 			{
@@ -140,9 +126,9 @@ func getDelayBetweenRequests(requestsPerSecond uint64) time.Duration {
 }
 
 func (l *httpCheckActionPeriodically) Prepare(_ context.Context, state *HTTPCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
-	state.RequestsPerSecond = extutil.ToUInt64(request.Config["requestsPerSecond"])
-	state.DelayBetweenRequests = getDelayBetweenRequests(state.RequestsPerSecond)
-	if state.DelayBetweenRequests < 1 {
+	requestsPerSecond := extutil.ToUInt64(request.Config["requestsPerSecond"])
+	state.DelayBetweenRequests = getDelayBetweenRequests(requestsPerSecond)
+	if state.DelayBetweenRequests < time.Millisecond {
 		return &action_kit_api.PrepareResult{
 			Error: &action_kit_api.ActionKitError{
 				Title: "The given Number of Requests is too high for the given duration. Please reduce the number of requests or increase the duration.",
@@ -152,15 +138,10 @@ func (l *httpCheckActionPeriodically) Prepare(_ context.Context, state *HTTPChec
 	return prepare(request, state)
 }
 
-// Start is called to start the action
-// You can mutate the state here.
-// You can use the result to return messages/errors/metrics or artifacts
 func (l *httpCheckActionPeriodically) Start(_ context.Context, state *HTTPCheckState) (*action_kit_api.StartResult, error) {
-	start(state)
-	return nil, nil
+	return start(state)
 }
 
-// Status is called to get the current status of the action
 func (l *httpCheckActionPeriodically) Status(_ context.Context, state *HTTPCheckState) (*action_kit_api.StatusResult, error) {
 	return status(state)
 }

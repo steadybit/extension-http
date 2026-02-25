@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 steadybit GmbH. All rights reserved.
+ * Copyright 2026 steadybit GmbH. All rights reserved.
  */
 
 package exthttpcheck
@@ -7,7 +7,6 @@ package exthttpcheck
 import (
 	"context"
 	"errors"
-	"math"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,12 +19,10 @@ import (
 
 type httpCheckActionFixedAmount struct{}
 
-// Make sure Action implements all required interfaces
 var (
 	_ action_kit_sdk.Action[HTTPCheckState]           = (*httpCheckActionFixedAmount)(nil)
 	_ action_kit_sdk.ActionWithStatus[HTTPCheckState] = (*httpCheckActionFixedAmount)(nil)
-
-	_ action_kit_sdk.ActionWithStop[HTTPCheckState] = (*httpCheckActionFixedAmount)(nil)
+	_ action_kit_sdk.ActionWithStop[HTTPCheckState]   = (*httpCheckActionFixedAmount)(nil)
 )
 
 func NewHTTPCheckActionFixedAmount() action_kit_sdk.Action[HTTPCheckState] {
@@ -36,9 +33,7 @@ func (l *httpCheckActionFixedAmount) NewEmptyState() HTTPCheckState {
 	return HTTPCheckState{}
 }
 
-// Describe returns the action description for the platform with all required information.
 func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription {
-
 	widgetToUse := widgets
 	if config.Config.EnableWidgetBackwardCompatibility {
 		widgetToUse = widgetsBackwardCompatiblity
@@ -52,27 +47,15 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 		Icon:            extutil.Ptr(actionIconFixedAmount),
 		TargetSelection: targetSelection,
 		Widgets:         widgetToUse,
-
-		Technology: extutil.Ptr("HTTP"),
-
-		// To clarify the purpose of the action:
-		//   Check: Will perform checks on the targets
-		Kind: action_kit_api.Check,
-
-		// How the action is controlled over time.
-		//   External: The agent takes care and calls stop then the time has passed. Requires a duration parameter. Use this when the duration is known in advance.
-		//   Internal: The action has to implement the status endpoint to signal when the action is done. Use this when the duration is not known in advance.
-		//   Instantaneous: The action is done immediately. Use this for actions that happen immediately, e.g. a reboot.
-		TimeControl: action_kit_api.TimeControlInternal,
-
+		Technology:      extutil.Ptr("HTTP"),
+		Kind:            action_kit_api.Check,
+		TimeControl:     action_kit_api.TimeControlInternal,
 		Hint: &action_kit_api.ActionHint{
 			Content: "Please note that the given number of requests is uniformly distributed over the given duration. For example, 10 requests in 10 seconds " +
 				"will result in 1 request per second, whereas the first request is executed immediately.  " +
 				"The requests are handled by the given number of parallel processes, adhering to the overall request count.",
 			Type: action_kit_api.HintInfo,
 		},
-
-		// The parameters for the action
 		Parameters: []action_kit_api.ActionParameter{
 			//------------------------
 			// Request Definition
@@ -153,9 +136,14 @@ func (l *httpCheckActionFixedAmount) Prepare(_ context.Context, state *HTTPCheck
 		return nil, errors.New("duration must be greater than 0")
 	}
 	numberOfRequests := extutil.ToUInt64(request.Config["numberOfRequests"])
-	state.RequestsPerSecond = uint64(math.Floor(max(1.0, float64(numberOfRequests)/duration.Seconds())))
-	state.DelayBetweenRequests = getDelayBetweenRequests(state.RequestsPerSecond)
-	if state.DelayBetweenRequests < 1*time.Millisecond {
+	if numberOfRequests == 0 {
+		return nil, errors.New("number of requests must be greater than 0")
+	} else if numberOfRequests == 1 {
+		state.DelayBetweenRequests = 24 * time.Hour // high value to only execute initial request
+	} else {
+		state.DelayBetweenRequests = time.Duration(uint64(duration) / numberOfRequests)
+	}
+	if state.DelayBetweenRequests < time.Millisecond {
 		return &action_kit_api.PrepareResult{
 			Error: &action_kit_api.ActionKitError{
 				Title: "The given Number of Requests is too high for the given duration. Please reduce the number of requests or increase the duration.",
@@ -166,12 +154,8 @@ func (l *httpCheckActionFixedAmount) Prepare(_ context.Context, state *HTTPCheck
 	return prepare(request, state)
 }
 
-// Start is called to start the action
-// You can mutate the state here.
-// You can use the result to return messages/errors/metrics or artifacts
 func (l *httpCheckActionFixedAmount) Start(_ context.Context, state *HTTPCheckState) (*action_kit_api.StartResult, error) {
-	start(state)
-	return nil, nil
+	return start(state)
 }
 
 // Status is called to get the current status of the action
