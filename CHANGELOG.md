@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.0.36
+
+- feat: add http bandwidth check
+- feat: add request-aware timeout header
+- feat(chart): split image.name into image.registry + image.name
+- fix: allow less than one http requests per second
+- fix: deadlock on stop when metric channel is fully packed
+- fix: cancel in-flight requests when stopping periodic http checks
+- fix: cancel fixed amount checks when at deadline
+- fix: handle zero completed requests in success rate check
+- fix: prevent worker from dying permanently on request creation failure
+- fix: prevent ticker goroutine from blocking on stop signal
+- Support global.priorityClassName
+- Update alpine packages in Docker image to address CVEs
+- Update dependencies
+
 ## v1.0.35
 
 - Wait for inflight requests when stopping
