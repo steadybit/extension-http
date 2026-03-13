@@ -1,5 +1,9 @@
 # Changelog
 
+## (next)
+
+- Support if-none-match for the extension list endpoint
+
 ## v1.0.36
 
 - feat: add http bandwidth check
