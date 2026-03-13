@@ -5,6 +5,8 @@
 package main
 
 import (
+	"time"
+
 	_ "github.com/KimMachineGun/automemlimit" // By default, it sets `GOMEMLIMIT` to 90% of cgroup's memory limit.
 	"github.com/rs/zerolog"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
@@ -20,6 +22,8 @@ import (
 	"github.com/steadybit/extension-kit/extruntime"
 	"github.com/steadybit/extension-kit/extsignals"
 )
+
+var startedAt = time.Now().Format(time.RFC3339)
 
 func main() {
 	// This Steadybit extensions leverage zerolog. To encourage persistent logging setups across extensions,
@@ -48,12 +52,12 @@ func main() {
 
 	// This call registers a handler for the extension's root path. This is the path initially accessed
 	// by the Steadybit agent to obtain the extension's capabilities.
-	exthttp.RegisterHttpHandler("/", exthttp.GetterAsHandler(getExtensionList))
-
 	action_kit_sdk.RegisterAction(exthttpcheck.NewHTTPCheckActionFixedAmount())
 	action_kit_sdk.RegisterAction(exthttpcheck.NewHTTPCheckActionPeriodically())
 	action_kit_sdk.RegisterAction(exthttpcheck.NewHTTPCheckActionBandwidth())
 	discovery_kit_sdk.Register(exthttpcheck.NewDiscovery())
+
+	exthttp.RegisterHttpHandler("/", exthttp.IfNoneMatchHandler(func() string { return startedAt }, exthttp.GetterAsHandler(getExtensionList)))
 
 	//This will install a signal handler, that will stop active actions when receiving a SIGURS1, SIGTERM or SIGINT
 	extsignals.ActivateSignalHandlers()
