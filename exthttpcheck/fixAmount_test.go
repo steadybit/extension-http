@@ -432,7 +432,7 @@ func TestNewHTTPCheckActionFixedAmount_start_multiples(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() {
-		_ = pprof.WriteHeapProfile(memProfile)
+		_ = pprof.WriteHeapProfile(memProfile) //NOSONAR go:S4507
 		_ = memProfile.Close()
 	}()
 
