@@ -20,9 +20,9 @@ const (
 )
 
 var (
-	targetSelection = extutil.Ptr(action_kit_api.TargetSelection{
+	targetSelection = new(action_kit_api.TargetSelection{
 		TargetType: targetType,
-		DefaultBlastRadius: extutil.Ptr(action_kit_api.DefaultBlastRadius{
+		DefaultBlastRadius: new(action_kit_api.DefaultBlastRadius{
 			Mode:  action_kit_api.DefaultBlastRadiusModeMaximum,
 			Value: 1,
 		}),
@@ -33,17 +33,17 @@ var (
 		Name:  "requestDefinition",
 		Label: "Request Definition",
 		Type:  action_kit_api.ActionParameterTypeHeader,
-		Order: extutil.Ptr(0),
+		Order: new(0),
 	}
 	method = action_kit_api.ActionParameter{
 		Name:         "method",
 		Label:        "HTTP Method",
-		Description:  extutil.Ptr("The HTTP method to use."),
+		Description:  new("The HTTP method to use."),
 		Type:         action_kit_api.ActionParameterTypeString,
-		DefaultValue: extutil.Ptr("GET"),
-		Required:     extutil.Ptr(true),
-		Order:        extutil.Ptr(1),
-		Options: extutil.Ptr([]action_kit_api.ParameterOption{
+		DefaultValue: new("GET"),
+		Required:     new(true),
+		Order:        new(1),
+		Options: new([]action_kit_api.ParameterOption{
 			action_kit_api.ExplicitParameterOption{
 				Label: "GET",
 				Value: "GET",
@@ -73,83 +73,83 @@ var (
 	urlParameter = action_kit_api.ActionParameter{
 		Name:        "url",
 		Label:       "Target URL",
-		Description: extutil.Ptr("The URL to check."),
+		Description: new("The URL to check."),
 		Type:        action_kit_api.ActionParameterTypeUrl,
-		Required:    extutil.Ptr(true),
-		Order:       extutil.Ptr(2),
+		Required:    new(true),
+		Order:       new(2),
 	}
 	body = action_kit_api.ActionParameter{
 		Name:        "body",
 		Label:       "HTTP Body",
-		Description: extutil.Ptr("The HTTP Body."),
+		Description: new("The HTTP Body."),
 		Type:        action_kit_api.ActionParameterTypeTextarea,
-		Order:       extutil.Ptr(3),
+		Order:       new(3),
 	}
 	headers = action_kit_api.ActionParameter{
 		Name:        "headers",
 		Label:       "HTTP Headers",
-		Description: extutil.Ptr("The HTTP Headers."),
+		Description: new("The HTTP Headers."),
 		Type:        action_kit_api.ActionParameterTypeKeyValue,
-		Order:       extutil.Ptr(4),
+		Order:       new(4),
 	}
 	repetitionControl = action_kit_api.ActionParameter{
 		Name:  "repetitionControl",
 		Label: "Repetition Control",
 		Type:  action_kit_api.ActionParameterTypeHeader,
-		Order: extutil.Ptr(6),
+		Order: new(6),
 	}
 	duration = action_kit_api.ActionParameter{
 		Name:         "duration",
 		Label:        "Duration",
-		Description:  extutil.Ptr("In which timeframe should the specified requests be executed?"),
+		Description:  new("In which timeframe should the specified requests be executed?"),
 		Type:         action_kit_api.ActionParameterTypeDuration,
-		DefaultValue: extutil.Ptr("10s"),
-		Required:     extutil.Ptr(true),
-		Order:        extutil.Ptr(8),
+		DefaultValue: new("10s"),
+		Required:     new(true),
+		Order:        new(8),
 	}
 	resultVerification = action_kit_api.ActionParameter{
 		Name:  "resultVerification",
 		Label: "Result Verification",
 		Type:  action_kit_api.ActionParameterTypeHeader,
-		Order: extutil.Ptr(10),
+		Order: new(10),
 	}
 	successRate = action_kit_api.ActionParameter{
 		Name:         "successRate",
 		Label:        "Required Success Rate",
-		Description:  extutil.Ptr("How many percent of all requests must be at least successful (according to response verifications)? The result will be evaluated at the end of the given duration."),
+		Description:  new("How many percent of all requests must be at least successful (according to response verifications)? The result will be evaluated at the end of the given duration."),
 		Type:         action_kit_api.ActionParameterTypePercentage,
-		DefaultValue: extutil.Ptr("100"),
-		Required:     extutil.Ptr(true),
-		Order:        extutil.Ptr(11),
-		MinValue:     extutil.Ptr(0),
-		MaxValue:     extutil.Ptr(100),
+		DefaultValue: new("100"),
+		Required:     new(true),
+		Order:        new(11),
+		MinValue:     new(0),
+		MaxValue:     new(100),
 	}
 	statusCode = action_kit_api.ActionParameter{
 		Name:         "statusCode",
 		Label:        "Response status codes",
-		Description:  extutil.Ptr("Which HTTP-Status codes should be considered as success? This field supports ranges with '-' and multiple codes delimited by ';' for example '200-399;429'."),
+		Description:  new("Which HTTP-Status codes should be considered as success? This field supports ranges with '-' and multiple codes delimited by ';' for example '200-399;429'."),
 		Type:         action_kit_api.ActionParameterTypeString,
-		DefaultValue: extutil.Ptr("200-299"),
-		Required:     extutil.Ptr(true),
-		Order:        extutil.Ptr(12),
+		DefaultValue: new("200-299"),
+		Required:     new(true),
+		Order:        new(12),
 	}
 	responsesContains = action_kit_api.ActionParameter{
 		Name:        "responsesContains",
 		Label:       "Responses contain",
-		Description: extutil.Ptr("The responses must contain the given string, otherwise the step will fail."),
+		Description: new("The responses must contain the given string, otherwise the step will fail."),
 		Type:        action_kit_api.ActionParameterTypeTextarea,
-		Required:    extutil.Ptr(false),
-		Order:       extutil.Ptr(13),
+		Required:    new(false),
+		Order:       new(13),
 	}
 	responseTimeMode = action_kit_api.ActionParameter{
 		Name:         "responseTimeMode",
 		Label:        "Response Time Verification Mode",
-		Description:  extutil.Ptr("Must the response time be shorter or longer than the specified response time?"),
+		Description:  new("Must the response time be shorter or longer than the specified response time?"),
 		Type:         action_kit_api.ActionParameterTypeString,
-		Required:     extutil.Ptr(false),
-		Order:        extutil.Ptr(14),
-		DefaultValue: extutil.Ptr("NO_VERIFICATION"),
-		Options: extutil.Ptr([]action_kit_api.ParameterOption{
+		Required:     new(false),
+		Order:        new(14),
+		DefaultValue: new("NO_VERIFICATION"),
+		Options: new([]action_kit_api.ParameterOption{
 			action_kit_api.ExplicitParameterOption{
 				Label: "no verification",
 				Value: "NO_VERIFICATION",
@@ -167,81 +167,81 @@ var (
 	responseTime = action_kit_api.ActionParameter{
 		Name:         "responseTime",
 		Label:        "Response Time",
-		Description:  extutil.Ptr("The value for the response time verification."),
+		Description:  new("The value for the response time verification."),
 		Type:         action_kit_api.ActionParameterTypeDuration,
-		Required:     extutil.Ptr(false),
-		Order:        extutil.Ptr(15),
-		DefaultValue: extutil.Ptr("500ms"),
+		Required:     new(false),
+		Order:        new(15),
+		DefaultValue: new("500ms"),
 	}
 	targetSelectionParameter = action_kit_api.ActionParameter{
 		Name:  "-",
 		Label: "Filter HTTP Client Locations",
 		Type:  action_kit_api.ActionParameterTypeTargetSelection,
-		Order: extutil.Ptr(17),
+		Order: new(17),
 	}
 	maxConcurrent = action_kit_api.ActionParameter{
 		Name:         "maxConcurrent",
 		Label:        "Max concurrent requests",
-		Description:  extutil.Ptr("Maximum count on parallel running requests. (min 1, max 10)"),
+		Description:  new("Maximum count on parallel running requests. (min 1, max 10)"),
 		Type:         action_kit_api.ActionParameterTypeInteger,
-		DefaultValue: extutil.Ptr("5"),
-		Required:     extutil.Ptr(true),
-		Advanced:     extutil.Ptr(true),
-		Order:        extutil.Ptr(18),
+		DefaultValue: new("5"),
+		Required:     new(true),
+		Advanced:     new(true),
+		Order:        new(18),
 	}
 	clientSettings = action_kit_api.ActionParameter{
 		Name:     "clientSettings",
 		Label:    "HTTP Client Settings",
 		Type:     action_kit_api.ActionParameterTypeHeader,
-		Advanced: extutil.Ptr(true),
-		Order:    extutil.Ptr(19),
+		Advanced: new(true),
+		Order:    new(19),
 	}
 	followRedirects = action_kit_api.ActionParameter{
 		Name:        "followRedirects",
 		Label:       "Follow Redirects?",
-		Description: extutil.Ptr("Should Redirects be followed?"),
+		Description: new("Should Redirects be followed?"),
 		Type:        action_kit_api.ActionParameterTypeBoolean,
-		Required:    extutil.Ptr(true),
-		Advanced:    extutil.Ptr(true),
-		Order:       extutil.Ptr(20),
+		Required:    new(true),
+		Advanced:    new(true),
+		Order:       new(20),
 	}
 	connectTimeout = action_kit_api.ActionParameter{
 		Name:         "connectTimeout",
 		Label:        "Connection Timeout",
-		Description:  extutil.Ptr("Connection Timeout for a single Call in seconds. Should be between 1 and 10 seconds."),
+		Description:  new("Connection Timeout for a single Call in seconds. Should be between 1 and 10 seconds."),
 		Type:         action_kit_api.ActionParameterTypeDuration,
-		DefaultValue: extutil.Ptr("5s"),
-		Required:     extutil.Ptr(true),
-		Advanced:     extutil.Ptr(true),
-		Order:        extutil.Ptr(21),
+		DefaultValue: new("5s"),
+		Required:     new(true),
+		Advanced:     new(true),
+		Order:        new(21),
 	}
 	readTimeout = action_kit_api.ActionParameter{
 		Name:         "readTimeout",
 		Label:        "Read Timeout",
-		Description:  extutil.Ptr("Read Timeout for a single Call in seconds. Should be between 1 and 10 seconds."),
+		Description:  new("Read Timeout for a single Call in seconds. Should be between 1 and 10 seconds."),
 		Type:         action_kit_api.ActionParameterTypeDuration,
-		DefaultValue: extutil.Ptr("5s"),
-		Required:     extutil.Ptr(true),
-		Advanced:     extutil.Ptr(true),
-		Order:        extutil.Ptr(22),
+		DefaultValue: new("5s"),
+		Required:     new(true),
+		Advanced:     new(true),
+		Order:        new(22),
 	}
 	insecureSkipVerify = action_kit_api.ActionParameter{
 		Name:         "insecureSkipVerify",
 		Label:        "Skip certificate verification",
-		Description:  extutil.Ptr("Should the certificate verification be skipped?"),
+		Description:  new("Should the certificate verification be skipped?"),
 		Type:         action_kit_api.ActionParameterTypeBoolean,
-		DefaultValue: extutil.Ptr("false"),
-		Required:     extutil.Ptr(false),
-		Advanced:     extutil.Ptr(true),
-		Order:        extutil.Ptr(23),
+		DefaultValue: new("false"),
+		Required:     new(false),
+		Advanced:     new(true),
+		Order:        new(23),
 	}
-	widgetsBackwardCompatiblity = extutil.Ptr([]action_kit_api.Widget{
+	widgetsBackwardCompatiblity = new([]action_kit_api.Widget{
 		action_kit_api.PredefinedWidget{
 			Type:               action_kit_api.ComSteadybitWidgetPredefined,
 			PredefinedWidgetId: "com.steadybit.widget.predefined.HttpCheck",
 		},
 	})
-	widgets = extutil.Ptr([]action_kit_api.Widget{
+	widgets = new([]action_kit_api.Widget{
 		action_kit_api.LineChartWidget{
 			Type:  action_kit_api.ComSteadybitWidgetLineChart,
 			Title: "HTTP Responses",
@@ -250,8 +250,8 @@ var (
 				From:       "url",
 				Mode:       action_kit_api.ComSteadybitWidgetLineChartIdentityModeWidgetPerValue,
 			},
-			Grouping: extutil.Ptr(action_kit_api.LineChartWidgetGroupingConfig{
-				ShowSummary: extutil.Ptr(true),
+			Grouping: new(action_kit_api.LineChartWidgetGroupingConfig{
+				ShowSummary: new(true),
 				Groups: []action_kit_api.LineChartWidgetGroup{
 					{
 						Title: "Successul",
@@ -297,9 +297,9 @@ var (
 					},
 				},
 			}),
-			Tooltip: extutil.Ptr(action_kit_api.LineChartWidgetTooltipConfig{
-				MetricValueTitle: extutil.Ptr("Response Time"),
-				MetricValueUnit:  extutil.Ptr("ms"),
+			Tooltip: new(action_kit_api.LineChartWidgetTooltipConfig{
+				MetricValueTitle: new("Response Time"),
+				MetricValueUnit:  new("ms"),
 				AdditionalContent: []action_kit_api.LineChartWidgetTooltipContent{
 					{
 						From:  "error",
@@ -320,7 +320,7 @@ func separator(order int) action_kit_api.ActionParameter {
 		Name:  "-",
 		Label: "-",
 		Type:  action_kit_api.ActionParameterTypeSeparator,
-		Order: extutil.Ptr(order),
+		Order: new(order),
 	}
 }
 

@@ -44,10 +44,10 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 		Label:           "HTTP (# of Requests)",
 		Description:     "Calls an http endpoint a specified number of times and checks the response",
 		Version:         extbuild.GetSemverVersionStringOrUnknown(),
-		Icon:            extutil.Ptr(actionIconFixedAmount),
+		Icon:            new(actionIconFixedAmount),
 		TargetSelection: targetSelection,
 		Widgets:         widgetToUse,
-		Technology:      extutil.Ptr("HTTP"),
+		Technology:      new("HTTP"),
 		Kind:            action_kit_api.Check,
 		TimeControl:     action_kit_api.TimeControlInternal,
 		Hint: &action_kit_api.ActionHint{
@@ -73,21 +73,21 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 			{
 				Name:         "numberOfRequests",
 				Label:        "Number of Requests.",
-				Description:  extutil.Ptr("Fixed number of Requests, distributed to given duration"),
+				Description:  new("Fixed number of Requests, distributed to given duration"),
 				Type:         action_kit_api.ActionParameterTypeInteger,
-				Required:     extutil.Ptr(true),
-				DefaultValue: extutil.Ptr("1"),
-				Order:        extutil.Ptr(7),
-				MinValue:     extutil.Ptr(1),
+				Required:     new(true),
+				DefaultValue: new("1"),
+				Order:        new(7),
+				MinValue:     new(1),
 			},
 			{
 				Name:         "duration",
 				Label:        "Duration",
-				Description:  extutil.Ptr("In which timeframe should the specified requests be executed?"),
+				Description:  new("In which timeframe should the specified requests be executed?"),
 				Type:         action_kit_api.ActionParameterTypeDuration,
-				DefaultValue: extutil.Ptr("2s"),
-				Required:     extutil.Ptr(true),
-				Order:        extutil.Ptr(8),
+				DefaultValue: new("2s"),
+				Required:     new(true),
+				Order:        new(8),
 			},
 			separator(9),
 			//------------------------
@@ -114,10 +114,10 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 			readTimeout,
 			insecureSkipVerify,
 		},
-		Status: extutil.Ptr(action_kit_api.MutatingEndpointReferenceWithCallInterval{
-			CallInterval: extutil.Ptr("1s"),
+		Status: new(action_kit_api.MutatingEndpointReferenceWithCallInterval{
+			CallInterval: new("1s"),
 		}),
-		Stop: extutil.Ptr(action_kit_api.MutatingEndpointReference{}),
+		Stop: new(action_kit_api.MutatingEndpointReference{}),
 	}
 
 	if !config.Config.EnableLocationSelection {

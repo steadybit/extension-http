@@ -43,10 +43,10 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 		Label:           "HTTP (Requests / s)",
 		Description:     "Calls a http endpoint periodically (requests / s) and checks the response",
 		Version:         extbuild.GetSemverVersionStringOrUnknown(),
-		Icon:            extutil.Ptr(actionIconPeriodically),
+		Icon:            new(actionIconPeriodically),
 		TargetSelection: targetSelection,
 		Widgets:         widgetToUse,
-		Technology:      extutil.Ptr("HTTP"),
+		Technology:      new("HTTP"),
 		Kind:            action_kit_api.Check,
 		TimeControl:     action_kit_api.TimeControlExternal,
 		Parameters: []action_kit_api.ActionParameter{
@@ -66,12 +66,12 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 			{
 				Name:         "requestsPerSecond",
 				Label:        "Requests per second",
-				Description:  extutil.Ptr("The number of requests per second. Should be between 1 and 10."),
+				Description:  new("The number of requests per second. Should be between 1 and 10."),
 				Type:         action_kit_api.ActionParameterTypeInteger,
-				DefaultValue: extutil.Ptr("1"),
-				Required:     extutil.Ptr(true),
-				Order:        extutil.Ptr(7),
-				MinValue:     extutil.Ptr(1),
+				DefaultValue: new("1"),
+				Required:     new(true),
+				Order:        new(7),
+				MinValue:     new(1),
 			},
 			duration,
 			separator(9),
@@ -102,10 +102,10 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 			readTimeout,
 			insecureSkipVerify,
 		},
-		Status: extutil.Ptr(action_kit_api.MutatingEndpointReferenceWithCallInterval{
-			CallInterval: extutil.Ptr("1s"),
+		Status: new(action_kit_api.MutatingEndpointReferenceWithCallInterval{
+			CallInterval: new("1s"),
 		}),
-		Stop: extutil.Ptr(action_kit_api.MutatingEndpointReference{}),
+		Stop: new(action_kit_api.MutatingEndpointReference{}),
 	}
 
 	if !config.Config.EnableLocationSelection {

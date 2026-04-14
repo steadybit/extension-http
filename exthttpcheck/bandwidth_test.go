@@ -72,7 +72,7 @@ func TestBandwidthCheckAction_Prepare_MissingURL(t *testing.T) {
 	state := action.NewEmptyState()
 
 	request := action_kit_api.PrepareActionRequestBody{
-		Config: map[string]interface{}{
+		Config: map[string]any{
 			"minBandwidth": "1mbit",
 		},
 		ExecutionId: uuid.New(),
@@ -88,9 +88,9 @@ func TestBandwidthCheckAction_Prepare_MissingBandwidthThresholds(t *testing.T) {
 	state := action.NewEmptyState()
 
 	request := action_kit_api.PrepareActionRequestBody{
-		Config: map[string]interface{}{
+		Config: map[string]any{
 			"url":     "http://example.com",
-			"headers": []interface{}{},
+			"headers": []any{},
 		},
 		ExecutionId: uuid.New(),
 	}
@@ -107,11 +107,11 @@ func TestBandwidthCheckAction_Prepare_InvalidMinGreaterThanMax(t *testing.T) {
 	state := action.NewEmptyState()
 
 	request := action_kit_api.PrepareActionRequestBody{
-		Config: map[string]interface{}{
+		Config: map[string]any{
 			"url":          "http://example.com",
 			"minBandwidth": "10mbit",
 			"maxBandwidth": "1mbit",
-			"headers":      []interface{}{},
+			"headers":      []any{},
 		},
 		ExecutionId: uuid.New(),
 	}
@@ -129,7 +129,7 @@ func TestBandwidthCheckAction_Prepare_Success(t *testing.T) {
 
 	execID := uuid.New()
 	request := action_kit_api.PrepareActionRequestBody{
-		Config: map[string]interface{}{
+		Config: map[string]any{
 			"url":             "http://example.com",
 			"minBandwidth":    "1mbit",
 			"maxBandwidth":    "100mbit",
@@ -138,7 +138,7 @@ func TestBandwidthCheckAction_Prepare_Success(t *testing.T) {
 			"readTimeout":     5000,
 			"followRedirects": true,
 			"maxConcurrent":   1,
-			"headers":         []interface{}{},
+			"headers":         []any{},
 		},
 		ExecutionId: execID,
 	}
@@ -172,7 +172,7 @@ func TestBandwidthCheckAction_FullCycle(t *testing.T) {
 
 	execID := uuid.New()
 	request := action_kit_api.PrepareActionRequestBody{
-		Config: map[string]interface{}{
+		Config: map[string]any{
 			"url":             server.URL,
 			"minBandwidth":    "1kbit", // Very low threshold to ensure success
 			"successRate":     100,
@@ -180,7 +180,7 @@ func TestBandwidthCheckAction_FullCycle(t *testing.T) {
 			"readTimeout":     5000,
 			"followRedirects": true,
 			"maxConcurrent":   10,
-			"headers":         []interface{}{},
+			"headers":         []any{},
 		},
 		ExecutionId: execID,
 	}
@@ -229,7 +229,7 @@ func TestBandwidthCheckAction_BigFileDownload(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", totalSize))
 		chunk := make([]byte, chunkSize)
-		for i := 0; i < totalChunks; i++ {
+		for range totalChunks {
 			_, err := w.Write(chunk)
 			if err != nil {
 				return
@@ -247,7 +247,7 @@ func TestBandwidthCheckAction_BigFileDownload(t *testing.T) {
 
 	execID := uuid.New()
 	request := action_kit_api.PrepareActionRequestBody{
-		Config: map[string]interface{}{
+		Config: map[string]any{
 			"url":             server.URL,
 			"minBandwidth":    "1kbit",
 			"successRate":     100,
@@ -255,7 +255,7 @@ func TestBandwidthCheckAction_BigFileDownload(t *testing.T) {
 			"readTimeout":     10000,
 			"followRedirects": true,
 			"maxConcurrent":   1,
-			"headers":         []interface{}{},
+			"headers":         []any{},
 		},
 		ExecutionId: execID,
 	}
@@ -273,7 +273,7 @@ func TestBandwidthCheckAction_BigFileDownload(t *testing.T) {
 	// Simulate the platform calling Status every second across multiple windows.
 	// The download takes ~5s, so we should get several windows with bandwidth data.
 	var windowMetrics []action_kit_api.Metric
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		time.Sleep(1 * time.Second)
 
 		statusResult, err := action.Status(context.Background(), &state)
@@ -336,7 +336,7 @@ func TestBandwidthCheckAction_NonSuccessStatusCode(t *testing.T) {
 
 	execID := uuid.New()
 	request := action_kit_api.PrepareActionRequestBody{
-		Config: map[string]interface{}{
+		Config: map[string]any{
 			"url":             server.URL,
 			"minBandwidth":    "1kbit",
 			"successRate":     100,
@@ -344,7 +344,7 @@ func TestBandwidthCheckAction_NonSuccessStatusCode(t *testing.T) {
 			"readTimeout":     5000,
 			"followRedirects": true,
 			"maxConcurrent":   2,
-			"headers":         []interface{}{},
+			"headers":         []any{},
 		},
 		ExecutionId: execID,
 	}

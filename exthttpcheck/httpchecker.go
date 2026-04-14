@@ -20,7 +20,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	"github.com/steadybit/extension-kit/extutil"
 )
 
 type counters struct {
@@ -208,7 +207,7 @@ func (c *httpChecker) onError(req *http.Request, err error, responseTime float64
 			"error":                err.Error(),
 			"expected_http_status": strconv.FormatBool(responseStatusWasExpected),
 		},
-		Name:      extutil.Ptr("response_time"),
+		Name:      new("response_time"),
 		Value:     responseTime,
 		Timestamp: time.Now(),
 	}
@@ -222,7 +221,7 @@ func (c *httpChecker) onError(req *http.Request, err error, responseTime float64
 
 func (c *httpChecker) onResponse(req *http.Request, res *http.Response, tracer *requestTracer, responseStatusWasExpected bool, responseBodyWasSuccessful bool, responseTimeWasSuccessful bool) {
 	c.metrics <- action_kit_api.Metric{
-		Name: extutil.Ptr("response_time"),
+		Name: new("response_time"),
 		Metric: map[string]string{
 			"url":                                 req.URL.String(),
 			"http_status":                         strconv.Itoa(res.StatusCode),

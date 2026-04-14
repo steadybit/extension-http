@@ -114,7 +114,7 @@ func status(state *HTTPCheckState) (*action_kit_api.StatusResult, error) {
 
 	return &action_kit_api.StatusResult{
 		Completed: completed,
-		Metrics:   extutil.Ptr(checker.getLatestMetrics()),
+		Metrics:   new(checker.getLatestMetrics()),
 	}, nil
 }
 
@@ -130,7 +130,7 @@ func stop(state *HTTPCheckState) (*action_kit_api.StopResult, error) {
 	success := checker.counters.success.Load()
 	failed := checker.counters.failed.Load()
 	total := success + failed
-	result := action_kit_api.StopResult{Metrics: extutil.Ptr(checker.getLatestMetrics())}
+	result := action_kit_api.StopResult{Metrics: new(checker.getLatestMetrics())}
 
 	if total == 0 {
 		log.Warn().Msg("No requests completed")
@@ -144,7 +144,7 @@ func stop(state *HTTPCheckState) (*action_kit_api.StopResult, error) {
 		log.Info().Msgf("Success Rate %.2f%% (%d of %d) was less than %d%%", successRate, success, total, state.SuccessRate)
 		result.Error = &action_kit_api.ActionKitError{
 			Title:  fmt.Sprintf("Success Rate (%.2f%%) was below %d%%", successRate, state.SuccessRate),
-			Detail: extutil.Ptr(fmt.Sprintf("%d of %d requests were successful.", success, total)),
+			Detail: new(fmt.Sprintf("%d of %d requests were successful.", success, total)),
 			Status: extutil.Ptr(action_kit_api.Failed),
 		}
 	}

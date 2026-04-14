@@ -34,7 +34,7 @@ func TestNewHTTPCheckActionPeriodically_Prepare(t *testing.T) {
 		{
 			name: "Should return config",
 			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"action":            "prepare",
 					"duration":          5000,
 					"statusCode":        "200-209",
@@ -49,7 +49,7 @@ func TestNewHTTPCheckActionPeriodically_Prepare(t *testing.T) {
 					"method":            "GET",
 					"connectTimeout":    5000,
 					"followRedirects":   true,
-					"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+					"headers":           []any{map[string]any{"key": "test", "value": "test"}},
 				},
 				ExecutionId: uuid.New(),
 			}),
@@ -74,7 +74,7 @@ func TestNewHTTPCheckActionPeriodically_Prepare(t *testing.T) {
 		}, {
 			name: "Should fail if more than one request per millisecond",
 			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"action":            "prepare",
 					"duration":          1000,
 					"statusCode":        "200-209",
@@ -88,7 +88,7 @@ func TestNewHTTPCheckActionPeriodically_Prepare(t *testing.T) {
 					"method":            "GET",
 					"connectTimeout":    5000,
 					"followRedirects":   true,
-					"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+					"headers":           []any{map[string]any{"key": "test", "value": "test"}},
 				},
 				ExecutionId: uuid.New(),
 			}),
@@ -99,7 +99,7 @@ func TestNewHTTPCheckActionPeriodically_Prepare(t *testing.T) {
 		}, {
 			name: "Should return error for headers",
 			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"action":     "prepare",
 					"headers":    "test:test",
 					"statusCode": "200",
@@ -160,7 +160,7 @@ func TestNewHTTPCheckActionPeriodically_All_Success(t *testing.T) {
 	action := httpCheckActionPeriodically{}
 	state := action.NewEmptyState()
 	prepareActionRequestBody := extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
-		Config: map[string]interface{}{
+		Config: map[string]any{
 			"action":            "prepare",
 			"duration":          1000,
 			"statusCode":        "200-209",
@@ -174,7 +174,7 @@ func TestNewHTTPCheckActionPeriodically_All_Success(t *testing.T) {
 			"method":            "GET",
 			"connectTimeout":    5000,
 			"followRedirects":   true,
-			"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+			"headers":           []any{map[string]any{"key": "test", "value": "test"}},
 		},
 		ExecutionId: uuid.New(),
 	})
@@ -226,7 +226,7 @@ func TestNewHTTPCheckActionPeriodically_All_Failure(t *testing.T) {
 	action := httpCheckActionPeriodically{}
 	state := action.NewEmptyState()
 	prepareActionRequestBody := extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
-		Config: map[string]interface{}{
+		Config: map[string]any{
 			"action":            "prepare",
 			"duration":          1000,
 			"statusCode":        "200-209",
@@ -240,7 +240,7 @@ func TestNewHTTPCheckActionPeriodically_All_Failure(t *testing.T) {
 			"method":            "GET",
 			"connectTimeout":    5000,
 			"followRedirects":   true,
-			"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+			"headers":           []any{map[string]any{"key": "test", "value": "test"}},
 		},
 		ExecutionId: uuid.New(),
 	})
