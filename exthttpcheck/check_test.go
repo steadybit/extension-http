@@ -29,7 +29,7 @@ func TestAction_Prepare(t *testing.T) {
 		{
 			name: "Should return config",
 			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"action":            "prepare",
 					"duration":          5000,
 					"statusCode":        "200-209",
@@ -70,7 +70,7 @@ func TestAction_Prepare(t *testing.T) {
 		}, {
 			name: "Should return error for headers",
 			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"action":     "prepare",
 					"headers":    "test:test",
 					"statusCode": "200",
@@ -82,7 +82,7 @@ func TestAction_Prepare(t *testing.T) {
 		}, {
 			name: "Should return error for missing url",
 			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"action":            "prepare",
 					"statusCode":        "200-209",
 					"responsesContains": "test",

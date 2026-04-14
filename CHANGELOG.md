@@ -1,5 +1,9 @@
 # Changelog
 
+## (next)
+
+- Bump Go to 1.26.2
+
 ## v1.0.38
 
 - Bump Go to 1.25.9

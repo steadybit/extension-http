@@ -297,16 +297,14 @@ func startLocalServerWithSelfSignedCertificate(t *testing.T) *http.Server {
 
 	readyCh := make(chan struct{})
 	var wg sync.WaitGroup
-	wg.Add(1)
 
-	go func() {
+	wg.Go(func() {
 		log.Info().Msg("Starting HTTPS server on port 8443")
 		close(readyCh)
 		if err := server.ListenAndServeTLS("", ""); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Error().Err(err).Msg("Failed to start HTTPS server")
 		}
-		wg.Done()
-	}()
+	})
 
 	waitForServerReady(t, "https://localhost:8443", readyCh)
 

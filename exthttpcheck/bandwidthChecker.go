@@ -19,7 +19,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/extension-kit/extbuild"
-	"github.com/steadybit/extension-kit/extutil"
 )
 
 type bandwidthChecker struct {
@@ -232,7 +231,7 @@ func (c *bandwidthChecker) emitWindowMetric() *action_kit_api.Metric {
 	}
 
 	metric := &action_kit_api.Metric{
-		Name: extutil.Ptr("bandwidth"),
+		Name: new("bandwidth"),
 		Metric: map[string]string{
 			"url":              c.state.URL.String(),
 			"bytes_downloaded": strconv.FormatInt(bytesDownloaded, 10),

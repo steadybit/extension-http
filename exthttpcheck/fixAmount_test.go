@@ -39,7 +39,7 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 		{
 			name: "Should return config with more than 1 request per second",
 			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"action":            "prepare",
 					"duration":          5000,
 					"statusCode":        "200-209",
@@ -53,7 +53,7 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 					"method":            "GET",
 					"connectTimeout":    5000,
 					"followRedirects":   true,
-					"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+					"headers":           []any{map[string]any{"key": "test", "value": "test"}},
 				},
 				ExecutionId: uuid.New(),
 			}),
@@ -78,7 +78,7 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 		}, {
 			name: "Should distribute requests evenly across the full duration",
 			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"action":            "prepare",
 					"duration":          30000,
 					"statusCode":        "200",
@@ -92,7 +92,7 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 					"method":            "GET",
 					"connectTimeout":    5000,
 					"followRedirects":   true,
-					"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+					"headers":           []any{map[string]any{"key": "test", "value": "test"}},
 				},
 				ExecutionId: uuid.New(),
 			}),
@@ -118,7 +118,7 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 		{
 			name: "Should return error for headers",
 			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"action":           "prepare",
 					"duration":         "5000",
 					"numberOfRequests": 1,
@@ -133,7 +133,7 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 		{
 			name: "Should fail if more than one request per millisecond",
 			requestBody: extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"action":           "prepare",
 					"duration":         "1000",
 					"numberOfRequests": 1002,
@@ -148,7 +148,7 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 		}, {
 			name: "Should return error missing duration",
 			requestBody: action_kit_api.PrepareActionRequestBody{
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"action":            "prepare",
 					"statusCode":        "200-209",
 					"responsesContains": "test",
@@ -161,7 +161,7 @@ func TestNewHTTPCheckActionFixedAmount_Prepare(t *testing.T) {
 					"method":            "GET",
 					"connectTimeout":    5000,
 					"followRedirects":   true,
-					"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+					"headers":           []any{map[string]any{"key": "test", "value": "test"}},
 				},
 				ExecutionId: uuid.New(),
 			},
@@ -219,7 +219,7 @@ func TestNewHTTPCheckActionFixedAmount_All_Success(t *testing.T) {
 	action := httpCheckActionFixedAmount{}
 	state := action.NewEmptyState()
 	prepareActionRequestBody := extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
-		Config: map[string]interface{}{
+		Config: map[string]any{
 			"action":            "prepare",
 			"duration":          2000,
 			"statusCode":        "200-209",
@@ -233,7 +233,7 @@ func TestNewHTTPCheckActionFixedAmount_All_Success(t *testing.T) {
 			"method":            "GET",
 			"connectTimeout":    5000,
 			"followRedirects":   true,
-			"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+			"headers":           []any{map[string]any{"key": "test", "value": "test"}},
 		},
 		ExecutionId: uuid.New(),
 	})
@@ -286,7 +286,7 @@ func TestNewHTTPCheckActionFixedAmount_All_Failure(t *testing.T) {
 	action := httpCheckActionFixedAmount{}
 	state := action.NewEmptyState()
 	prepareActionRequestBody := extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
-		Config: map[string]interface{}{
+		Config: map[string]any{
 			"action":            "prepare",
 			"duration":          1000,
 			"statusCode":        "200-209",
@@ -300,7 +300,7 @@ func TestNewHTTPCheckActionFixedAmount_All_Failure(t *testing.T) {
 			"method":            "GET",
 			"connectTimeout":    5000,
 			"followRedirects":   true,
-			"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+			"headers":           []any{map[string]any{"key": "test", "value": "test"}},
 		},
 		ExecutionId: uuid.New(),
 	})
@@ -357,7 +357,7 @@ func TestNewHTTPCheckActionFixedAmount_start_directly(t *testing.T) {
 	action := httpCheckActionFixedAmount{}
 	state := action.NewEmptyState()
 	prepareActionRequestBody := extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
-		Config: map[string]interface{}{
+		Config: map[string]any{
 			"action":            "prepare",
 			"duration":          3000,
 			"statusCode":        "200",
@@ -371,7 +371,7 @@ func TestNewHTTPCheckActionFixedAmount_start_directly(t *testing.T) {
 			"method":            "GET",
 			"connectTimeout":    5000,
 			"followRedirects":   true,
-			"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+			"headers":           []any{map[string]any{"key": "test", "value": "test"}},
 		},
 		ExecutionId: uuid.New(),
 	})
@@ -408,7 +408,7 @@ func TestNewHTTPCheckActionFixedAmount_start_multiples(t *testing.T) {
 
 	//prepare the action
 	request := extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
-		Config: map[string]interface{}{
+		Config: map[string]any{
 			"action":            "prepare",
 			"duration":          50,
 			"statusCode":        "200-209",
@@ -422,7 +422,7 @@ func TestNewHTTPCheckActionFixedAmount_start_multiples(t *testing.T) {
 			"method":            "GET",
 			"connectTimeout":    5000,
 			"followRedirects":   true,
-			"headers":           []interface{}{map[string]interface{}{"key": "test", "value": "test"}},
+			"headers":           []any{map[string]any{"key": "test", "value": "test"}},
 		},
 		ExecutionId: uuid.New(),
 	})
@@ -439,7 +439,7 @@ func TestNewHTTPCheckActionFixedAmount_start_multiples(t *testing.T) {
 	var m runtime.MemStats
 	action := httpCheckActionFixedAmount{}
 	// sequential execution to simulate a long-running extension
-	for i := 0; i < 1000; i++ {
+	for i := range 1000 {
 		if i%100 == 0 {
 			runtime.ReadMemStats(&m)
 			fmt.Printf("%3v - Alloc = %v MiB, Heap Objects = %v, GCs = %v\n", i, m.HeapAlloc/1024/1024, m.HeapObjects, m.NumGC)

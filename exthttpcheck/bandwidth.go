@@ -56,14 +56,14 @@ func (a *httpCheckActionBandwidth) NewEmptyState() BandwidthCheckState {
 func (a *httpCheckActionBandwidth) Describe() action_kit_api.ActionDescription {
 	var widgetToUse *[]action_kit_api.Widget
 	if config.Config.EnableWidgetBackwardCompatibility {
-		widgetToUse = extutil.Ptr([]action_kit_api.Widget{
+		widgetToUse = new([]action_kit_api.Widget{
 			action_kit_api.PredefinedWidget{
 				Type:               action_kit_api.ComSteadybitWidgetPredefined,
 				PredefinedWidgetId: "com.steadybit.widget.predefined.HttpCheck",
 			},
 		})
 	} else {
-		widgetToUse = extutil.Ptr([]action_kit_api.Widget{
+		widgetToUse = new([]action_kit_api.Widget{
 			action_kit_api.LineChartWidget{
 				Type:  action_kit_api.ComSteadybitWidgetLineChart,
 				Title: "HTTP Bandwidth",
@@ -72,8 +72,8 @@ func (a *httpCheckActionBandwidth) Describe() action_kit_api.ActionDescription {
 					From:       "url",
 					Mode:       action_kit_api.ComSteadybitWidgetLineChartIdentityModeWidgetPerValue,
 				},
-				Grouping: extutil.Ptr(action_kit_api.LineChartWidgetGroupingConfig{
-					ShowSummary: extutil.Ptr(true),
+				Grouping: new(action_kit_api.LineChartWidgetGroupingConfig{
+					ShowSummary: new(true),
 					Groups: []action_kit_api.LineChartWidgetGroup{
 						{
 							Title: "Within Threshold",
@@ -103,9 +103,9 @@ func (a *httpCheckActionBandwidth) Describe() action_kit_api.ActionDescription {
 						},
 					},
 				}),
-				Tooltip: extutil.Ptr(action_kit_api.LineChartWidgetTooltipConfig{
-					MetricValueTitle: extutil.Ptr("Bandwidth"),
-					MetricValueUnit:  extutil.Ptr("Mbps"),
+				Tooltip: new(action_kit_api.LineChartWidgetTooltipConfig{
+					MetricValueTitle: new("Bandwidth"),
+					MetricValueUnit:  new("Mbps"),
 					AdditionalContent: []action_kit_api.LineChartWidgetTooltipContent{
 						{
 							From:  "bytes_downloaded",
@@ -126,12 +126,12 @@ func (a *httpCheckActionBandwidth) Describe() action_kit_api.ActionDescription {
 		Label:           "HTTP Bandwidth",
 		Description:     "Measures download bandwidth from an HTTP endpoint and validates against thresholds",
 		Version:         extbuild.GetSemverVersionStringOrUnknown(),
-		Icon:            extutil.Ptr(actionIconBandwidth),
+		Icon:            new(actionIconBandwidth),
 		TargetSelection: targetSelection,
 		Widgets:         widgetToUse,
 
-		Technology: extutil.Ptr("HTTP"),
-		Category:   extutil.Ptr("HTTP"),
+		Technology: new("HTTP"),
+		Category:   new("HTTP"),
 
 		Kind:        action_kit_api.Check,
 		TimeControl: action_kit_api.TimeControlExternal,
@@ -151,13 +151,13 @@ func (a *httpCheckActionBandwidth) Describe() action_kit_api.ActionDescription {
 			{
 				Name:         "maxConcurrent",
 				Label:        "Concurrent Requests",
-				Description:  extutil.Ptr("Number of parallel requests to execute simultaneously without delay. More concurrent requests generate more traffic to saturate the available bandwidth."),
+				Description:  new("Number of parallel requests to execute simultaneously without delay. More concurrent requests generate more traffic to saturate the available bandwidth."),
 				Type:         action_kit_api.ActionParameterTypeInteger,
-				DefaultValue: extutil.Ptr("5"),
-				Required:     extutil.Ptr(true),
-				Order:        extutil.Ptr(7),
-				MinValue:     extutil.Ptr(1),
-				MaxValue:     extutil.Ptr(50),
+				DefaultValue: new("5"),
+				Required:     new(true),
+				Order:        new(7),
+				MinValue:     new(1),
+				MaxValue:     new(50),
 			},
 			duration,
 			separator(9),
@@ -168,24 +168,24 @@ func (a *httpCheckActionBandwidth) Describe() action_kit_api.ActionDescription {
 				Name:  "bandwidthVerification",
 				Label: "Bandwidth Verification",
 				Type:  action_kit_api.ActionParameterTypeHeader,
-				Order: extutil.Ptr(10),
+				Order: new(10),
 			},
 			successRate,
 			{
 				Name:        "minBandwidth",
 				Label:       "Minimum Bandwidth",
-				Description: extutil.Ptr("Minimum expected download bandwidth. Leave empty to skip minimum check."),
+				Description: new("Minimum expected download bandwidth. Leave empty to skip minimum check."),
 				Type:        action_kit_api.ActionParameterTypeBitrate,
-				Required:    extutil.Ptr(false),
-				Order:       extutil.Ptr(12),
+				Required:    new(false),
+				Order:       new(12),
 			},
 			{
 				Name:        "maxBandwidth",
 				Label:       "Maximum Bandwidth",
-				Description: extutil.Ptr("Maximum expected download bandwidth. Leave empty to skip maximum check."),
+				Description: new("Maximum expected download bandwidth. Leave empty to skip maximum check."),
 				Type:        action_kit_api.ActionParameterTypeBitrate,
-				Required:    extutil.Ptr(false),
-				Order:       extutil.Ptr(13),
+				Required:    new(false),
+				Order:       new(13),
 			},
 			separator(14),
 			//------------------------
@@ -201,10 +201,10 @@ func (a *httpCheckActionBandwidth) Describe() action_kit_api.ActionDescription {
 			readTimeout,
 			insecureSkipVerify,
 		},
-		Status: extutil.Ptr(action_kit_api.MutatingEndpointReferenceWithCallInterval{
-			CallInterval: extutil.Ptr("1s"),
+		Status: new(action_kit_api.MutatingEndpointReferenceWithCallInterval{
+			CallInterval: new("1s"),
 		}),
-		Stop: extutil.Ptr(action_kit_api.MutatingEndpointReference{}),
+		Stop: new(action_kit_api.MutatingEndpointReference{}),
 	}
 
 	if !config.Config.EnableLocationSelection {
@@ -324,7 +324,7 @@ func (a *httpCheckActionBandwidth) Status(_ context.Context, state *BandwidthChe
 
 	return &action_kit_api.StatusResult{
 		Completed: false,
-		Metrics:   extutil.Ptr(metrics),
+		Metrics:   new(metrics),
 	}, nil
 }
 
