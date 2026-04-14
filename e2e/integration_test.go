@@ -324,7 +324,7 @@ func waitForServerReady(t *testing.T, url string, readyCh chan struct{}) {
 			return
 		default:
 			tr := &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //NOSONAR go:S5527 go:S4830
 			}
 			client := &http.Client{Transport: tr}
 			resp, err := client.Get(url)
