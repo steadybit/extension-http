@@ -32,8 +32,19 @@ func TestWithMinikube(t *testing.T) {
 	require.NoError(t, err)
 	defer cleanup()
 
-	server := startLocalServerWithSelfSignedCertificate(t)
+	// A second self-signed certificate that is NOT installed into the extension's
+	// trust store. It backs the untrusted server on port 8444, which deterministically
+	// triggers certificate verification failures (previously this relied on the flaky
+	// public self-signed.badssl.com).
+	untrustedCertPath, untrustedKeyPath, cleanupUntrusted, err := createSelfSignedCertFiles()
+	require.NoError(t, err)
+	defer cleanupUntrusted()
+
+	server := startLocalServerWithSelfSignedCertificate(t, ":8443", os.Getenv("CERT_FILE"), os.Getenv("KEY_FILE"))
 	defer closeSilent(server)
+
+	untrustedServer := startLocalServerWithSelfSignedCertificate(t, ":8444", untrustedCertPath, untrustedKeyPath)
+	defer closeSilent(untrustedServer)
 
 	extFactory := e2e.HelmExtensionFactory{
 		Name: "extension-http",
@@ -101,24 +112,29 @@ var httpCheckTests = []testcase{
 		wantedFailureCount: 20,
 	},
 	{
+		// Uses the local untrusted self-signed server (port 8444) instead of the public
+		// self-signed.badssl.com, which is flaky in CI (TLS connection resets) and broke
+		// this test repeatedly.
 		name:               "should check status for bad ssl website",
-		url:                "https://self-signed.badssl.com/",
+		url:                "https://host.minikube.internal:8444",
 		timeout:            30000,
 		insecureSkipVerify: false,
 		wantedFailure:      "failed to verify certificate",
 		wantedSuccessCount: 0,
 		wantedFailureCount: 20,
-		countDelta:         2, // badssl is pretty slow sometimes, so that not all expected requests are finished
+		countDelta:         2,
 	},
 	{
+		// Same local untrusted self-signed server as above; with insecureSkipVerify the
+		// untrusted certificate is accepted and requests succeed.
 		name:               "should check status for bad ssl website with insecureSkipVerify",
-		url:                "https://self-signed.badssl.com/",
+		url:                "https://host.minikube.internal:8444",
 		timeout:            30000,
 		insecureSkipVerify: true,
 		wantedFailure:      "",
 		wantedSuccessCount: 20,
 		wantedFailureCount: 0,
-		countDelta:         2, // badssl is pretty slow sometimes, so that not all expected requests are finished
+		countDelta:         2,
 	},
 	{
 		name:               "should check status with self-signed certificate",
@@ -189,13 +205,44 @@ func runHTTPCheckTests(actionID string, buildConfig func(tt testcase) map[string
 	}
 }
 
-// generateSelfSignedCert creates a self-signed certificate and returns the paths
-// to the certificate and private key files
+// generateSelfSignedCert creates a self-signed certificate, exposes its paths via
+// the CERT_FILE/KEY_FILE environment variables (so it can be installed into the
+// extension's trust store via installConfigMap), and returns a cleanup function.
 func generateSelfSignedCert() (func(), error) {
+	certPath, keyPath, cleanupFiles, err := createSelfSignedCertFiles()
+	if err != nil {
+		return nil, err
+	}
+
+	if err = os.Setenv("CERT_FILE", certPath); err != nil {
+		cleanupFiles()
+		return nil, err
+	}
+	if err = os.Setenv("KEY_FILE", keyPath); err != nil {
+		cleanupFiles()
+		return nil, err
+	}
+
+	cleanup := func() {
+		cleanupFiles()
+		if err := os.Unsetenv("CERT_FILE"); err != nil {
+			log.Error().Err(err).Msg("Failed to unset CERT_FILE environment variable")
+		}
+		if err := os.Unsetenv("KEY_FILE"); err != nil {
+			log.Error().Err(err).Msg("Failed to unset KEY_FILE environment variable")
+		}
+	}
+	return cleanup, nil
+}
+
+// createSelfSignedCertFiles generates a self-signed certificate and writes the
+// certificate and private key to temporary files, returning their paths and a
+// cleanup function that removes them.
+func createSelfSignedCertFiles() (certPath string, keyPath string, cleanup func(), err error) {
 	// Generate a private key
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return nil, err
+		return "", "", nil, err
 	}
 
 	notBefore := time.Now()
@@ -203,7 +250,7 @@ func generateSelfSignedCert() (func(), error) {
 
 	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
 	if err != nil {
-		return nil, err
+		return "", "", nil, err
 	}
 
 	template := x509.Certificate{
@@ -223,60 +270,43 @@ func generateSelfSignedCert() (func(), error) {
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
 	if err != nil {
-		return nil, err
+		return "", "", nil, err
 	}
 
 	certFile, err := os.CreateTemp("", "cert*.pem")
 	if err != nil {
-		return nil, err
+		return "", "", nil, err
 	}
 	defer closeSilent(certFile)
 
-	err = pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
-	if err != nil {
-		return nil, err
+	if err = pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes}); err != nil {
+		return "", "", nil, err
 	}
 
 	keyFile, err := os.CreateTemp("", "key*.pem")
 	if err != nil {
-		return nil, err
+		return "", "", nil, err
 	}
 	defer closeSilent(keyFile)
 
 	privBytes := x509.MarshalPKCS1PrivateKey(privateKey)
-	err = pem.Encode(keyFile, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: privBytes})
-	if err != nil {
-		return nil, err
+	if err = pem.Encode(keyFile, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: privBytes}); err != nil {
+		return "", "", nil, err
 	}
 
-	err = os.Setenv("CERT_FILE", certFile.Name())
-	if err != nil {
-		return nil, err
-	}
-	err = os.Setenv("KEY_FILE", keyFile.Name())
-	if err != nil {
-		return nil, err
-	}
-
-	cleanup := func() {
+	cleanup = func() {
 		if err := os.Remove(certFile.Name()); err != nil {
 			log.Error().Err(err).Msgf("Failed to remove temporary certificate file: %s", certFile.Name())
 		}
 		if err := os.Remove(keyFile.Name()); err != nil {
 			log.Error().Err(err).Msgf("Failed to remove temporary key file: %s", keyFile.Name())
 		}
-		if err := os.Unsetenv("CERT_FILE"); err != nil {
-			log.Error().Err(err).Msg("Failed to unset CERT_FILE environment variable")
-		}
-		if err := os.Unsetenv("KEY_FILE"); err != nil {
-			log.Error().Err(err).Msg("Failed to unset KEY_FILE environment variable")
-		}
 	}
-	return cleanup, nil
+	return certFile.Name(), keyFile.Name(), cleanup, nil
 }
 
-func startLocalServerWithSelfSignedCertificate(t *testing.T) *http.Server {
-	serverCert, err := tls.LoadX509KeyPair(os.Getenv("CERT_FILE"), os.Getenv("KEY_FILE"))
+func startLocalServerWithSelfSignedCertificate(t *testing.T, addr, certPath, keyPath string) *http.Server {
+	serverCert, err := tls.LoadX509KeyPair(certPath, keyPath)
 	require.NoError(t, err)
 
 	tlsConfig := &tls.Config{
@@ -290,7 +320,7 @@ func startLocalServerWithSelfSignedCertificate(t *testing.T) *http.Server {
 	})
 
 	server := &http.Server{
-		Addr:      ":8443",
+		Addr:      addr,
 		TLSConfig: tlsConfig,
 		Handler:   mux,
 	}
@@ -299,14 +329,14 @@ func startLocalServerWithSelfSignedCertificate(t *testing.T) *http.Server {
 	var wg sync.WaitGroup
 
 	wg.Go(func() {
-		log.Info().Msg("Starting HTTPS server on port 8443")
+		log.Info().Msgf("Starting HTTPS server on %s", addr)
 		close(readyCh)
 		if err := server.ListenAndServeTLS("", ""); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Error().Err(err).Msg("Failed to start HTTPS server")
+			log.Error().Err(err).Msgf("Failed to start HTTPS server on %s", addr)
 		}
 	})
 
-	waitForServerReady(t, "https://localhost:8443", readyCh)
+	waitForServerReady(t, "https://localhost"+addr, readyCh)
 
 	return server
 }
