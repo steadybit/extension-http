@@ -111,14 +111,15 @@ var httpCheckTests = []testcase{
 		countDelta:         2, // badssl is pretty slow sometimes, so that not all expected requests are finished
 	},
 	{
+		// Uses the local self-signed server instead of the public self-signed.badssl.com,
+		// which is flaky in CI (TLS connection resets) and broke this test repeatedly.
 		name:               "should check status for bad ssl website with insecureSkipVerify",
-		url:                "https://self-signed.badssl.com/",
+		url:                "https://host.minikube.internal:8443",
 		timeout:            30000,
 		insecureSkipVerify: true,
 		wantedFailure:      "",
 		wantedSuccessCount: 20,
 		wantedFailureCount: 0,
-		countDelta:         2, // badssl is pretty slow sometimes, so that not all expected requests are finished
 	},
 	{
 		name:               "should check status with self-signed certificate",
