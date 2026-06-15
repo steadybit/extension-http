@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.43
+
+- build(deps): bump alpine from 3.23 to 3.24
+
 ## v1.0.42
 
 - build(deps): bump goreleaser/goreleaser from v2.15.4 to v2.16.0
