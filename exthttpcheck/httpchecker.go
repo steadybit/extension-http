@@ -20,6 +20,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type counters struct {
@@ -42,8 +44,11 @@ type httpChecker struct {
 	httpClient  http.Client
 }
 
-func newHttpChecker(state *HTTPCheckState) *httpChecker {
+func newHttpChecker(parentCtx context.Context, state *HTTPCheckState) *httpChecker {
+	// Preserve the agent's OTel span context as the parent for probe spans, but
+	// decouple from parentCtx's lifetime (it is cancelled when Prepare returns).
 	ctx, cancel := context.WithCancel(context.Background())
+	ctx = trace.ContextWithSpanContext(ctx, trace.SpanContextFromContext(parentCtx))
 	checker := &httpChecker{
 		work:        make(chan struct{}, state.MaxConcurrent),
 		ctx:         ctx,
@@ -190,7 +195,11 @@ func createHttpClient(state *HTTPCheckState) http.Client {
 			InsecureSkipVerify: state.InsecureSkipVerify,
 		},
 	}
-	client := http.Client{Timeout: state.ReadTimeout, Transport: transport}
+	// otelhttp.NewTransport injects traceparent/baggage into outgoing requests and
+	// creates a client span per probe. High-volume checks should control span volume
+	// via the standard OTEL sampler env vars (OTEL_TRACES_SAMPLER=parentbased_traceidratio,
+	// OTEL_TRACES_SAMPLER_ARG=<ratio>); no per-extension tuning is applied here.
+	client := http.Client{Timeout: state.ReadTimeout, Transport: otelhttp.NewTransport(transport)}
 
 	if !state.FollowRedirects {
 		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {

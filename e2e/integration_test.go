@@ -188,7 +188,7 @@ func runHTTPCheckTests(actionID string, buildConfig func(tt testcase) map[string
 						assert.Empty(t, metric.Metric["error"], "expected no error")
 						assert.Equal(t, "200", metric.Metric["http_status"])
 					} else if tt.wantedFailure == "<timeout>" {
-						assert.True(t, strings.Contains(metric.Metric["error"], "i/o timeout") || strings.Contains(metric.Metric["error"], "context deadline exceeded"))
+						assert.True(t, strings.Contains(metric.Metric["error"], "i/o timeout") || strings.Contains(metric.Metric["error"], "context deadline exceeded") || strings.Contains(metric.Metric["error"], "request canceled"))
 					} else {
 						assert.Contains(t, metric.Metric["error"], tt.wantedFailure)
 					}

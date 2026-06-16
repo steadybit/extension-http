@@ -5,6 +5,7 @@
 package exthttpcheck
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"sync"
@@ -41,7 +42,7 @@ type HTTPCheckState struct {
 	InsecureSkipVerify   bool
 }
 
-func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckState) (*action_kit_api.PrepareResult, error) {
+func prepare(ctx context.Context, request action_kit_api.PrepareActionRequestBody, state *HTTPCheckState) (*action_kit_api.PrepareResult, error) {
 	state.Timeout = time.Now().Add(time.Duration(extutil.ToInt64(request.Config["duration"])) * time.Millisecond)
 	expectedStatusCodes, statusCodeErr := resolveStatusCodeExpression(extutil.ToString(request.Config["statusCode"]))
 	if statusCodeErr != nil {
@@ -90,7 +91,7 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckSt
 	}
 	state.URL = *parsedUrl
 
-	checker := newHttpChecker(state)
+	checker := newHttpChecker(ctx, state)
 	httpCheckers.Store(state.ExecutionID, checker)
 
 	return nil, nil

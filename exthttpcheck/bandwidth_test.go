@@ -371,7 +371,7 @@ func TestBandwidthChecker_WindowClassification(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := newBandwidthChecker(tt.state)
+			c := newBandwidthChecker(context.Background(), tt.state)
 			c.windowStartTime = time.Now().Add(-1 * time.Second)
 			c.windowBytesDownloaded = tt.bytesDownloaded
 			c.windowErrorCount = tt.errorCount
@@ -396,7 +396,7 @@ func TestBandwidthCheckAction_AllRequestsFailingFailsCheck(t *testing.T) {
 	state.ExecutionID = uuid.New()
 	state.SuccessRate = 100
 
-	checker := newBandwidthChecker(&state)
+	checker := newBandwidthChecker(context.Background(), &state)
 	checker.counterWindowSuccess.Store(5)
 	checker.counterRequestsErrored.Store(5)
 	bandwidthCheckers.Store(state.ExecutionID, checker)
@@ -417,7 +417,7 @@ func TestBandwidthCheckAction_InFlightDownloadDoesNotFalselyFail(t *testing.T) {
 	state.ExecutionID = uuid.New()
 	state.SuccessRate = 100
 
-	checker := newBandwidthChecker(&state)
+	checker := newBandwidthChecker(context.Background(), &state)
 	checker.counterWindowSuccess.Store(5)
 	bandwidthCheckers.Store(state.ExecutionID, checker)
 

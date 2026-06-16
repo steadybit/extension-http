@@ -20,6 +20,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/extension-kit/extbuild"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type bandwidthChecker struct {
@@ -40,7 +42,8 @@ type bandwidthChecker struct {
 	counterRequestsCompleted atomic.Uint64
 	counterRequestsErrored   atomic.Uint64
 
-	// Control
+	// Control. ctx carries the action's OTel span context so probe spans are
+	// children of the action's server span, and cancelling it stops the workers.
 	ctx    context.Context
 	cancel context.CancelFunc
 	state  *BandwidthCheckState
@@ -48,8 +51,9 @@ type bandwidthChecker struct {
 
 var bandwidthCheckers = sync.Map{}
 
-func newBandwidthChecker(state *BandwidthCheckState) *bandwidthChecker {
-	ctx, cancel := context.WithCancel(context.Background())
+func newBandwidthChecker(parentCtx context.Context, state *BandwidthCheckState) *bandwidthChecker {
+	spanCtx := trace.ContextWithSpanContext(context.Background(), trace.SpanContextFromContext(parentCtx))
+	ctx, cancel := context.WithCancel(spanCtx)
 	return &bandwidthChecker{
 		ctx:    ctx,
 		cancel: cancel,
@@ -97,8 +101,11 @@ func (c *bandwidthChecker) performBandwidthRequests() {
 		ResponseHeaderTimeout: c.state.ReadTimeout,
 	}
 	// Don't set client.Timeout - it would limit the entire request including body read
-	// For bandwidth testing, we want to allow large downloads to complete
-	client := http.Client{Transport: transport}
+	// For bandwidth testing, we want to allow large downloads to complete.
+	// otelhttp.NewTransport injects traceparent/baggage into outgoing requests and
+	// creates a client span per probe. High-volume bandwidth runs should control
+	// span volume via the standard OTEL sampler env vars.
+	client := http.Client{Transport: otelhttp.NewTransport(transport)}
 
 	if !c.state.FollowRedirects {
 		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
