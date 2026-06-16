@@ -36,7 +36,7 @@ func TestHttpChecker_ExecutesExactlyMaxRequests(t *testing.T) {
 		ConnectionTimeout:    5 * time.Second,
 	}
 
-	checker := newHttpChecker(state)
+	checker := newHttpChecker(context.Background(), state)
 	checker.start()
 
 	assert.Eventually(t, func() bool {
@@ -70,7 +70,7 @@ func TestHttpChecker_ShutdownCancelsInFlightRequests(t *testing.T) {
 		ConnectionTimeout:    5 * time.Second,
 	}
 
-	checker := newHttpChecker(state)
+	checker := newHttpChecker(context.Background(), state)
 	checker.start()
 
 	time.Sleep(200 * time.Millisecond)

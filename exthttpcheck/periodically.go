@@ -127,7 +127,7 @@ func getDelayBetweenRequests(requestsPerSecond uint64) time.Duration {
 	return time.Second
 }
 
-func (l *httpCheckActionPeriodically) Prepare(_ context.Context, state *HTTPCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
+func (l *httpCheckActionPeriodically) Prepare(ctx context.Context, state *HTTPCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	requestsPerSecond := extutil.ToUInt64(request.Config["requestsPerSecond"])
 	state.DelayBetweenRequests = getDelayBetweenRequests(requestsPerSecond)
 	if state.DelayBetweenRequests < time.Millisecond {
@@ -142,7 +142,7 @@ func (l *httpCheckActionPeriodically) Prepare(_ context.Context, state *HTTPChec
 	// disable fail-early).
 	durationMs := extutil.ToInt64(request.Config["duration"])
 	state.ExpectedRequests = max(requestsPerSecond*uint64(durationMs)/1000, 1)
-	return prepare(request, state)
+	return prepare(ctx, request, state)
 }
 
 func (l *httpCheckActionPeriodically) Start(_ context.Context, state *HTTPCheckState) (*action_kit_api.StartResult, error) {

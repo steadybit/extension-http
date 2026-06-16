@@ -132,7 +132,7 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 	return description
 }
 
-func (l *httpCheckActionFixedAmount) Prepare(_ context.Context, state *HTTPCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
+func (l *httpCheckActionFixedAmount) Prepare(ctx context.Context, state *HTTPCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	duration := time.Duration(extutil.ToInt64(request.Config["duration"])) * time.Millisecond
 	if duration <= 0 {
 		return nil, errors.New("duration must be greater than 0")
@@ -156,7 +156,7 @@ func (l *httpCheckActionFixedAmount) Prepare(_ context.Context, state *HTTPCheck
 	// Expected total requests over the step, used by the fail-early check.
 	state.ExpectedRequests = numberOfRequests
 
-	return prepare(request, state)
+	return prepare(ctx, request, state)
 }
 
 func (l *httpCheckActionFixedAmount) Start(_ context.Context, state *HTTPCheckState) (*action_kit_api.StartResult, error) {
