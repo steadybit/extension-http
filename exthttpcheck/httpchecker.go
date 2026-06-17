@@ -159,7 +159,7 @@ func (c *httpChecker) performRequest(req *http.Request, state *HTTPCheckState) {
 		}
 		// The full response has now been read — mark the last byte for the
 		// time-to-last-byte measurement.
-		tracer.lastByteReceived = time.Now()
+		tracer.markLastByteReceived()
 
 		if zerolog.GlobalLevel() == zerolog.TraceLevel {
 			c.logger.Trace().Str("status", response.Status).Bytes("body", bodyBytes).Any("headers", response.Header).Msgf("Got response for %s %s", req.Method, req.URL.String())
@@ -251,7 +251,7 @@ func (c *httpChecker) onResponse(req *http.Request, res *http.Response, tracer *
 			"response_time_constraints_fulfilled": strconv.FormatBool(responseTimeWasSuccessful),
 		},
 		Value:     float64(responseTime.Milliseconds()),
-		Timestamp: tracer.firstByteReceived,
+		Timestamp: tracer.firstByteReceivedTime(),
 	}
 
 	if responseStatusWasExpected && responseBodyWasSuccessful && responseTimeWasSuccessful {
