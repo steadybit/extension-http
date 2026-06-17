@@ -22,6 +22,7 @@ jobs:
     uses: steadybit/extension-kit/.github/workflows/reusable-extension-ci.yml@main # NOSONAR githubactions:S7637 - our own action
     with:
       build_linux_packages: true
+      force_push_docker_image: true
       VERSION_BUMPER_APPID: ${{ vars.GH_APP_STEADYBIT_APP_ID }}
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
