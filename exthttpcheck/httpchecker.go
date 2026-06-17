@@ -239,7 +239,7 @@ func (c *httpChecker) onResponse(req *http.Request, res *http.Response, tracer *
 			"response_time_constraints_fulfilled": strconv.FormatBool(responseTimeWasSuccessful),
 		},
 		Value:     float64(tracer.responseTime().Milliseconds()),
-		Timestamp: tracer.firstByteReceived,
+		Timestamp: tracer.firstByteReceivedTime(),
 	}
 
 	if responseStatusWasExpected && responseBodyWasSuccessful && responseTimeWasSuccessful {
