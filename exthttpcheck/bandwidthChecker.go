@@ -33,6 +33,12 @@ type bandwidthChecker struct {
 	counterWindowSuccess atomic.Uint64
 	counterWindowFailed  atomic.Uint64
 
+	// Total requests that completed successfully and that errored across the whole
+	// run, used to detect a target that is failing every request regardless of
+	// throughput, without penalising long downloads still in flight at stop.
+	counterRequestsCompleted atomic.Uint64
+	counterRequestsErrored   atomic.Uint64
+
 	// Control
 	stopped atomic.Bool
 	state   *BandwidthCheckState
@@ -160,6 +166,8 @@ func (c *bandwidthChecker) recordBytes(bytesDownloaded int64) {
 }
 
 func (c *bandwidthChecker) recordRequestCompleted() {
+	c.counterRequestsCompleted.Add(1)
+
 	c.windowMu.Lock()
 	defer c.windowMu.Unlock()
 
@@ -167,6 +175,8 @@ func (c *bandwidthChecker) recordRequestCompleted() {
 }
 
 func (c *bandwidthChecker) recordError() {
+	c.counterRequestsErrored.Add(1)
+
 	c.windowMu.Lock()
 	defer c.windowMu.Unlock()
 
@@ -207,7 +217,11 @@ func (c *bandwidthChecker) emitWindowMetric() *action_kit_api.Metric {
 	bandwidthBps := float64(bytesDownloaded*8) / windowSeconds
 	bandwidthMbps := bandwidthBps / 1_000_000
 
-	// Check thresholds
+	// A window is within threshold when the bandwidth it actually achieved falls
+	// within the configured limits. Failed requests do not by themselves fail a
+	// window as long as data was received, because long downloads frequently span
+	// multiple windows and complete in bursts: a window can legitimately receive
+	// megabytes of in-flight data while no request happens to finish within it.
 	withinThreshold := true
 	if c.state.MinBandwidthBps > 0 && bandwidthBps < float64(c.state.MinBandwidthBps) {
 		withinThreshold = false
@@ -218,8 +232,11 @@ func (c *bandwidthChecker) emitWindowMetric() *action_kit_api.Metric {
 		log.Trace().Msgf("Window bandwidth %.2f bps is above maximum %d bps", bandwidthBps, c.state.MaxBandwidthBps)
 	}
 
-	// Consider window failed if there were errors and no successful requests
-	if errorCount > 0 && requestCount == 0 {
+	// Only treat errors as a window failure when no data was received at all,
+	// i.e. a genuine stall or outage. This still fails maximum-only configurations,
+	// where a zero-bandwidth window would otherwise pass the maximum check.
+	failedWithoutData := errorCount > 0 && bytesDownloaded == 0
+	if failedWithoutData {
 		withinThreshold = false
 	}
 
@@ -230,17 +247,22 @@ func (c *bandwidthChecker) emitWindowMetric() *action_kit_api.Metric {
 		c.counterWindowFailed.Add(1)
 	}
 
+	metricLabels := map[string]string{
+		"url":              c.state.URL.String(),
+		"bytes_downloaded": strconv.FormatInt(bytesDownloaded, 10),
+		"duration_ms":      strconv.FormatInt(windowDuration.Milliseconds(), 10),
+		"request_count":    strconv.FormatInt(requestCount, 10),
+		"error_count":      strconv.FormatInt(errorCount, 10),
+		"within_threshold": strconv.FormatBool(withinThreshold),
+		"bandwidth":        strconv.FormatFloat(bandwidthMbps, 'g', -1, 64),
+	}
+	if failedWithoutData {
+		metricLabels["error"] = fmt.Sprintf("%d request(s) failed without receiving any data", errorCount)
+	}
+
 	metric := &action_kit_api.Metric{
-		Name: new("bandwidth"),
-		Metric: map[string]string{
-			"url":              c.state.URL.String(),
-			"bytes_downloaded": strconv.FormatInt(bytesDownloaded, 10),
-			"duration_ms":      strconv.FormatInt(windowDuration.Milliseconds(), 10),
-			"request_count":    strconv.FormatInt(requestCount, 10),
-			"error_count":      strconv.FormatInt(errorCount, 10),
-			"within_threshold": strconv.FormatBool(withinThreshold),
-			"bandwidth":        strconv.FormatFloat(bandwidthMbps, 'g', -1, 64),
-		},
+		Name:      new("bandwidth"),
+		Metric:    metricLabels,
 		Value:     math.Trunc(bandwidthMbps*100) / 100,
 		Timestamp: time.Now(),
 	}

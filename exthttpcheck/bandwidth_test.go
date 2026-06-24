@@ -323,6 +323,110 @@ func TestBandwidthCheckAction_BigFileDownload(t *testing.T) {
 	}
 }
 
+func TestBandwidthChecker_WindowClassification(t *testing.T) {
+	// All cases set requestCount to 0 (no request completed within the window),
+	// which is what makes the distinction between "data received" and "no data"
+	// the deciding factor for the window verdict.
+	tests := []struct {
+		name            string
+		state           *BandwidthCheckState
+		bytesDownloaded int64
+		errorCount      int64
+		wantWithin      string
+		wantErrorLabel  bool
+		wantSuccess     uint64
+		wantFailed      uint64
+	}{
+		{
+			// Long download spanning multiple windows: data received, no request
+			// completed in the window, a couple errored. Healthy throughput passes.
+			name:            "errors but healthy throughput passes",
+			state:           &BandwidthCheckState{MinBandwidthBps: 1_000_000},
+			bytesDownloaded: 28_000_000,
+			errorCount:      2,
+			wantWithin:      "true",
+			wantErrorLabel:  false,
+			wantSuccess:     1,
+		},
+		{
+			// Genuine stall/outage: requests errored and no data was received.
+			name:           "errors with no data fails",
+			state:          &BandwidthCheckState{MinBandwidthBps: 1_000_000},
+			errorCount:     2,
+			wantWithin:     "false",
+			wantErrorLabel: true,
+			wantFailed:     1,
+		},
+		{
+			// With only a maximum configured, a zero-bandwidth window would pass the
+			// maximum check; the no-data error guard must still fail it.
+			name:           "max-only outage fails",
+			state:          &BandwidthCheckState{MaxBandwidthBps: 100_000_000},
+			errorCount:     3,
+			wantWithin:     "false",
+			wantErrorLabel: true,
+			wantFailed:     1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := newBandwidthChecker(tt.state)
+			c.windowStartTime = time.Now().Add(-1 * time.Second)
+			c.windowBytesDownloaded = tt.bytesDownloaded
+			c.windowErrorCount = tt.errorCount
+
+			metric := c.emitWindowMetric()
+			require.NotNil(t, metric)
+			assert.Equal(t, tt.wantWithin, metric.Metric["within_threshold"])
+			_, hasError := metric.Metric["error"]
+			assert.Equal(t, tt.wantErrorLabel, hasError)
+			assert.Equal(t, tt.wantSuccess, c.counterWindowSuccess.Load())
+			assert.Equal(t, tt.wantFailed, c.counterWindowFailed.Load())
+		})
+	}
+}
+
+func TestBandwidthCheckAction_AllRequestsFailingFailsCheck(t *testing.T) {
+	// Windows can pass purely on measured throughput while every request fails
+	// (e.g. connections reset mid-body). The run-level guard must still fail the
+	// check because no request completed successfully and requests did error.
+	action := &httpCheckActionBandwidth{}
+	state := action.NewEmptyState()
+	state.ExecutionID = uuid.New()
+	state.SuccessRate = 100
+
+	checker := newBandwidthChecker(&state)
+	checker.counterWindowSuccess.Store(5)
+	checker.counterRequestsErrored.Store(5)
+	bandwidthCheckers.Store(state.ExecutionID, checker)
+
+	stopResult, err := action.Stop(context.Background(), &state)
+	require.NoError(t, err)
+	require.NotNil(t, stopResult)
+	require.NotNil(t, stopResult.Error)
+	assert.Contains(t, stopResult.Error.Title, "No HTTP requests completed successfully")
+}
+
+func TestBandwidthCheckAction_InFlightDownloadDoesNotFalselyFail(t *testing.T) {
+	// A large download that is still in flight at stop has produced healthy
+	// windows but no completed request yet, and crucially no errors. The
+	// run-level guard must not fail such a run.
+	action := &httpCheckActionBandwidth{}
+	state := action.NewEmptyState()
+	state.ExecutionID = uuid.New()
+	state.SuccessRate = 100
+
+	checker := newBandwidthChecker(&state)
+	checker.counterWindowSuccess.Store(5)
+	bandwidthCheckers.Store(state.ExecutionID, checker)
+
+	stopResult, err := action.Stop(context.Background(), &state)
+	require.NoError(t, err)
+	require.NotNil(t, stopResult)
+	assert.Nil(t, stopResult.Error)
+}
+
 func TestBandwidthCheckAction_NonSuccessStatusCode(t *testing.T) {
 	// Server returns 403 Forbidden with a small body (simulates user-agent blocking)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -23,6 +23,14 @@ const (
 	actionIconBandwidth = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%231D2632%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M22%2012h-4l-3%209L9%203l-3%209H2%22%2F%3E%3C%2Fsvg%3E"
 )
 
+// bandwidthSuccessRate reuses the shared success-rate parameter but describes it
+// in terms of measurement windows, which is how the bandwidth check evaluates it.
+var bandwidthSuccessRate = func() action_kit_api.ActionParameter {
+	p := successRate
+	p.Description = new("Percentage of measurement windows that must be within the bandwidth thresholds. Evaluated at the end of the duration.")
+	return p
+}()
+
 type httpCheckActionBandwidth struct{}
 
 type BandwidthCheckState struct {
@@ -85,20 +93,20 @@ func (a *httpCheckActionBandwidth) Describe() action_kit_api.ActionDescription {
 							},
 						},
 						{
+							Title: "Error",
+							Color: "warn",
+							Matcher: action_kit_api.LineChartWidgetGroupMatcherNotEmpty{
+								Type: action_kit_api.ComSteadybitWidgetLineChartGroupMatcherNotEmpty,
+								Key:  "error",
+							},
+						},
+						{
 							Title: "Outside Threshold",
 							Color: "warn",
 							Matcher: action_kit_api.LineChartWidgetGroupMatcherKeyEqualsValue{
 								Type:  action_kit_api.ComSteadybitWidgetLineChartGroupMatcherKeyEqualsValue,
 								Key:   "within_threshold",
 								Value: "false",
-							},
-						},
-						{
-							Title: "Error",
-							Color: "warn",
-							Matcher: action_kit_api.LineChartWidgetGroupMatcherNotEmpty{
-								Type: action_kit_api.ComSteadybitWidgetLineChartGroupMatcherNotEmpty,
-								Key:  "error",
 							},
 						},
 					},
@@ -170,7 +178,7 @@ func (a *httpCheckActionBandwidth) Describe() action_kit_api.ActionDescription {
 				Type:  action_kit_api.ActionParameterTypeHeader,
 				Order: new(10),
 			},
-			successRate,
+			bandwidthSuccessRate,
 			{
 				Name:        "minBandwidth",
 				Label:       "Minimum Bandwidth",
@@ -352,6 +360,20 @@ func (a *httpCheckActionBandwidth) Stop(_ context.Context, state *BandwidthCheck
 		return &action_kit_api.StopResult{
 			Error: &action_kit_api.ActionKitError{
 				Title:  "No measurement windows were completed",
+				Status: extutil.Ptr(action_kit_api.Failed),
+			},
+		}, nil
+	}
+
+	// Guard against a target that delivers throughput but fails every request
+	// (e.g. resets mid-body): such a run could otherwise pass on bandwidth alone.
+	// Requiring an actual error avoids penalising a long download that is still in
+	// flight at stop, where no request has completed yet but none has failed either.
+	if checker.counterRequestsCompleted.Load() == 0 && checker.counterRequestsErrored.Load() > 0 {
+		return &action_kit_api.StopResult{
+			Metrics: &latestMetrics,
+			Error: &action_kit_api.ActionKitError{
+				Title:  "No HTTP requests completed successfully during the bandwidth check (the target is unreachable or failing all requests)",
 				Status: extutil.Ptr(action_kit_api.Failed),
 			},
 		}, nil
