@@ -4,6 +4,7 @@
 package exthttpcheck
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -40,15 +41,19 @@ type bandwidthChecker struct {
 	counterRequestsErrored   atomic.Uint64
 
 	// Control
-	stopped atomic.Bool
-	state   *BandwidthCheckState
+	ctx    context.Context
+	cancel context.CancelFunc
+	state  *BandwidthCheckState
 }
 
 var bandwidthCheckers = sync.Map{}
 
 func newBandwidthChecker(state *BandwidthCheckState) *bandwidthChecker {
+	ctx, cancel := context.WithCancel(context.Background())
 	return &bandwidthChecker{
-		state: state,
+		ctx:    ctx,
+		cancel: cancel,
+		state:  state,
 	}
 }
 
@@ -70,7 +75,12 @@ func (c *bandwidthChecker) start() {
 }
 
 func (c *bandwidthChecker) stop() {
-	c.stopped.Store(true)
+	// Cancelling the context stops the worker loop and aborts any in-flight request or
+	// body read, so workers blocked on a slow or stalled endpoint return promptly instead
+	// of leaking their goroutine and connection. Context cancellation propagates through
+	// net/http to a blocked response.Body.Read, which is why no overall client timeout
+	// (which would cap legitimate long downloads) is needed.
+	c.cancel()
 }
 
 func (c *bandwidthChecker) performBandwidthRequests() {
@@ -96,8 +106,8 @@ func (c *bandwidthChecker) performBandwidthRequests() {
 		}
 	}
 
-	for !c.stopped.Load() {
-		req, err := http.NewRequest("GET", c.state.URL.String(), nil)
+	for c.ctx.Err() == nil {
+		req, err := http.NewRequestWithContext(c.ctx, "GET", c.state.URL.String(), nil)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to create bandwidth request")
 			c.recordError()
@@ -112,6 +122,9 @@ func (c *bandwidthChecker) performBandwidthRequests() {
 		startTime := time.Now()
 		response, err := client.Do(req)
 		if err != nil {
+			if c.ctx.Err() != nil {
+				return // stopped: the request was cancelled, exit without recording a spurious error
+			}
 			log.Error().Err(err).Msg("Failed to execute bandwidth request")
 			c.recordError()
 			continue
@@ -146,6 +159,9 @@ func (c *bandwidthChecker) performBandwidthRequests() {
 		_ = response.Body.Close()
 
 		if readErr != nil {
+			if c.ctx.Err() != nil {
+				return // stopped: the body read was cancelled, exit without recording a spurious error
+			}
 			log.Error().Err(readErr).Msg("Failed to read response body")
 			c.recordError()
 			continue

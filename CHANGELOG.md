@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- fix: cancel in-flight bandwidth-check requests on stop so workers blocked on a slow or stalled endpoint no longer leak their goroutine and connection
+- fix: reject a `maxConcurrent` of 0 in the HTTP check actions instead of deadlocking the request scheduler
+
 ## v1.0.44
 
 - build(deps): bump github.com/steadybit/extension-kit

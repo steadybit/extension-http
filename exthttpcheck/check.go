@@ -70,6 +70,15 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckSt
 		return nil, err
 	}
 
+	// A zero worker count would start no workers and deadlock the request scheduler.
+	if state.MaxConcurrent < 1 {
+		return &action_kit_api.PrepareResult{
+			Error: &action_kit_api.ActionKitError{
+				Title: "Concurrent requests must be at least 1",
+			},
+		}, nil
+	}
+
 	urlString, ok := request.Config["url"]
 	if !ok {
 		return nil, fmt.Errorf("URL is missing")
