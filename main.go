@@ -19,6 +19,7 @@ import (
 	"github.com/steadybit/extension-kit/exthealth"
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extlogging"
+	"github.com/steadybit/extension-kit/extotel"
 	"github.com/steadybit/extension-kit/extruntime"
 	"github.com/steadybit/extension-kit/extsignals"
 )
@@ -34,6 +35,8 @@ func main() {
 	//  - to activate JSON logging, set the environment variable STEADYBIT_LOG_FORMAT="json"
 	//  - to set the log level to debug, set the environment variable STEADYBIT_LOG_LEVEL="debug"
 	extlogging.InitZeroLog()
+
+	extotel.InitOpenTelemetry()
 
 	// Build information is set at compile-time. This line writes the build information to the log.
 	// The information is mostly handy for debugging purposes.

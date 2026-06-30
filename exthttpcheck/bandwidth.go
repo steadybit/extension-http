@@ -225,7 +225,7 @@ func (a *httpCheckActionBandwidth) Describe() action_kit_api.ActionDescription {
 	return description
 }
 
-func (a *httpCheckActionBandwidth) Prepare(_ context.Context, state *BandwidthCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
+func (a *httpCheckActionBandwidth) Prepare(ctx context.Context, state *BandwidthCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	// Parse URL
 	urlString, ok := request.Config["url"]
 	if !ok {
@@ -301,7 +301,7 @@ func (a *httpCheckActionBandwidth) Prepare(_ context.Context, state *BandwidthCh
 		}, nil
 	}
 
-	bandwidthCheckers.Store(state.ExecutionID, newBandwidthChecker(state))
+	bandwidthCheckers.Store(state.ExecutionID, newBandwidthChecker(ctx, state))
 
 	return nil, nil
 }
