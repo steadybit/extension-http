@@ -101,6 +101,7 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 			connectTimeout,
 			readTimeout,
 			insecureSkipVerify,
+			failEarly,
 		},
 		Status: new(action_kit_api.MutatingEndpointReferenceWithCallInterval{
 			CallInterval: new("1s"),
@@ -135,6 +136,9 @@ func (l *httpCheckActionPeriodically) Prepare(_ context.Context, state *HTTPChec
 			},
 		}, nil
 	}
+	// Expected total requests over the step, used by the fail-early check.
+	durationMs := extutil.ToInt64(request.Config["duration"])
+	state.ExpectedRequests = requestsPerSecond * uint64(durationMs) / 1000
 	return prepare(request, state)
 }
 

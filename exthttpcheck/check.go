@@ -39,6 +39,10 @@ type HTTPCheckState struct {
 	ConnectionTimeout    time.Duration
 	FollowRedirects      bool
 	InsecureSkipVerify   bool
+	FailEarly            bool
+	// ExpectedRequests is the number of requests expected over the whole step. When FailEarly is
+	// enabled it is used to determine whether the required success rate can still be reached.
+	ExpectedRequests uint64
 }
 
 func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckState) (*action_kit_api.PrepareResult, error) {
@@ -63,6 +67,8 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckSt
 	state.ConnectionTimeout = time.Duration(extutil.ToInt64(request.Config["connectTimeout"])) * time.Millisecond
 	state.FollowRedirects = extutil.ToBool(request.Config["followRedirects"])
 	state.InsecureSkipVerify = extutil.ToBool(request.Config["insecureSkipVerify"])
+	// Defaults to false to preserve the previous behavior (success rate evaluated only at the end).
+	state.FailEarly = extutil.ToBool(request.Config["failEarly"])
 	var err error
 	state.Headers, err = extutil.ToKeyValue(request.Config, "headers")
 	if err != nil {
@@ -115,6 +121,13 @@ func status(state *HTTPCheckState) (*action_kit_api.StatusResult, error) {
 		return nil, err
 	}
 
+	metrics := checker.getLatestMetrics()
+
+	// Fail early if enabled and the required success rate can no longer be reached.
+	if result := failEarlyStatus(state, checker, metrics); result != nil {
+		return result, nil
+	}
+
 	completed := false
 	if state.NumberOfRequests > 0 {
 		total := checker.counters.success.Load() + checker.counters.failed.Load()
@@ -123,7 +136,7 @@ func status(state *HTTPCheckState) (*action_kit_api.StatusResult, error) {
 
 	return &action_kit_api.StatusResult{
 		Completed: completed,
-		Metrics:   new(checker.getLatestMetrics()),
+		Metrics:   new(metrics),
 	}, nil
 }
 
@@ -159,6 +172,39 @@ func stop(state *HTTPCheckState) (*action_kit_api.StopResult, error) {
 	}
 
 	return &result, nil
+}
+
+// successRateUnreachable reports whether enough checks have already failed that the required success
+// rate can no longer be reached over the expected number of checks. It assumes the best case where all
+// remaining checks succeed: (expected - failed) / expected * 100 >= successRate, which becomes
+// impossible once failed > expected * (100 - successRate) / 100.
+func successRateUnreachable(failed uint64, expected uint64, successRate uint64) bool {
+	if expected == 0 || successRate == 0 {
+		return false
+	}
+	maxAllowedFailures := float64(expected) * float64(100-successRate) / 100.0
+	return float64(failed) > maxAllowedFailures
+}
+
+// failEarlyStatus returns a completed, failed StatusResult when fail-early is enabled and the required
+// success rate can no longer be reached. Otherwise it returns nil so the caller keeps running.
+func failEarlyStatus(state *HTTPCheckState, checker *httpChecker, metrics []action_kit_api.Metric) *action_kit_api.StatusResult {
+	if !state.FailEarly {
+		return nil
+	}
+	failed := checker.counters.failed.Load()
+	if !successRateUnreachable(failed, state.ExpectedRequests, state.SuccessRate) {
+		return nil
+	}
+	return &action_kit_api.StatusResult{
+		Completed: true,
+		Metrics:   extutil.Ptr(metrics),
+		Error: &action_kit_api.ActionKitError{
+			Title:  fmt.Sprintf("Success Rate can no longer reach %d%%", state.SuccessRate),
+			Detail: extutil.Ptr(fmt.Sprintf("%d of ~%d expected requests already failed.", failed, state.ExpectedRequests)),
+			Status: extutil.Ptr(action_kit_api.Failed),
+		},
+	}
 }
 
 func loadHttpChecker(id uuid.UUID) (*httpChecker, error) {

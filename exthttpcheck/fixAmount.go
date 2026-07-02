@@ -113,6 +113,7 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 			connectTimeout,
 			readTimeout,
 			insecureSkipVerify,
+			failEarly,
 		},
 		Status: new(action_kit_api.MutatingEndpointReferenceWithCallInterval{
 			CallInterval: new("1s"),
@@ -150,6 +151,9 @@ func (l *httpCheckActionFixedAmount) Prepare(_ context.Context, state *HTTPCheck
 			},
 		}, nil
 	}
+
+	// Expected total requests over the step, used by the fail-early check.
+	state.ExpectedRequests = numberOfRequests
 
 	return prepare(request, state)
 }

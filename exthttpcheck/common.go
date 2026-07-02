@@ -124,6 +124,16 @@ var (
 		MinValue:     new(0),
 		MaxValue:     new(100),
 	}
+	failEarly = action_kit_api.ActionParameter{
+		Name:         "failEarly",
+		Label:        "Fail early",
+		Description:  new("If enabled, the check fails as soon as enough requests have failed that the required success rate can no longer be reached, instead of waiting for the end of the step. If disabled (the default, matching the previous behavior), the success rate is only evaluated at the end of the step."),
+		Type:         action_kit_api.ActionParameterTypeBoolean,
+		DefaultValue: new("false"),
+		Advanced:     new(true),
+		Required:     new(false),
+		Order:        new(30),
+	}
 	statusCode = action_kit_api.ActionParameter{
 		Name:         "statusCode",
 		Label:        "Response status codes",
