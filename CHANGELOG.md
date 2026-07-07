@@ -1,7 +1,14 @@
 # Changelog
 
-## Unreleased
+## v1.0.45
 
+- build(deps): bump github.com/steadybit/action-kit/go/action_kit_sdk
+- build(deps): bump github.com/steadybit/discovery-kit/go/discovery_kit_sdk
+- build(deps): bump goreleaser/goreleaser from v2.16.0 to v2.17.0
+- chore: add Claude Code workflows (#168)
+- chore: silence SonarQube finding on secrets: inherit in Claude workflows
+- fix: bandwidth check no longer fails when measured throughput is healthy
+- fix: cancel bandwidth requests on stop and reject maxConcurrent of 0
 - fix: cancel in-flight bandwidth-check requests on stop so workers blocked on a slow or stalled endpoint no longer leak their goroutine and connection
 - fix: reject a `maxConcurrent` of 0 in the HTTP check actions instead of deadlocking the request scheduler
 
