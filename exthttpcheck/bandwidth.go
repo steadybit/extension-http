@@ -45,6 +45,11 @@ type BandwidthCheckState struct {
 	FollowRedirects    bool
 	InsecureSkipVerify bool
 	MaxConcurrent      int
+	FailEarly          bool
+	// ExpectedWindows is the number of measurement windows expected over the whole step (~1 per
+	// second). When FailEarly is enabled it is used to determine whether the required success rate
+	// can still be reached.
+	ExpectedWindows uint64
 }
 
 var (
@@ -208,6 +213,7 @@ func (a *httpCheckActionBandwidth) Describe() action_kit_api.ActionDescription {
 			connectTimeout,
 			readTimeout,
 			insecureSkipVerify,
+			failEarly,
 		},
 		Status: new(action_kit_api.MutatingEndpointReferenceWithCallInterval{
 			CallInterval: new("1s"),
@@ -288,6 +294,15 @@ func (a *httpCheckActionBandwidth) Prepare(_ context.Context, state *BandwidthCh
 	// Parse other settings
 	state.ExecutionID = request.ExecutionId
 	state.SuccessRate = extutil.ToInt(request.Config["successRate"])
+	// Defaults to false to preserve the previous behavior (success rate evaluated only at the end).
+	state.FailEarly = extutil.ToBool(request.Config["failEarly"])
+	// One measurement window is emitted per status poll (~1s), so expected windows ~= duration in
+	// seconds. At least one window is produced, so clamp to 1 to avoid truncating sub-second durations
+	// to 0 (which would silently disable fail-early).
+	state.ExpectedWindows = uint64(extutil.ToInt64(request.Config["duration"]) / 1000)
+	if state.ExpectedWindows < 1 {
+		state.ExpectedWindows = 1
+	}
 	state.ConnectionTimeout = time.Duration(extutil.ToInt64(request.Config["connectTimeout"])) * time.Millisecond
 	state.ReadTimeout = time.Duration(extutil.ToInt64(request.Config["readTimeout"])) * time.Millisecond
 	state.FollowRedirects = extutil.ToBool(request.Config["followRedirects"])
@@ -328,6 +343,23 @@ func (a *httpCheckActionBandwidth) Status(_ context.Context, state *BandwidthChe
 	var metrics []action_kit_api.Metric
 	if metric != nil {
 		metrics = append(metrics, *metric)
+	}
+
+	// Fail early if enabled and the required success rate can no longer be reached across the
+	// expected number of measurement windows.
+	if state.FailEarly {
+		failed := checker.counterWindowFailed.Load()
+		if successRateUnreachable(failed, state.ExpectedWindows, uint64(state.SuccessRate)) {
+			return &action_kit_api.StatusResult{
+				Completed: true,
+				Metrics:   new(metrics),
+				Error: &action_kit_api.ActionKitError{
+					Title:  fmt.Sprintf("Success Rate can no longer reach %d%%", state.SuccessRate),
+					Detail: new(fmt.Sprintf("%d of ~%d expected measurement windows already failed.", failed, state.ExpectedWindows)),
+					Status: extutil.Ptr(action_kit_api.Failed),
+				},
+			}, nil
+		}
 	}
 
 	return &action_kit_api.StatusResult{

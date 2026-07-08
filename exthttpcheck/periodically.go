@@ -101,6 +101,7 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 			connectTimeout,
 			readTimeout,
 			insecureSkipVerify,
+			failEarly,
 		},
 		Status: new(action_kit_api.MutatingEndpointReferenceWithCallInterval{
 			CallInterval: new("1s"),
@@ -134,6 +135,14 @@ func (l *httpCheckActionPeriodically) Prepare(_ context.Context, state *HTTPChec
 				Title: "The given Number of Requests is too high for the given duration. Please reduce the number of requests or increase the duration.",
 			},
 		}, nil
+	}
+	// Expected total requests over the step, used by the fail-early check. At least one request is
+	// always sent, so clamp to 1 to avoid truncating sub-second durations to 0 (which would silently
+	// disable fail-early).
+	durationMs := extutil.ToInt64(request.Config["duration"])
+	state.ExpectedRequests = requestsPerSecond * uint64(durationMs) / 1000
+	if state.ExpectedRequests < 1 {
+		state.ExpectedRequests = 1
 	}
 	return prepare(request, state)
 }
