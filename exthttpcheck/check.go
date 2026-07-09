@@ -198,10 +198,10 @@ func failEarlyStatus(state *HTTPCheckState, checker *httpChecker, metrics []acti
 	}
 	return &action_kit_api.StatusResult{
 		Completed: true,
-		Metrics:   extutil.Ptr(metrics),
+		Metrics:   new(metrics),
 		Error: &action_kit_api.ActionKitError{
 			Title:  fmt.Sprintf("Success Rate can no longer reach %d%%", state.SuccessRate),
-			Detail: extutil.Ptr(fmt.Sprintf("%d of ~%d expected requests already failed.", failed, state.ExpectedRequests)),
+			Detail: new(fmt.Sprintf("%d of ~%d expected requests already failed.", failed, state.ExpectedRequests)),
 			Status: extutil.Ptr(action_kit_api.Failed),
 		},
 	}

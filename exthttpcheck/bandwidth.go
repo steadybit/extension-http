@@ -299,10 +299,7 @@ func (a *httpCheckActionBandwidth) Prepare(_ context.Context, state *BandwidthCh
 	// One measurement window is emitted per status poll (~1s), so expected windows ~= duration in
 	// seconds. At least one window is produced, so clamp to 1 to avoid truncating sub-second durations
 	// to 0 (which would silently disable fail-early).
-	state.ExpectedWindows = uint64(extutil.ToInt64(request.Config["duration"]) / 1000)
-	if state.ExpectedWindows < 1 {
-		state.ExpectedWindows = 1
-	}
+	state.ExpectedWindows = max(uint64(extutil.ToInt64(request.Config["duration"])/1000), 1)
 	state.ConnectionTimeout = time.Duration(extutil.ToInt64(request.Config["connectTimeout"])) * time.Millisecond
 	state.ReadTimeout = time.Duration(extutil.ToInt64(request.Config["readTimeout"])) * time.Millisecond
 	state.FollowRedirects = extutil.ToBool(request.Config["followRedirects"])
