@@ -77,7 +77,7 @@ func TestFixedAmount_FailEarly(t *testing.T) {
 	// Poll status until the fail-early condition triggers (should happen well before the 2s duration,
 	// since with successRate=100 the very first failed request makes the rate unreachable).
 	var statusResult *action_kit_api.StatusResult
-	for i := 0; i < 20; i++ {
+	for range 20 {
 		statusResult, err = action.Status(context.Background(), &state)
 		assert.NoError(t, err)
 		if statusResult.Error != nil {
