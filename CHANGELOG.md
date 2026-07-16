@@ -1,8 +1,13 @@
 # Changelog
 
-## Unreleased
+## v1.0.46
 
 - Add a "Fail early" option to the HTTP checks (Requests/s, Fixed number of Requests, and Bandwidth). When enabled, the check fails as soon as enough requests (or measurement windows) have failed that the required success rate can no longer be reached, instead of waiting for the end of the step. Disabled by default, matching the previous behavior of evaluating the success rate only at the end.
+- build(deps): bump github.com/steadybit/extension-kit
+- chore(deps): bump go to 1.26.5 (#175)
+- ci: skip build on .trivyignore.yml-only changes [skip ci]
+- feat(http checks): add fail early option (#170)
+- refactor: register extension index via exthttp.RegisterRevisionedHandler (#176)
 
 ## v1.0.45
 
