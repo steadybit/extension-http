@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- fix: stop the HTTP check no longer deadlocks when an action is prepared but stopped without being started; workers now honor context cancellation
+
 ## v1.0.46
 
 - Add a "Fail early" option to the HTTP checks (Requests/s, Fixed number of Requests, and Bandwidth). When enabled, the check fails as soon as enough requests (or measurement windows) have failed that the required success rate can no longer be reached, instead of waiting for the end of the step. Disabled by default, matching the previous behavior of evaluating the success rate only at the end.
