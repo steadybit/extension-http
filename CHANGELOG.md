@@ -1,7 +1,8 @@
 # Changelog
 
-## Unreleased
+## v1.0.47
 
+- fix: prevent HTTP check stop from deadlocking when prepared but never started
 - fix: stop the HTTP check no longer deadlocks when an action is prepared but stopped without being started; workers now honor context cancellation
 
 ## v1.0.46
