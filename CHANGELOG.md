@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.49
+
+- chore(deps): update dependencies
+
 ## v1.0.48
 
 - build(deps): bump goreleaser/goreleaser from v2.17.0 to v2.17.1
