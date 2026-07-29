@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- fix: response time verification value could not be unset and silently reverted to its default; the verification mode and response time are now required fields with clarified labels and tooltips
+- chore: consistent title casing for parameter labels
+
 ## v1.0.49
 
 - chore(deps): update dependencies
