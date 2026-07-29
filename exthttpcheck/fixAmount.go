@@ -72,7 +72,7 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 			repetitionControl,
 			{
 				Name:         "numberOfRequests",
-				Label:        "Number of Requests.",
+				Label:        "Number of Requests",
 				Description:  new("Fixed number of Requests, distributed to given duration"),
 				Type:         action_kit_api.ActionParameterTypeInteger,
 				Required:     new(true),

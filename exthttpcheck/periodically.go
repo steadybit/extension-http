@@ -65,7 +65,7 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 			repetitionControl,
 			{
 				Name:         "requestsPerSecond",
-				Label:        "Requests per second",
+				Label:        "Requests per Second",
 				Description:  new("The number of requests per second. Should be between 1 and 10."),
 				Type:         action_kit_api.ActionParameterTypeInteger,
 				DefaultValue: new("1"),
