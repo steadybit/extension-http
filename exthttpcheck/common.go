@@ -136,7 +136,7 @@ var (
 	}
 	statusCode = action_kit_api.ActionParameter{
 		Name:         "statusCode",
-		Label:        "Response status codes",
+		Label:        "Required Response Status Codes",
 		Description:  new("Which HTTP-Status codes should be considered as success? This field supports ranges with '-' and multiple codes delimited by ';' for example '200-399;429'."),
 		Type:         action_kit_api.ActionParameterTypeString,
 		DefaultValue: new("200-299"),
@@ -145,7 +145,7 @@ var (
 	}
 	responsesContains = action_kit_api.ActionParameter{
 		Name:        "responsesContains",
-		Label:       "Responses contain",
+		Label:       "Required Response Body (contains)",
 		Description: new("The responses must contain the given string, otherwise the step will fail."),
 		Type:        action_kit_api.ActionParameterTypeTextarea,
 		Required:    new(false),
@@ -153,33 +153,33 @@ var (
 	}
 	responseTimeMode = action_kit_api.ActionParameter{
 		Name:         "responseTimeMode",
-		Label:        "Response Time Verification Mode",
-		Description:  new("Must the response time be shorter or longer than the specified response time?"),
+		Label:        "Verify Response Time",
+		Description:  new("How should the response time be verified against the required response time?"),
 		Type:         action_kit_api.ActionParameterTypeString,
-		Required:     new(false),
+		Required:     new(true),
 		Order:        new(14),
 		DefaultValue: new("NO_VERIFICATION"),
 		Options: new([]action_kit_api.ParameterOption{
 			action_kit_api.ExplicitParameterOption{
-				Label: "no verification",
+				Label: "don't verify",
 				Value: "NO_VERIFICATION",
 			},
 			action_kit_api.ExplicitParameterOption{
-				Label: "shorter than",
+				Label: "faster than required",
 				Value: "SHORTER_THAN",
 			},
 			action_kit_api.ExplicitParameterOption{
-				Label: "longer than",
+				Label: "slower than required",
 				Value: "LONGER_THAN",
 			},
 		}),
 	}
 	responseTime = action_kit_api.ActionParameter{
 		Name:         "responseTime",
-		Label:        "Response Time",
-		Description:  new("The value for the response time verification."),
+		Label:        "Required Response Time",
+		Description:  new("The required response time, measured until the first response byte is received. Only used when 'Verify Response Time' is not set to 'don't verify'."),
 		Type:         action_kit_api.ActionParameterTypeDuration,
-		Required:     new(false),
+		Required:     new(true),
 		Order:        new(15),
 		DefaultValue: new("500ms"),
 	}
@@ -191,7 +191,7 @@ var (
 	}
 	maxConcurrent = action_kit_api.ActionParameter{
 		Name:         "maxConcurrent",
-		Label:        "Max concurrent requests",
+		Label:        "Max Concurrent Requests",
 		Description:  new("Maximum count on parallel running requests. (min 1, max 10)"),
 		Type:         action_kit_api.ActionParameterTypeInteger,
 		DefaultValue: new("5"),
@@ -208,7 +208,7 @@ var (
 	}
 	followRedirects = action_kit_api.ActionParameter{
 		Name:        "followRedirects",
-		Label:       "Follow Redirects?",
+		Label:       "Follow Redirects",
 		Description: new("Should Redirects be followed?"),
 		Type:        action_kit_api.ActionParameterTypeBoolean,
 		Required:    new(true),
@@ -237,7 +237,7 @@ var (
 	}
 	insecureSkipVerify = action_kit_api.ActionParameter{
 		Name:         "insecureSkipVerify",
-		Label:        "Skip certificate verification",
+		Label:        "Skip Certificate Verification",
 		Description:  new("Should the certificate verification be skipped?"),
 		Type:         action_kit_api.ActionParameterTypeBoolean,
 		DefaultValue: new("false"),
