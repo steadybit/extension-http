@@ -1,9 +1,11 @@
 # Changelog
 
-## Unreleased
+## v1.0.50
 
-- fix: response time verification value could not be unset and silently reverted to its default; the verification mode and response time are now required fields with clarified labels and tooltips
 - chore: consistent title casing for parameter labels
+- feat: support filtering targets out of discovery
+- fix: prevent response time verification value from silently resetting (#179)
+- fix: response time verification value could not be unset and silently reverted to its default; the verification mode and response time are now required fields with clarified labels and tooltips
 
 ## v1.0.49
 
