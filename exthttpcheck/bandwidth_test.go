@@ -6,6 +6,7 @@ package exthttpcheck
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -333,7 +334,6 @@ func TestBandwidthChecker_WindowClassification(t *testing.T) {
 		bytesDownloaded int64
 		errorCount      int64
 		wantWithin      string
-		wantErrorLabel  bool
 		wantSuccess     uint64
 		wantFailed      uint64
 	}{
@@ -345,27 +345,24 @@ func TestBandwidthChecker_WindowClassification(t *testing.T) {
 			bytesDownloaded: 28_000_000,
 			errorCount:      2,
 			wantWithin:      "true",
-			wantErrorLabel:  false,
 			wantSuccess:     1,
 		},
 		{
 			// Genuine stall/outage: requests errored and no data was received.
-			name:           "errors with no data fails",
-			state:          &BandwidthCheckState{MinBandwidthBps: 1_000_000},
-			errorCount:     2,
-			wantWithin:     "false",
-			wantErrorLabel: true,
-			wantFailed:     1,
+			name:       "errors with no data fails",
+			state:      &BandwidthCheckState{MinBandwidthBps: 1_000_000},
+			errorCount: 2,
+			wantWithin: "false",
+			wantFailed: 1,
 		},
 		{
 			// With only a maximum configured, a zero-bandwidth window would pass the
 			// maximum check; the no-data error guard must still fail it.
-			name:           "max-only outage fails",
-			state:          &BandwidthCheckState{MaxBandwidthBps: 100_000_000},
-			errorCount:     3,
-			wantWithin:     "false",
-			wantErrorLabel: true,
-			wantFailed:     1,
+			name:       "max-only outage fails",
+			state:      &BandwidthCheckState{MaxBandwidthBps: 100_000_000},
+			errorCount: 3,
+			wantWithin: "false",
+			wantFailed: 1,
 		},
 	}
 
@@ -379,12 +376,55 @@ func TestBandwidthChecker_WindowClassification(t *testing.T) {
 			metric := c.emitWindowMetric()
 			require.NotNil(t, metric)
 			assert.Equal(t, tt.wantWithin, metric.Metric["within_threshold"])
-			_, hasError := metric.Metric["error"]
-			assert.Equal(t, tt.wantErrorLabel, hasError)
 			assert.Equal(t, tt.wantSuccess, c.counterWindowSuccess.Load())
 			assert.Equal(t, tt.wantFailed, c.counterWindowFailed.Load())
 		})
 	}
+}
+
+func TestBandwidthChecker_ErrorDifferentiation(t *testing.T) {
+	// Transport failures and bad status codes should be differentiated in the metric the same
+	// way the other HTTP checks differentiate them, instead of collapsing into a bare count.
+	c := newBandwidthChecker(&BandwidthCheckState{})
+	c.windowStartTime = time.Now().Add(-1 * time.Second)
+
+	c.recordTransportError(fmt.Errorf("context deadline exceeded"))
+	c.recordTransportError(fmt.Errorf("context deadline exceeded"))
+	c.recordTransportError(fmt.Errorf("connection reset by peer"))
+
+	c.recordStatusCode(http.StatusOK)
+	c.recordStatusCode(http.StatusOK)
+	c.recordStatusCode(http.StatusOK)
+	c.recordBadStatus(http.StatusServiceUnavailable)
+
+	metric := c.emitWindowMetric()
+	require.NotNil(t, metric)
+
+	// Transport errors are reported under "error" - the same key, and the same widget
+	// "Failure" grouping, the other HTTP checks use - not a separate field.
+	assert.Equal(t, "connection reset by peer (1), context deadline exceeded (2)", metric.Metric["error"])
+	assert.Equal(t, "200 (3), 503 (1)", metric.Metric["http_status"])
+	// A non-2xx status was seen, so this drives the widget's "Unexpected Status" grouping the
+	// same way the other checks' per-request "expected_http_status" field does.
+	assert.Equal(t, "false", metric.Metric["expected_http_status"])
+	// error_count covers both the transport failures and the bad status, matching the existing
+	// pass/fail counting.
+	assert.Equal(t, "4", metric.Metric["error_count"])
+}
+
+func TestTransportErrorKey_CollapsesConnectionAddress(t *testing.T) {
+	// DisableKeepAlives means every request opens a new connection with a new ephemeral
+	// local port, so *net.OpError's default Error() text would otherwise be near-unique per
+	// request. The key must collapse repeated failures of the same kind together.
+	err1 := &net.OpError{Op: "read", Net: "tcp", Addr: &net.TCPAddr{Port: 54321}, Err: fmt.Errorf("connection reset by peer")}
+	err2 := &net.OpError{Op: "read", Net: "tcp", Addr: &net.TCPAddr{Port: 9999}, Err: fmt.Errorf("connection reset by peer")}
+	require.NotEqual(t, err1.Error(), err2.Error(), "sanity check: raw OpError text differs by port")
+
+	assert.Equal(t, transportErrorKey(err1), transportErrorKey(err2))
+	assert.Equal(t, "read tcp: connection reset by peer", transportErrorKey(err1))
+
+	// Non-OpError errors (e.g. context deadline exceeded) are already stable and pass through.
+	assert.Equal(t, "context deadline exceeded", transportErrorKey(fmt.Errorf("context deadline exceeded")))
 }
 
 func TestBandwidthCheckAction_AllRequestsFailingFailsCheck(t *testing.T) {
