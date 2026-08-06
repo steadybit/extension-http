@@ -318,7 +318,17 @@ func (c *bandwidthChecker) emitWindowMetric() *action_kit_api.Metric {
 		c.counterWindowFailed.Add(1)
 	}
 
-	metricLabels := windowMetricLabels(c.state.URL.String(), bytesDownloaded, windowDuration, requestCount, errorCount, withinThreshold, bandwidthMbps, statusCounts, transportErrors)
+	metricLabels := windowMetricLabels(windowSnapshot{
+		url:             c.state.URL.String(),
+		bytesDownloaded: bytesDownloaded,
+		duration:        windowDuration,
+		requestCount:    requestCount,
+		errorCount:      errorCount,
+		withinThreshold: withinThreshold,
+		bandwidthMbps:   bandwidthMbps,
+		statusCounts:    statusCounts,
+		transportErrors: transportErrors,
+	})
 
 	metric := &action_kit_api.Metric{
 		Name:      new("bandwidth"),
@@ -354,18 +364,34 @@ func (c *bandwidthChecker) isWithinThreshold(bandwidthBps float64, errorCount, b
 	return withinThreshold
 }
 
+// windowSnapshot holds one measurement window's aggregated results, passed to
+// windowMetricLabels as a single value to keep that function's signature small.
+type windowSnapshot struct {
+	url             string
+	bytesDownloaded int64
+	duration        time.Duration
+	requestCount    int64
+	errorCount      int64
+	withinThreshold bool
+	bandwidthMbps   float64
+	statusCounts    map[int]int64
+	transportErrors map[string]int64
+}
+
 // windowMetricLabels builds one measurement window's metric labels, including the status-code
 // and transport-error breakdowns when the window saw any.
-func windowMetricLabels(url string, bytesDownloaded int64, windowDuration time.Duration, requestCount, errorCount int64, withinThreshold bool, bandwidthMbps float64, statusCounts map[int]int64, transportErrors map[string]int64) map[string]string {
+func windowMetricLabels(w windowSnapshot) map[string]string {
 	labels := map[string]string{
-		"url":              url,
-		"bytes_downloaded": strconv.FormatInt(bytesDownloaded, 10),
-		"duration_ms":      strconv.FormatInt(windowDuration.Milliseconds(), 10),
-		"request_count":    strconv.FormatInt(requestCount, 10),
-		"error_count":      strconv.FormatInt(errorCount, 10),
-		"within_threshold": strconv.FormatBool(withinThreshold),
-		"bandwidth":        strconv.FormatFloat(bandwidthMbps, 'g', -1, 64),
+		"url":              w.url,
+		"bytes_downloaded": strconv.FormatInt(w.bytesDownloaded, 10),
+		"duration_ms":      strconv.FormatInt(w.duration.Milliseconds(), 10),
+		"request_count":    strconv.FormatInt(w.requestCount, 10),
+		"error_count":      strconv.FormatInt(w.errorCount, 10),
+		"within_threshold": strconv.FormatBool(w.withinThreshold),
+		"bandwidth":        strconv.FormatFloat(w.bandwidthMbps, 'g', -1, 64),
 	}
+	statusCounts := w.statusCounts
+	transportErrors := w.transportErrors
 
 	// Report the status code for every call that received a response, successful or not, as a
 	// single aggregated field - the same "http_status" key the other HTTP checks report, since
