@@ -98,11 +98,20 @@ func (a *httpCheckActionBandwidth) Describe() action_kit_api.ActionDescription {
 							},
 						},
 						{
-							Title: "Error",
+							Title: "Failure",
 							Color: "warn",
 							Matcher: action_kit_api.LineChartWidgetGroupMatcherNotEmpty{
 								Type: action_kit_api.ComSteadybitWidgetLineChartGroupMatcherNotEmpty,
 								Key:  "error",
+							},
+						},
+						{
+							Title: "Unexpected Status",
+							Color: "warn",
+							Matcher: action_kit_api.LineChartWidgetGroupMatcherKeyEqualsValue{
+								Type:  action_kit_api.ComSteadybitWidgetLineChartGroupMatcherKeyEqualsValue,
+								Key:   "expected_http_status",
+								Value: "false",
 							},
 						},
 						{
@@ -127,6 +136,14 @@ func (a *httpCheckActionBandwidth) Describe() action_kit_api.ActionDescription {
 						{
 							From:  "duration_ms",
 							Title: "Window Duration (ms)",
+						},
+						{
+							From:  "error",
+							Title: "Error",
+						},
+						{
+							From:  "http_status",
+							Title: "HTTP Status",
 						},
 					},
 				}),
