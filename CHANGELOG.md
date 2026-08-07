@@ -1,8 +1,11 @@
 # Changelog
 
-## Unreleased
+## v1.0.51
 
 - fix: differentiate transport errors and HTTP status codes in the bandwidth check's metric instead of collapsing them into a bare failure count, and report the status code for every response received
+- fix: report bandwidth check failures the same way the other HTTP checks do (#180)
+- refactor: reduce cognitive complexity of bandwidthChecker.emitWindowMetric (#181)
+- refactor: reduce cognitive complexity of bandwidthChecker.emitWindowMetric (#182)
 
 ## v1.0.50
 
