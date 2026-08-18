@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.52
+
+- chore(deps): bump steadybit kits and drop Go patch pin (#184)
+- chore(deps): pin goreleaser build toolchain to go1.26.6
+- chore(deps): use go-version-file, drop patch pin (go 1.26) (#183)
+
 ## v1.0.51
 
 - fix: differentiate transport errors and HTTP status codes in the bandwidth check's metric instead of collapsing them into a bare failure count, and report the status code for every response received
