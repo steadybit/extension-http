@@ -177,7 +177,7 @@ var (
 	responseTime = action_kit_api.ActionParameter{
 		Name:         "responseTime",
 		Label:        "Required Response Time",
-		Description:  new("The required response time, measured until the first response byte is received. Only used when 'Verify Response Time' is not set to 'don't verify'."),
+		Description:  new("The required response time, measured from connection start (DNS, TCP connect and TLS handshake included) until the first response byte is received, so connection-level faults such as added latency are reflected. Only used when 'Verify Response Time' is not set to 'don't verify'."),
 		Type:         action_kit_api.ActionParameterTypeDuration,
 		Required:     new(true),
 		Order:        new(15),
