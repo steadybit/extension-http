@@ -152,6 +152,9 @@ func (c *httpChecker) performRequest(req *http.Request, state *HTTPCheckState) {
 				c.logger.Error().Err(err).Msg("Failed to read response body")
 			}
 		}
+		// The full response has now been read — mark the last byte for the
+		// time-to-last-byte measurement.
+		tracer.lastByteReceived = time.Now()
 
 		if zerolog.GlobalLevel() == zerolog.TraceLevel {
 			c.logger.Trace().Str("status", response.Status).Bytes("body", bodyBytes).Any("headers", response.Header).Msgf("Got response for %s %s", req.Method, req.URL.String())
@@ -169,17 +172,18 @@ func (c *httpChecker) performRequest(req *http.Request, state *HTTPCheckState) {
 			}
 		}
 
+		responseTime := tracer.responseTime(state.ResponseTimeMeasurement)
 		var responseTimeWasSuccessful bool
 		switch state.ResponseTimeMode {
 		case "SHORTER_THAN":
-			responseTimeWasSuccessful = tracer.responseTime() <= state.ResponseTime
+			responseTimeWasSuccessful = responseTime <= state.ResponseTime
 		case "LONGER_THAN":
-			responseTimeWasSuccessful = tracer.responseTime() >= state.ResponseTime
+			responseTimeWasSuccessful = responseTime >= state.ResponseTime
 		default:
 			responseTimeWasSuccessful = true
 		}
 
-		c.onResponse(req, response, tracer, responseStatusWasExpected, responseBodyWasSuccessful, responseTimeWasSuccessful)
+		c.onResponse(req, response, tracer, responseTime, responseStatusWasExpected, responseBodyWasSuccessful, responseTimeWasSuccessful)
 
 		if response.Body != nil {
 			_ = response.Body.Close()
@@ -227,7 +231,7 @@ func (c *httpChecker) onError(req *http.Request, err error, responseTime float64
 	}
 }
 
-func (c *httpChecker) onResponse(req *http.Request, res *http.Response, tracer *requestTracer, responseStatusWasExpected bool, responseBodyWasSuccessful bool, responseTimeWasSuccessful bool) {
+func (c *httpChecker) onResponse(req *http.Request, res *http.Response, tracer *requestTracer, responseTime time.Duration, responseStatusWasExpected bool, responseBodyWasSuccessful bool, responseTimeWasSuccessful bool) {
 	c.metrics <- action_kit_api.Metric{
 		Name: new("response_time"),
 		Metric: map[string]string{
@@ -237,7 +241,7 @@ func (c *httpChecker) onResponse(req *http.Request, res *http.Response, tracer *
 			"response_constraints_fulfilled":      strconv.FormatBool(responseBodyWasSuccessful),
 			"response_time_constraints_fulfilled": strconv.FormatBool(responseTimeWasSuccessful),
 		},
-		Value:     float64(tracer.responseTime().Milliseconds()),
+		Value:     float64(responseTime.Milliseconds()),
 		Timestamp: tracer.firstByteReceived,
 	}
 

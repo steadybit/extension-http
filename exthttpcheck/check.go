@@ -21,25 +21,26 @@ var (
 )
 
 type HTTPCheckState struct {
-	ExpectedStatusCodes  []string
-	DelayBetweenRequests time.Duration
-	Timeout              time.Time
-	ResponsesContains    string
-	SuccessRate          uint64
-	ResponseTimeMode     string
-	ResponseTime         time.Duration
-	MaxConcurrent        uint64
-	NumberOfRequests     uint64
-	ReadTimeout          time.Duration
-	ExecutionID          uuid.UUID
-	Body                 string
-	URL                  url.URL
-	Method               string
-	Headers              map[string]string
-	ConnectionTimeout    time.Duration
-	FollowRedirects      bool
-	InsecureSkipVerify   bool
-	FailEarly            bool
+	ExpectedStatusCodes     []string
+	DelayBetweenRequests    time.Duration
+	Timeout                 time.Time
+	ResponsesContains       string
+	SuccessRate             uint64
+	ResponseTimeMode        string
+	ResponseTime            time.Duration
+	ResponseTimeMeasurement string
+	MaxConcurrent           uint64
+	NumberOfRequests        uint64
+	ReadTimeout             time.Duration
+	ExecutionID             uuid.UUID
+	Body                    string
+	URL                     url.URL
+	Method                  string
+	Headers                 map[string]string
+	ConnectionTimeout       time.Duration
+	FollowRedirects         bool
+	InsecureSkipVerify      bool
+	FailEarly               bool
 	// ExpectedRequests is the number of requests expected over the whole step. When FailEarly is
 	// enabled it is used to determine whether the required success rate can still be reached.
 	ExpectedRequests uint64
@@ -58,6 +59,7 @@ func prepare(request action_kit_api.PrepareActionRequestBody, state *HTTPCheckSt
 	state.SuccessRate = extutil.ToUInt64(request.Config["successRate"])
 	state.ResponseTimeMode = extutil.ToString(request.Config["responseTimeMode"])
 	state.ResponseTime = time.Duration(extutil.ToInt64(request.Config["responseTime"])) * time.Millisecond
+	state.ResponseTimeMeasurement = extutil.ToString(request.Config["responseTimeMeasurement"])
 	state.MaxConcurrent = extutil.ToUInt64(request.Config["maxConcurrent"])
 	state.NumberOfRequests = extutil.ToUInt64(request.Config["numberOfRequests"])
 	state.ReadTimeout = time.Duration(extutil.ToInt64(request.Config["readTimeout"])) * time.Millisecond

@@ -4,48 +4,43 @@
 package exthttpcheck
 
 import (
-	"net/http"
-	"net/http/httptest"
-	"net/http/httptrace"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 )
 
-// A delay injected during connection setup (before the request is written) must
-// be reflected in responseTime — this is what a WroteRequest→GotFirstResponseByte
-// window would miss.
-func Test_responseTime_includes_connection_setup(t *testing.T) {
-	const setupDelay = 200 * time.Millisecond
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
-
-	tracer := newRequestTracer()
-
-	req, err := http.NewRequest("GET", server.URL, nil)
-	require.NoError(t, err)
-
-	// Inject the delay before the connection is established, mimicking a
-	// transparent proxy that stalls at connect/handshake time.
-	base := tracer.ClientTrace
-	base.GetConn = func(hostPort string) {
-		if tracer.connectionStart.IsZero() {
-			tracer.connectionStart = time.Now()
-		}
-		time.Sleep(setupDelay)
+// The two measurement modes read different windows: first byte excludes
+// connection setup, last byte spans connection start → last response byte.
+func Test_requestTracer_measurements(t *testing.T) {
+	base := time.Now()
+	tr := requestTracer{
+		connectionStart:   base,
+		requestWritten:    base.Add(100 * time.Millisecond), // 100ms of DNS/connect/TLS
+		firstByteReceived: base.Add(150 * time.Millisecond),
+		lastByteReceived:  base.Add(300 * time.Millisecond),
 	}
-	req = req.WithContext(httptrace.WithClientTrace(req.Context(), &base))
 
-	resp, err := http.DefaultClient.Do(req)
-	require.NoError(t, err)
-	_ = resp.Body.Close()
+	// First byte = firstByteReceived - requestWritten = 50ms (setup excluded).
+	require.Equal(t, 50*time.Millisecond, tr.responseTime(timeToFirstByte))
+	require.Equal(t, 50*time.Millisecond, tr.responseTime(""), "default is first byte")
 
-	require.False(t, tracer.connectionStart.IsZero(), "connectionStart must be captured")
-	require.False(t, tracer.firstByteReceived.IsZero(), "firstByteReceived must be captured")
-	require.GreaterOrEqual(t, tracer.responseTime(), setupDelay,
-		"responseTime must include the connection-setup delay")
+	// Last byte = lastByteReceived - connectionStart = 300ms (setup + body included).
+	require.Equal(t, 300*time.Millisecond, tr.responseTime(timeToLastByte))
+}
+
+// A connection-setup delay must land in the last-byte measurement but not the
+// first-byte one — this is the case the "time to last byte" option surfaces.
+func Test_requestTracer_lastByte_capturesConnectionDelay(t *testing.T) {
+	base := time.Now()
+	const setup = 200 * time.Millisecond
+	tr := requestTracer{
+		connectionStart:   base,
+		requestWritten:    base.Add(setup),
+		firstByteReceived: base.Add(setup + 10*time.Millisecond),
+		lastByteReceived:  base.Add(setup + 30*time.Millisecond),
+	}
+
+	require.Less(t, tr.responseTime(timeToFirstByte), setup, "first byte excludes the connection-setup delay")
+	require.GreaterOrEqual(t, tr.responseTime(timeToLastByte), setup, "last byte includes the connection-setup delay")
 }

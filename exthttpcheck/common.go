@@ -177,11 +177,24 @@ var (
 	responseTime = action_kit_api.ActionParameter{
 		Name:         "responseTime",
 		Label:        "Required Response Time",
-		Description:  new("The required response time, measured from connection start (DNS, TCP connect and TLS handshake included) until the first response byte is received, so connection-level faults such as added latency are reflected. Only used when 'Verify Response Time' is not set to 'don't verify'."),
+		Description:  new("The response time to verify against (see 'Response Time Measurement' for what is measured). Only used when 'Verify Response Time' is not set to 'don't verify'."),
 		Type:         action_kit_api.ActionParameterTypeDuration,
 		Required:     new(true),
 		Order:        new(15),
 		DefaultValue: new("500ms"),
+	}
+	responseTimeMeasurement = action_kit_api.ActionParameter{
+		Name:        "responseTimeMeasurement",
+		Label:       "Response Time Measurement",
+		Description:  new("What the reported/verified response time measures. 'Time to first byte' is the server's processing time (request written until the first response byte), excluding connection setup. 'Time to last byte' is the full end-to-end time (connection start — DNS, TCP connect and TLS handshake included — until the last response byte), so connection-level faults such as added latency and slow body downloads are reflected."),
+		Type:         action_kit_api.ActionParameterTypeString,
+		Required:     new(false),
+		Order:        new(16),
+		DefaultValue: new("TIME_TO_FIRST_BYTE"),
+		Options: new([]action_kit_api.ParameterOption{
+			action_kit_api.ExplicitParameterOption{Label: "Time to first byte", Value: "TIME_TO_FIRST_BYTE"},
+			action_kit_api.ExplicitParameterOption{Label: "Time to last byte", Value: "TIME_TO_LAST_BYTE"},
+		}),
 	}
 	targetSelectionParameter = action_kit_api.ActionParameter{
 		Name:  "-",

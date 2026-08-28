@@ -99,6 +99,7 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 			responsesContains,
 			responseTimeMode,
 			responseTime,
+			responseTimeMeasurement,
 			separator(16),
 			//------------------------
 			// Target Selection

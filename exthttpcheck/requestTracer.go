@@ -8,21 +8,31 @@ import (
 	"time"
 )
 
+// Response-time measurement modes (config value of the "responseTimeMeasurement"
+// parameter).
+const (
+	timeToFirstByte = "TIME_TO_FIRST_BYTE"
+	timeToLastByte  = "TIME_TO_LAST_BYTE"
+)
+
 type requestTracer struct {
 	httptrace.ClientTrace
-	connectionStart, firstByteReceived time.Time
+	connectionStart, requestWritten, firstByteReceived, lastByteReceived time.Time
 }
 
-// responseTime is the time from the start of connection acquisition — DNS, TCP
-// connect and the TLS handshake included — to the first response byte.
+// responseTime returns the measured duration for the given measurement mode:
 //
-// Measuring from connection start rather than from "request written" is what
-// makes connection-level faults visible: a transparent proxy injecting latency,
-// a slow TLS handshake, or a delayed connect all land before the request bytes
-// are written, so a WroteRequest→GotFirstResponseByte window would shift as a
-// whole and report no change. Including the setup phases surfaces them.
-func (t requestTracer) responseTime() time.Duration {
-	return t.firstByteReceived.Sub(t.connectionStart)
+//   - TIME_TO_LAST_BYTE: from the start of connection acquisition (DNS, TCP
+//     connect and TLS handshake included) to the last response byte — the full
+//     end-to-end time, so connection-level faults (injected latency, a slow
+//     handshake, a delayed connect) and slow body downloads are both visible.
+//   - anything else (default, first byte): from "request written" to the first
+//     response byte — the server's processing time, excluding connection setup.
+func (t requestTracer) responseTime(measurement string) time.Duration {
+	if measurement == timeToLastByte {
+		return t.lastByteReceived.Sub(t.connectionStart)
+	}
+	return t.firstByteReceived.Sub(t.requestWritten)
 }
 
 func newRequestTracer() *requestTracer {
@@ -31,10 +41,13 @@ func newRequestTracer() *requestTracer {
 	t.ClientTrace = httptrace.ClientTrace{
 		GetConn: func(hostPort string) {
 			// First connection attempt of the request wins; on a redirect chain
-			// this keeps the measurement anchored to the very start.
+			// this keeps the last-byte measurement anchored to the very start.
 			if t.connectionStart.IsZero() {
 				t.connectionStart = time.Now()
 			}
+		},
+		WroteRequest: func(info httptrace.WroteRequestInfo) {
+			t.requestWritten = time.Now()
 		},
 		GotFirstResponseByte: func() {
 			t.firstByteReceived = time.Now()

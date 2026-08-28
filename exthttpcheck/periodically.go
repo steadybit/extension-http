@@ -84,6 +84,7 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 			responsesContains,
 			responseTimeMode,
 			responseTime,
+			responseTimeMeasurement,
 			separator(16),
 
 			//------------------------
