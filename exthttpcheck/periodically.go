@@ -85,7 +85,7 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 			responseTimeMode,
 			responseTime,
 			responseTimeMeasurement,
-			separator(16),
+			separator(17),
 
 			//------------------------
 			// Target Selection

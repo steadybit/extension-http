@@ -200,7 +200,7 @@ var (
 		Name:  "-",
 		Label: "Filter HTTP Client Locations",
 		Type:  action_kit_api.ActionParameterTypeTargetSelection,
-		Order: new(17),
+		Order: new(18),
 	}
 	maxConcurrent = action_kit_api.ActionParameter{
 		Name:         "maxConcurrent",
@@ -210,14 +210,14 @@ var (
 		DefaultValue: new("5"),
 		Required:     new(true),
 		Advanced:     new(true),
-		Order:        new(18),
+		Order:        new(19),
 	}
 	clientSettings = action_kit_api.ActionParameter{
 		Name:     "clientSettings",
 		Label:    "HTTP Client Settings",
 		Type:     action_kit_api.ActionParameterTypeHeader,
 		Advanced: new(true),
-		Order:    new(19),
+		Order:    new(20),
 	}
 	followRedirects = action_kit_api.ActionParameter{
 		Name:        "followRedirects",
@@ -226,7 +226,7 @@ var (
 		Type:        action_kit_api.ActionParameterTypeBoolean,
 		Required:    new(true),
 		Advanced:    new(true),
-		Order:       new(20),
+		Order:       new(21),
 	}
 	connectTimeout = action_kit_api.ActionParameter{
 		Name:         "connectTimeout",
@@ -236,7 +236,7 @@ var (
 		DefaultValue: new("5s"),
 		Required:     new(true),
 		Advanced:     new(true),
-		Order:        new(21),
+		Order:        new(22),
 	}
 	readTimeout = action_kit_api.ActionParameter{
 		Name:         "readTimeout",
@@ -246,7 +246,7 @@ var (
 		DefaultValue: new("5s"),
 		Required:     new(true),
 		Advanced:     new(true),
-		Order:        new(22),
+		Order:        new(23),
 	}
 	insecureSkipVerify = action_kit_api.ActionParameter{
 		Name:         "insecureSkipVerify",
@@ -256,7 +256,7 @@ var (
 		DefaultValue: new("false"),
 		Required:     new(false),
 		Advanced:     new(true),
-		Order:        new(23),
+		Order:        new(24),
 	}
 	widgetsBackwardCompatiblity = new([]action_kit_api.Widget{
 		action_kit_api.PredefinedWidget{
