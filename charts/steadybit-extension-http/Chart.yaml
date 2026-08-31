@@ -1,8 +1,8 @@
 apiVersion: v2
 name: steadybit-extension-http
 description: Steadybit action implementation to check HTTP endpoints.
-version: 1.1.56
-appVersion: v1.0.53
+version: 1.1.57
+appVersion: v1.0.54
 home: https://www.steadybit.com/
 icon: https://steadybit-website-assets.s3.amazonaws.com/logo-symbol-transparent.png
 maintainers:
