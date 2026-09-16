@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.55
+
+- build(deps): bump goreleaser/goreleaser from v2.17.1 to v2.18.1
+- chore(deps): bump github.com/KimMachineGun/automemlimit from 0.7.5 to 1.0.0
+- feat: Response Time Measurement (time to first byte / last byte) for HTTP checks (#187)
+
 ## v1.0.54
 
 - build(deps): bump github.com/steadybit/action-kit/go/action_kit_test
