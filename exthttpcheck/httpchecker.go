@@ -128,7 +128,12 @@ func (c *httpChecker) start() {
 
 func (c *httpChecker) performRequest(req *http.Request, state *HTTPCheckState) {
 	tracer := newRequestTracer()
-	req = req.WithContext(httptrace.WithClientTrace(req.Context(), &tracer.ClientTrace))
+	// Bounds the whole probe (connect, headers and body read), the way
+	// http.Client.Timeout used to, but as a plain deadline so a timed-out probe
+	// always reports context.DeadlineExceeded.
+	ctx, cancel := context.WithTimeout(req.Context(), state.ReadTimeout)
+	defer cancel()
+	req = req.WithContext(httptrace.WithClientTrace(ctx, &tracer.ClientTrace))
 
 	if zerolog.GlobalLevel() == zerolog.TraceLevel {
 		c.logger.Trace().Any("headers", req.Header).Str("body", state.Body).Msgf("Requesting %s %s", req.Method, req.URL.String())
@@ -209,16 +214,28 @@ func createHttpClient(state *HTTPCheckState) http.Client {
 		},
 	}
 	// otelhttp.NewTransport injects traceparent/baggage into outgoing requests and
-	// creates a client span per probe. High-volume checks should control span volume
-	// via the standard OTEL sampler env vars (OTEL_TRACES_SAMPLER=parentbased_traceidratio,
-	// OTEL_TRACES_SAMPLER_ARG=<ratio>); no per-extension tuning is applied here.
+	// creates a client span per probe.
+	//
+	// Note on span volume: probe spans always have a valid parent (the action's
+	// span context), so parentbased samplers give them the action's decision and
+	// do not thin them out — a sampled action trace carries every one of its
+	// probes. Bounding them needs a non-parent-based sampler, e.g.
+	// OTEL_TRACES_SAMPLER=traceidratio; probes share the action's trace id, so the
+	// decision stays consistent within a trace.
+	//
+	// The read timeout lives on the request context rather than on http.Client.
+	// Client.Timeout only takes net/http's fast path for a *http.Transport; with
+	// the transport wrapped, it falls back to the legacy Request.Cancel path,
+	// which arms a cancel channel and a context deadline at once and then reports
+	// whichever fires first — making the "error" label on the response_time
+	// metric flip between "context deadline exceeded" and "request canceled".
 	// WithTracerProvider is required, not cosmetic: without it otelhttp derives
 	// the tracer from the parent span in the request context, and our parent is
 	// a non-recording span (we carry the action's span context forward with
 	// trace.ContextWithSpanContext). A non-recording span reports a *noop*
 	// TracerProvider, so the transport would silently emit no client spans at
 	// all. Taking the global provider explicitly keeps probe spans real.
-	client := http.Client{Timeout: state.ReadTimeout, Transport: otelhttp.NewTransport(transport, otelhttp.WithTracerProvider(otel.GetTracerProvider()))}
+	client := http.Client{Transport: otelhttp.NewTransport(transport, otelhttp.WithTracerProvider(otel.GetTracerProvider()))}
 
 	if !state.FollowRedirects {
 		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {

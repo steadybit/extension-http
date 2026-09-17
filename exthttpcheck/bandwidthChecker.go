@@ -124,8 +124,11 @@ func (c *bandwidthChecker) performBandwidthRequests() {
 	// Don't set client.Timeout - it would limit the entire request including body read
 	// For bandwidth testing, we want to allow large downloads to complete.
 	// otelhttp.NewTransport injects traceparent/baggage into outgoing requests and
-	// creates a client span per probe. High-volume bandwidth runs should control
-	// span volume via the standard OTEL sampler env vars.
+	// creates a client span per probe. Bandwidth workers loop without a delay, so
+	// a sampled action trace can accumulate spans as fast as the target responds.
+	// Parentbased samplers do not help — probe spans inherit the action's
+	// decision — so thinning them needs a non-parent-based sampler such as
+	// OTEL_TRACES_SAMPLER=traceidratio.
 	// WithTracerProvider is required, not cosmetic: without it otelhttp derives
 	// the tracer from the parent span in the request context, and our parent is
 	// a non-recording span (we carry the action's span context forward with

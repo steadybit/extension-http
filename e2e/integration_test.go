@@ -11,7 +11,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
-	"fmt"
 	"math/big"
 	"net"
 	"net/http"
@@ -49,7 +48,7 @@ func TestWithMinikube(t *testing.T) {
 
 	// Started before the extension is installed, so the OTLP endpoint the
 	// extension is configured with is already accepting traces at startup.
-	collector := startOtlpCollector(t, fmt.Sprintf(":%d", otlpCollectorPort))
+	collector := startOtlpCollector(t, ":0")
 	defer collector.close()
 
 	extFactory := e2e.HelmExtensionFactory{
@@ -65,7 +64,7 @@ func TestWithMinikube(t *testing.T) {
 				"--set", "extraVolumeMounts[0].readOnly=true",
 				"--set", "extraEnv[0].name=SSL_CERT_DIR",
 				"--set", "extraEnv[0].value=/etc/ssl/extra-certs:/etc/ssl/certs",
-			}, otelExtraArgs(1)...)
+			}, otelExtraArgs(1, collector)...)
 		},
 	}
 
@@ -198,7 +197,8 @@ func runHTTPCheckTests(actionID string, buildConfig func(tt testcase) map[string
 						assert.Empty(t, metric.Metric["error"], "expected no error")
 						assert.Equal(t, "200", metric.Metric["http_status"])
 					} else if tt.wantedFailure == "<timeout>" {
-						assert.True(t, strings.Contains(metric.Metric["error"], "i/o timeout") || strings.Contains(metric.Metric["error"], "context deadline exceeded") || strings.Contains(metric.Metric["error"], "request canceled"))
+						assert.True(t, strings.Contains(metric.Metric["error"], "i/o timeout") || strings.Contains(metric.Metric["error"], "context deadline exceeded"),
+							"unexpected timeout error %q", metric.Metric["error"])
 					} else {
 						assert.Contains(t, metric.Metric["error"], tt.wantedFailure)
 					}
