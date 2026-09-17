@@ -368,7 +368,7 @@ func TestBandwidthChecker_WindowClassification(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := newBandwidthChecker(tt.state)
+			c := newBandwidthChecker(context.Background(), tt.state)
 			c.windowStartTime = time.Now().Add(-1 * time.Second)
 			c.windowBytesDownloaded = tt.bytesDownloaded
 			c.windowErrorCount = tt.errorCount
@@ -385,7 +385,7 @@ func TestBandwidthChecker_WindowClassification(t *testing.T) {
 func TestBandwidthChecker_ErrorDifferentiation(t *testing.T) {
 	// Transport failures and bad status codes should be differentiated in the metric the same
 	// way the other HTTP checks differentiate them, instead of collapsing into a bare count.
-	c := newBandwidthChecker(&BandwidthCheckState{})
+	c := newBandwidthChecker(context.Background(), &BandwidthCheckState{})
 	c.windowStartTime = time.Now().Add(-1 * time.Second)
 
 	c.recordTransportError(fmt.Errorf("context deadline exceeded"))
@@ -436,7 +436,7 @@ func TestBandwidthCheckAction_AllRequestsFailingFailsCheck(t *testing.T) {
 	state.ExecutionID = uuid.New()
 	state.SuccessRate = 100
 
-	checker := newBandwidthChecker(&state)
+	checker := newBandwidthChecker(context.Background(), &state)
 	checker.counterWindowSuccess.Store(5)
 	checker.counterRequestsErrored.Store(5)
 	bandwidthCheckers.Store(state.ExecutionID, checker)
@@ -457,7 +457,7 @@ func TestBandwidthCheckAction_InFlightDownloadDoesNotFalselyFail(t *testing.T) {
 	state.ExecutionID = uuid.New()
 	state.SuccessRate = 100
 
-	checker := newBandwidthChecker(&state)
+	checker := newBandwidthChecker(context.Background(), &state)
 	checker.counterWindowSuccess.Store(5)
 	bandwidthCheckers.Store(state.ExecutionID, checker)
 

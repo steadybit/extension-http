@@ -110,7 +110,7 @@ func TestAction_Prepare(t *testing.T) {
 			state := HTTPCheckState{}
 			request := tt.requestBody
 			//When
-			_, err := prepare(request, &state)
+			_, err := prepare(context.Background(), request, &state)
 
 			//Then
 			if tt.wantedError != nil {

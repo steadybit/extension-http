@@ -24,6 +24,10 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/extension-kit/extbuild"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type bandwidthChecker struct {
@@ -50,7 +54,8 @@ type bandwidthChecker struct {
 	counterRequestsCompleted atomic.Uint64
 	counterRequestsErrored   atomic.Uint64
 
-	// Control
+	// Control. ctx carries the action's OTel span context so probe spans are
+	// children of the action's server span, and cancelling it stops the workers.
 	ctx    context.Context
 	cancel context.CancelFunc
 	state  *BandwidthCheckState
@@ -58,8 +63,9 @@ type bandwidthChecker struct {
 
 var bandwidthCheckers = sync.Map{}
 
-func newBandwidthChecker(state *BandwidthCheckState) *bandwidthChecker {
-	ctx, cancel := context.WithCancel(context.Background())
+func newBandwidthChecker(parentCtx context.Context, state *BandwidthCheckState) *bandwidthChecker {
+	spanCtx := trace.ContextWithSpanContext(context.Background(), trace.SpanContextFromContext(parentCtx))
+	ctx, cancel := context.WithCancel(spanCtx)
 	c := &bandwidthChecker{
 		ctx:    ctx,
 		cancel: cancel,
@@ -117,8 +123,30 @@ func (c *bandwidthChecker) performBandwidthRequests() {
 		ResponseHeaderTimeout: c.state.ReadTimeout,
 	}
 	// Don't set client.Timeout - it would limit the entire request including body read
-	// For bandwidth testing, we want to allow large downloads to complete
-	client := http.Client{Transport: transport}
+	// For bandwidth testing, we want to allow large downloads to complete.
+	// otelhttp.NewTransport creates a client span per probe. Bandwidth workers loop without a delay, so
+	// a sampled action trace can accumulate spans as fast as the target responds.
+	// Parentbased samplers do not help — probe spans inherit the action's
+	// decision — so thinning them needs a non-parent-based sampler such as
+	// OTEL_TRACES_SAMPLER=traceidratio.
+	// WithTracerProvider is required, not cosmetic: without it otelhttp derives
+	// the tracer from the parent span in the request context, and our parent is
+	// a non-recording span (we carry the action's span context forward with
+	// trace.ContextWithSpanContext). A non-recording span reports a *noop*
+	// TracerProvider, so the transport would silently emit no client spans at
+	// all. Taking the global provider explicitly keeps probe spans real.
+	// No propagation on probes. The target of an HTTP check is arbitrary
+	// user-supplied input and is frequently a third party, so injecting
+	// traceparent/tracestate/baggage would send internal trace ids — and whatever
+	// an operator put in baggage — to hosts outside the customer's control, and
+	// let an instrumented target parent its own spans onto our trace. An empty
+	// composite propagator injects nothing while otelhttp still records the
+	// client span locally. It also leaves user-configured headers alone, which
+	// the default propagator would overwrite via HeaderCarrier.Set.
+	client := http.Client{Transport: otelhttp.NewTransport(transport,
+		otelhttp.WithTracerProvider(otel.GetTracerProvider()),
+		otelhttp.WithPropagators(propagation.NewCompositeTextMapPropagator()),
+	)}
 
 	if !c.state.FollowRedirects {
 		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {

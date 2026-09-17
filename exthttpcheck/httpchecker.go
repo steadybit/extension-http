@@ -20,6 +20,10 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type counters struct {
@@ -42,8 +46,11 @@ type httpChecker struct {
 	httpClient  http.Client
 }
 
-func newHttpChecker(state *HTTPCheckState) *httpChecker {
+func newHttpChecker(parentCtx context.Context, state *HTTPCheckState) *httpChecker {
+	// Preserve the agent's OTel span context as the parent for probe spans, but
+	// decouple from parentCtx's lifetime (it is cancelled when Prepare returns).
 	ctx, cancel := context.WithCancel(context.Background())
+	ctx = trace.ContextWithSpanContext(ctx, trace.SpanContextFromContext(parentCtx))
 	checker := &httpChecker{
 		work:        make(chan struct{}, state.MaxConcurrent),
 		ctx:         ctx,
@@ -122,7 +129,12 @@ func (c *httpChecker) start() {
 
 func (c *httpChecker) performRequest(req *http.Request, state *HTTPCheckState) {
 	tracer := newRequestTracer()
-	req = req.WithContext(httptrace.WithClientTrace(req.Context(), &tracer.ClientTrace))
+	// Bounds the whole probe (connect, headers and body read), the way
+	// http.Client.Timeout used to, but as a plain deadline so a timed-out probe
+	// always reports context.DeadlineExceeded.
+	ctx, cancel := context.WithTimeout(req.Context(), state.ReadTimeout)
+	defer cancel()
+	req = req.WithContext(httptrace.WithClientTrace(ctx, &tracer.ClientTrace))
 
 	if zerolog.GlobalLevel() == zerolog.TraceLevel {
 		c.logger.Trace().Any("headers", req.Header).Str("body", state.Body).Msgf("Requesting %s %s", req.Method, req.URL.String())
@@ -154,7 +166,7 @@ func (c *httpChecker) performRequest(req *http.Request, state *HTTPCheckState) {
 		}
 		// The full response has now been read — mark the last byte for the
 		// time-to-last-byte measurement.
-		tracer.lastByteReceived = time.Now()
+		tracer.markLastByteReceived()
 
 		if zerolog.GlobalLevel() == zerolog.TraceLevel {
 			c.logger.Trace().Str("status", response.Status).Bytes("body", bodyBytes).Any("headers", response.Header).Msgf("Got response for %s %s", req.Method, req.URL.String())
@@ -202,7 +214,39 @@ func createHttpClient(state *HTTPCheckState) http.Client {
 			InsecureSkipVerify: state.InsecureSkipVerify,
 		},
 	}
-	client := http.Client{Timeout: state.ReadTimeout, Transport: transport}
+	// otelhttp.NewTransport creates a client span per probe.
+	//
+	// Note on span volume: probe spans always have a valid parent (the action's
+	// span context), so parentbased samplers give them the action's decision and
+	// do not thin them out — a sampled action trace carries every one of its
+	// probes. Bounding them needs a non-parent-based sampler, e.g.
+	// OTEL_TRACES_SAMPLER=traceidratio; probes share the action's trace id, so the
+	// decision stays consistent within a trace.
+	//
+	// The read timeout lives on the request context rather than on http.Client.
+	// Client.Timeout only takes net/http's fast path for a *http.Transport; with
+	// the transport wrapped, it falls back to the legacy Request.Cancel path,
+	// which arms a cancel channel and a context deadline at once and then reports
+	// whichever fires first — making the "error" label on the response_time
+	// metric flip between "context deadline exceeded" and "request canceled".
+	// WithTracerProvider is required, not cosmetic: without it otelhttp derives
+	// the tracer from the parent span in the request context, and our parent is
+	// a non-recording span (we carry the action's span context forward with
+	// trace.ContextWithSpanContext). A non-recording span reports a *noop*
+	// TracerProvider, so the transport would silently emit no client spans at
+	// all. Taking the global provider explicitly keeps probe spans real.
+	// No propagation on probes. The target of an HTTP check is arbitrary
+	// user-supplied input and is frequently a third party, so injecting
+	// traceparent/tracestate/baggage would send internal trace ids — and whatever
+	// an operator put in baggage — to hosts outside the customer's control, and
+	// let an instrumented target parent its own spans onto our trace. An empty
+	// composite propagator injects nothing while otelhttp still records the
+	// client span locally. It also leaves user-configured headers alone, which
+	// the default propagator would overwrite via HeaderCarrier.Set.
+	client := http.Client{Transport: otelhttp.NewTransport(transport,
+		otelhttp.WithTracerProvider(otel.GetTracerProvider()),
+		otelhttp.WithPropagators(propagation.NewCompositeTextMapPropagator()),
+	)}
 
 	if !state.FollowRedirects {
 		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
@@ -242,7 +286,7 @@ func (c *httpChecker) onResponse(req *http.Request, res *http.Response, tracer *
 			"response_time_constraints_fulfilled": strconv.FormatBool(responseTimeWasSuccessful),
 		},
 		Value:     float64(responseTime.Milliseconds()),
-		Timestamp: tracer.firstByteReceived,
+		Timestamp: tracer.firstByteReceivedTime(),
 	}
 
 	if responseStatusWasExpected && responseBodyWasSuccessful && responseTimeWasSuccessful {
