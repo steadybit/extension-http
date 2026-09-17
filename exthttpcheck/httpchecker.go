@@ -21,6 +21,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -211,7 +212,13 @@ func createHttpClient(state *HTTPCheckState) http.Client {
 	// creates a client span per probe. High-volume checks should control span volume
 	// via the standard OTEL sampler env vars (OTEL_TRACES_SAMPLER=parentbased_traceidratio,
 	// OTEL_TRACES_SAMPLER_ARG=<ratio>); no per-extension tuning is applied here.
-	client := http.Client{Timeout: state.ReadTimeout, Transport: otelhttp.NewTransport(transport)}
+	// WithTracerProvider is required, not cosmetic: without it otelhttp derives
+	// the tracer from the parent span in the request context, and our parent is
+	// a non-recording span (we carry the action's span context forward with
+	// trace.ContextWithSpanContext). A non-recording span reports a *noop*
+	// TracerProvider, so the transport would silently emit no client spans at
+	// all. Taking the global provider explicitly keeps probe spans real.
+	client := http.Client{Timeout: state.ReadTimeout, Transport: otelhttp.NewTransport(transport, otelhttp.WithTracerProvider(otel.GetTracerProvider()))}
 
 	if !state.FollowRedirects {
 		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {

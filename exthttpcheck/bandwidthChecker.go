@@ -25,6 +25,7 @@ import (
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/extension-kit/extbuild"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -125,7 +126,13 @@ func (c *bandwidthChecker) performBandwidthRequests() {
 	// otelhttp.NewTransport injects traceparent/baggage into outgoing requests and
 	// creates a client span per probe. High-volume bandwidth runs should control
 	// span volume via the standard OTEL sampler env vars.
-	client := http.Client{Transport: otelhttp.NewTransport(transport)}
+	// WithTracerProvider is required, not cosmetic: without it otelhttp derives
+	// the tracer from the parent span in the request context, and our parent is
+	// a non-recording span (we carry the action's span context forward with
+	// trace.ContextWithSpanContext). A non-recording span reports a *noop*
+	// TracerProvider, so the transport would silently emit no client spans at
+	// all. Taking the global provider explicitly keeps probe spans real.
+	client := http.Client{Transport: otelhttp.NewTransport(transport, otelhttp.WithTracerProvider(otel.GetTracerProvider()))}
 
 	if !c.state.FollowRedirects {
 		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {

@@ -154,17 +154,14 @@ func testOtelTracing(collector *otlpCollector, actionID string) func(*testing.T,
 	return func(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		collector.reset()
 
-		config := map[string]any{
-			"duration":           5000,
-			"url":                "https://host.minikube.internal:8443",
-			"connectTimeout":     5000.0,
-			"method":             "GET",
-			"maxConcurrent":      1.0,
-			"statusCode":         "200",
-			"readTimeout":        5000.0,
-			"requestsPerSecond":  2.0,
-			"insecureSkipVerify": false,
-		}
+		// Reuse the shared config shape so this test does not drift from the
+		// other check tests (it also carries the required headers entry).
+		config := httpCheckConfig(testcase{
+			url:                "https://host.minikube.internal:8443",
+			timeout:            5000,
+			insecureSkipVerify: false,
+		})
+		config["requestsPerSecond"] = 2.0
 
 		action, err := e.RunAction(actionID, nil, config, nil)
 		require.NoError(t, err)
@@ -187,7 +184,7 @@ func testOtelTracing(collector *otlpCollector, actionID string) func(*testing.T,
 				}
 			}
 			return prepareSpan != nil && len(probeSpans) > 0
-		}, 30*time.Second, 500*time.Millisecond, "expected a server span for /prepare and at least one client span for the probes")
+		}, 30*time.Second, 500*time.Millisecond, "expected a server span for /prepare and at least one client span for the probes; received: %v", spanSummary(collector.received()))
 
 		assert.True(t, strings.HasPrefix(prepareSpan.GetName(), "POST /"),
 			"server span should be named by method and route, got %q", prepareSpan.GetName())
@@ -206,4 +203,12 @@ func testOtelTracing(collector *otlpCollector, actionID string) func(*testing.T,
 			"probe client spans should share the action's trace %s, got %d client spans on other traces",
 			wantTrace, len(probeSpans))
 	}
+}
+
+func spanSummary(spans []*tracepb.Span) []string {
+	out := make([]string, 0, len(spans))
+	for _, s := range spans {
+		out = append(out, fmt.Sprintf("%s[%s]", s.GetName(), s.GetKind()))
+	}
+	return out
 }
