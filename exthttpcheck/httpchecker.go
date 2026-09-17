@@ -22,6 +22,7 @@ import (
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -213,8 +214,7 @@ func createHttpClient(state *HTTPCheckState) http.Client {
 			InsecureSkipVerify: state.InsecureSkipVerify,
 		},
 	}
-	// otelhttp.NewTransport injects traceparent/baggage into outgoing requests and
-	// creates a client span per probe.
+	// otelhttp.NewTransport creates a client span per probe.
 	//
 	// Note on span volume: probe spans always have a valid parent (the action's
 	// span context), so parentbased samplers give them the action's decision and
@@ -235,7 +235,18 @@ func createHttpClient(state *HTTPCheckState) http.Client {
 	// trace.ContextWithSpanContext). A non-recording span reports a *noop*
 	// TracerProvider, so the transport would silently emit no client spans at
 	// all. Taking the global provider explicitly keeps probe spans real.
-	client := http.Client{Transport: otelhttp.NewTransport(transport, otelhttp.WithTracerProvider(otel.GetTracerProvider()))}
+	// No propagation on probes. The target of an HTTP check is arbitrary
+	// user-supplied input and is frequently a third party, so injecting
+	// traceparent/tracestate/baggage would send internal trace ids — and whatever
+	// an operator put in baggage — to hosts outside the customer's control, and
+	// let an instrumented target parent its own spans onto our trace. An empty
+	// composite propagator injects nothing while otelhttp still records the
+	// client span locally. It also leaves user-configured headers alone, which
+	// the default propagator would overwrite via HeaderCarrier.Set.
+	client := http.Client{Transport: otelhttp.NewTransport(transport,
+		otelhttp.WithTracerProvider(otel.GetTracerProvider()),
+		otelhttp.WithPropagators(propagation.NewCompositeTextMapPropagator()),
+	)}
 
 	if !state.FollowRedirects {
 		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
