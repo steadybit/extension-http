@@ -11,6 +11,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"math/big"
 	"net"
 	"net/http"
@@ -46,11 +47,16 @@ func TestWithMinikube(t *testing.T) {
 	untrustedServer := startLocalServerWithSelfSignedCertificate(t, ":8444", untrustedCertPath, untrustedKeyPath)
 	defer closeSilent(untrustedServer)
 
+	// Started before the extension is installed, so the OTLP endpoint the
+	// extension is configured with is already accepting traces at startup.
+	collector := startOtlpCollector(t, fmt.Sprintf(":%d", otlpCollectorPort))
+	defer collector.close()
+
 	extFactory := e2e.HelmExtensionFactory{
 		Name: "extension-http",
 		Port: 8085,
 		ExtraArgs: func(m *e2e.Minikube) []string {
-			return []string{
+			return append([]string{
 				"--set", "logging.level=debug",
 				"--set", "extraVolumes[0].name=extra-certs",
 				"--set", "extraVolumes[0].configMap.name=self-signed-cert",
@@ -59,7 +65,7 @@ func TestWithMinikube(t *testing.T) {
 				"--set", "extraVolumeMounts[0].readOnly=true",
 				"--set", "extraEnv[0].name=SSL_CERT_DIR",
 				"--set", "extraEnv[0].value=/etc/ssl/extra-certs:/etc/ssl/certs",
-			}
+			}, otelExtraArgs(1)...)
 		},
 	}
 
@@ -79,6 +85,10 @@ func TestWithMinikube(t *testing.T) {
 				config["numberOfRequests"] = 20.0
 				return config
 			}),
+		},
+		{
+			Name: "otelTracing",
+			Test: testOtelTracing(collector, exthttpcheck.ActionIDPeriodically),
 		},
 	})
 }
