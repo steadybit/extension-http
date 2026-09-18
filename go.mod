@@ -12,7 +12,7 @@ require (
 	github.com/steadybit/action-kit/go/action_kit_test v1.4.10
 	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.7.2
 	github.com/steadybit/discovery-kit/go/discovery_kit_sdk v1.4.2
-	github.com/steadybit/extension-kit v1.12.0
+	github.com/steadybit/extension-kit v1.12.1
 	github.com/stretchr/testify v1.12.1
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.71.0
 	go.opentelemetry.io/otel v1.46.0
