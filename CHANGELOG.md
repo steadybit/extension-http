@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.56
+
+- Add OpenTelemetry tracing support
+- Require extensionlib 1.6.0 so the otel values take effect
+- Depend on extension-kit v1.12.1
+- Update dependencies
+
 ## v1.0.55
 
 - build(deps): bump goreleaser/goreleaser from v2.17.1 to v2.18.1
