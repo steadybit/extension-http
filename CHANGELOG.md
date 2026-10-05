@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.58
+
+- build(deps): bump go.opentelemetry.io/proto/otlp from 1.11.0 to 1.11.1
+
 ## v1.0.57
 
 - build(deps): bump github.com/steadybit/action-kit/go/action_kit_test
