@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.59
+
+- build(deps): bump go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp
+- build(deps): bump goreleaser/goreleaser from v2.18.2 to v2.18.3
+- chore(deps): bump golang.org/x/net to v0.61.0
+- chore(deps): update go toolchain to 1.27.2
+
 ## v1.0.58
 
 - build(deps): bump go.opentelemetry.io/proto/otlp from 1.11.0 to 1.11.1
