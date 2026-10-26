@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.60
+
+- build(deps): bump github.com/KimMachineGun/automemlimit
+- build(deps): bump github.com/steadybit/action-kit/go/action_kit_test
+- build(deps): bump github.com/steadybit/extension-kit
+- build(docker): build with golang:1.27-alpine to pick up Go patch releases
+
 ## v1.0.59
 
 - build(deps): bump go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp
