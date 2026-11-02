@@ -49,6 +49,14 @@ func Test_resolveStatusCodeExpression(t *testing.T) {
 			error: nil,
 		},
 		{
+			name: "Should accept ranges with spaces",
+			args: args{
+				statusCodes: " 200 - 202 ; 404 ",
+			},
+			want:  []string{"200", "201", "202", "404"},
+			error: nil,
+		},
+		{
 			name: "Should accept a token alone",
 			args: args{
 				statusCodes: "reset",
@@ -62,7 +70,7 @@ func Test_resolveStatusCodeExpression(t *testing.T) {
 				statusCodes: "200;connection-reset",
 			},
 			want:  nil,
-			error: &action_kit_api.ActionKitError{Title: "Invalid status code range 'connection-reset'. Please use '-' for ranges and ';' for enumerations. Example: '200-399;429'"},
+			error: &action_kit_api.ActionKitError{Title: "Invalid status code 'connection-reset'. Please use '-' for ranges, ';' for enumerations and one of refused, timeout, reset, dns, tls, unreachable, error for requests without a response. Example: '200-399;429;reset'"},
 		},
 		{
 			name: "Should reject unknown words",
@@ -86,7 +94,7 @@ func Test_resolveStatusCodeExpression(t *testing.T) {
 				statusCodes: "200-",
 			},
 			want:  nil,
-			error: &action_kit_api.ActionKitError{Title: "Invalid status code range '200-'. Please use '-' for ranges and ';' for enumerations. Example: '200-399;429'"},
+			error: &action_kit_api.ActionKitError{Title: "Invalid status code '200-'. Please use '-' for ranges, ';' for enumerations and one of refused, timeout, reset, dns, tls, unreachable, error for requests without a response. Example: '200-399;429;reset'"},
 		},
 		{
 			name: "Should return error if invalid status code range",
@@ -94,7 +102,7 @@ func Test_resolveStatusCodeExpression(t *testing.T) {
 				statusCodes: "200-;209",
 			},
 			want:  nil,
-			error: &action_kit_api.ActionKitError{Title: "Invalid status code range '200-'. Please use '-' for ranges and ';' for enumerations. Example: '200-399;429'"},
+			error: &action_kit_api.ActionKitError{Title: "Invalid status code '200-'. Please use '-' for ranges, ';' for enumerations and one of refused, timeout, reset, dns, tls, unreachable, error for requests without a response. Example: '200-399;429;reset'"},
 		},
 		{
 			name: "Should return error if invalid status code range",

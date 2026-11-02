@@ -30,25 +30,26 @@ func Test_classifyError(t *testing.T) {
 	tests := []struct {
 		name string
 		err  error
-		want string
+		want []string
 	}{
-		{"refused", opErr("dial", syscall.ECONNREFUSED), errorClassRefused},
-		{"reset", opErr("read", syscall.ECONNRESET), errorClassReset},
-		{"broken pipe", opErr("write", syscall.EPIPE), errorClassReset},
-		{"eof before response", &url.Error{Op: "Get", URL: "http://example.com", Err: io.EOF}, errorClassReset},
-		{"host unreachable", opErr("dial", syscall.EHOSTUNREACH), errorClassUnreachable},
-		{"network unreachable", opErr("dial", syscall.ENETUNREACH), errorClassUnreachable},
-		{"context deadline", &url.Error{Op: "Get", URL: "http://example.com", Err: context.DeadlineExceeded}, errorClassTimeout},
-		{"dial i/o timeout", &url.Error{Op: "Get", URL: "http://example.com", Err: &net.OpError{Op: "dial", Net: "tcp", Err: os.ErrDeadlineExceeded}}, errorClassTimeout},
-		{"dns not found", &url.Error{Op: "Get", URL: "http://example.com", Err: &net.OpError{Op: "dial", Err: &net.DNSError{Err: "no such host", Name: "example.com", IsNotFound: true}}}, errorClassDNS},
-		{"dns timeout is dns", &url.Error{Op: "Get", URL: "http://example.com", Err: &net.DNSError{Err: "i/o timeout", IsTimeout: true}}, errorClassDNS},
-		{"tls unknown authority", &url.Error{Op: "Get", URL: "https://example.com", Err: &tls.CertificateVerificationError{Err: x509.UnknownAuthorityError{}}}, errorClassTLS},
-		{"tls hostname", &url.Error{Op: "Get", URL: "https://example.com", Err: x509.HostnameError{Certificate: &x509.Certificate{}, Host: "example.com"}}, errorClassTLS},
-		{"tls record header", &url.Error{Op: "Get", URL: "https://example.com", Err: tls.RecordHeaderError{Msg: "first record does not look like a TLS handshake"}}, errorClassTLS},
-		{"tls alert", &url.Error{Op: "Get", URL: "https://example.com", Err: fmt.Errorf("remote error: %w", tls.AlertError(40))}, errorClassTLS},
-		{"tls plain handshake error", &url.Error{Op: "Get", URL: "https://example.com", Err: errors.New("tls: handshake failure")}, errorClassTLS},
-		{"redirect loop", &url.Error{Op: "Get", URL: "http://example.com", Err: errors.New("stopped after 10 redirects")}, errorClassAny},
-		{"malformed response", &url.Error{Op: "Get", URL: "http://example.com", Err: errors.New("net/http: HTTP/1.x transport connection broken: malformed HTTP response")}, errorClassAny},
+		{"refused", opErr("dial", syscall.ECONNREFUSED), []string{errorClassRefused}},
+		{"reset", opErr("read", syscall.ECONNRESET), []string{errorClassReset}},
+		{"broken pipe", opErr("write", syscall.EPIPE), []string{errorClassReset}},
+		{"eof before response", &url.Error{Op: "Get", URL: "http://example.com", Err: io.EOF}, []string{errorClassReset}},
+		{"host unreachable", opErr("dial", syscall.EHOSTUNREACH), []string{errorClassUnreachable}},
+		{"network unreachable", opErr("dial", syscall.ENETUNREACH), []string{errorClassUnreachable}},
+		{"context deadline", &url.Error{Op: "Get", URL: "http://example.com", Err: context.DeadlineExceeded}, []string{errorClassTimeout}},
+		{"dial i/o timeout", &url.Error{Op: "Get", URL: "http://example.com", Err: &net.OpError{Op: "dial", Net: "tcp", Err: os.ErrDeadlineExceeded}}, []string{errorClassTimeout}},
+		{"dns not found", &url.Error{Op: "Get", URL: "http://example.com", Err: &net.OpError{Op: "dial", Err: &net.DNSError{Err: "no such host", Name: "example.com", IsNotFound: true}}}, []string{errorClassDNS}},
+		{"dns timeout is timeout and dns", &url.Error{Op: "Get", URL: "http://example.com", Err: &net.OpError{Op: "dial", Err: &net.DNSError{Err: "i/o timeout", IsTimeout: true}}}, []string{errorClassTimeout, errorClassDNS}},
+		{"joined tls error", &url.Error{Op: "Get", URL: "https://example.com", Err: errors.Join(errors.New("close failed"), errors.New("tls: handshake failure"))}, []string{errorClassTLS}},
+		{"tls unknown authority", &url.Error{Op: "Get", URL: "https://example.com", Err: &tls.CertificateVerificationError{Err: x509.UnknownAuthorityError{}}}, []string{errorClassTLS}},
+		{"tls hostname", &url.Error{Op: "Get", URL: "https://example.com", Err: x509.HostnameError{Certificate: &x509.Certificate{}, Host: "example.com"}}, []string{errorClassTLS}},
+		{"tls record header", &url.Error{Op: "Get", URL: "https://example.com", Err: tls.RecordHeaderError{Msg: "first record does not look like a TLS handshake"}}, []string{errorClassTLS}},
+		{"tls alert", &url.Error{Op: "Get", URL: "https://example.com", Err: fmt.Errorf("remote error: %w", tls.AlertError(40))}, []string{errorClassTLS}},
+		{"tls plain handshake error", &url.Error{Op: "Get", URL: "https://example.com", Err: errors.New("tls: handshake failure")}, []string{errorClassTLS}},
+		{"redirect loop", &url.Error{Op: "Get", URL: "http://example.com", Err: errors.New("stopped after 10 redirects")}, []string{errorClassAny}},
+		{"malformed response", &url.Error{Op: "Get", URL: "http://example.com", Err: errors.New("net/http: HTTP/1.x transport connection broken: malformed HTTP response")}, []string{errorClassAny}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -58,12 +59,15 @@ func Test_classifyError(t *testing.T) {
 }
 
 func Test_errorWasExpected(t *testing.T) {
-	assert.True(t, errorWasExpected([]string{"200", "reset"}, errorClassReset))
-	assert.False(t, errorWasExpected([]string{"200", "reset"}, errorClassTimeout))
-	assert.True(t, errorWasExpected([]string{"error"}, errorClassTimeout))
-	assert.True(t, errorWasExpected([]string{"error"}, errorClassAny))
-	assert.False(t, errorWasExpected([]string{"timeout"}, errorClassAny))
-	assert.False(t, errorWasExpected([]string{"200-299"}, errorClassRefused))
+	assert.True(t, errorWasExpected([]string{"200", "reset"}, []string{errorClassReset}))
+	assert.False(t, errorWasExpected([]string{"200", "reset"}, []string{errorClassTimeout}))
+	assert.True(t, errorWasExpected([]string{"error"}, []string{errorClassTimeout}))
+	assert.True(t, errorWasExpected([]string{"error"}, []string{errorClassAny}))
+	assert.False(t, errorWasExpected([]string{"timeout"}, []string{errorClassAny}))
+	assert.False(t, errorWasExpected([]string{"200-299"}, []string{errorClassRefused}))
+	// a DNS lookup cut off by the deadline satisfies both tokens
+	assert.True(t, errorWasExpected([]string{"timeout"}, []string{errorClassTimeout, errorClassDNS}))
+	assert.True(t, errorWasExpected([]string{"dns"}, []string{errorClassTimeout, errorClassDNS}))
 }
 
 // The following tests produce real transport errors through the http client used by the check, so the

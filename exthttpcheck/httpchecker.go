@@ -154,15 +154,15 @@ func (c *httpChecker) performRequest(req *http.Request, state *HTTPCheckState) {
 		c.logger.Warn().Err(err).Msg("Failed to execute request")
 		now := time.Now()
 
-		errorType := classifyError(err)
-		responseStatusWasExpected := errorWasExpected(state.ExpectedStatusCodes, errorType)
-		c.onError(req, err, errorType, float64(now.Sub(started).Milliseconds()), responseStatusWasExpected)
+		errorClasses := classifyError(err)
+		responseStatusWasExpected := errorWasExpected(state.ExpectedStatusCodes, errorClasses)
+		c.onError(req, err, errorClasses[0], float64(now.Sub(started).Milliseconds()), responseStatusWasExpected)
 	} else {
 		var bodyBytes []byte
 		var bodyErr error
 		if response.Body != nil {
 			if bodyBytes, bodyErr = io.ReadAll(response.Body); bodyErr != nil {
-				c.logger.Error().Err(err).Msg("Failed to read response body")
+				c.logger.Error().Err(bodyErr).Msg("Failed to read response body")
 			}
 		}
 		// The full response has now been read — mark the last byte for the

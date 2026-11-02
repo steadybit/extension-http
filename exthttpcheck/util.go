@@ -18,30 +18,36 @@ import (
 // resolveStatusCodeExpression resolves the given status code expression into a list of status codes
 func resolveStatusCodeExpression(statusCodes string) ([]string, *action_kit_api.ActionKitError) {
 	result := make([]string, 0)
-	for code := range strings.SplitSeq(strings.Trim(statusCodes, " "), ";") {
+	invalidCodeTitle := func(code string) string {
+		return fmt.Sprintf("Invalid status code '%s'. Please use '-' for ranges, ';' for enumerations and one of %s for requests without a response. Example: '200-399;429;reset'", code, strings.Join(errorClassTokens, ", "))
+	}
+	for code := range strings.SplitSeq(statusCodes, ";") {
 		code = strings.TrimSpace(code)
 		if token := strings.ToLower(code); slices.Contains(errorClassTokens, token) {
 			result = append(result, token)
 		} else if strings.Contains(code, "-") {
 			rangeParts := strings.Split(code, "-")
+			for i := range rangeParts {
+				rangeParts[i] = strings.TrimSpace(rangeParts[i])
+			}
 			if len(rangeParts) != 2 {
 				log.Warn().Msgf("Invalid status code range '%s'", code)
 				return nil, &action_kit_api.ActionKitError{
-					Title: fmt.Sprintf("Invalid status code range '%s'. Please use '-' for ranges and ';' for enumerations. Example: '200-399;429'", code),
+					Title: invalidCodeTitle(code),
 				}
 			}
 			startCode, err := strconv.Atoi(rangeParts[0])
 			if err != nil {
 				log.Warn().Msgf("Invalid status code range '%s'", code)
 				return nil, &action_kit_api.ActionKitError{
-					Title: fmt.Sprintf("Invalid status code range '%s'. Please use '-' for ranges and ';' for enumerations. Example: '200-399;429'", code),
+					Title: invalidCodeTitle(code),
 				}
 			}
 			endCode, err := strconv.Atoi(rangeParts[1])
 			if err != nil {
 				log.Warn().Msgf("Invalid status code range '%s'", code)
 				return nil, &action_kit_api.ActionKitError{
-					Title: fmt.Sprintf("Invalid status code range '%s'. Please use '-' for ranges and ';' for enumerations. Example: '200-399;429'", code),
+					Title: invalidCodeTitle(code),
 				}
 			}
 			for i := startCode; i <= endCode; i++ {
@@ -64,7 +70,7 @@ func resolveStatusCodeExpression(statusCodes string) ([]string, *action_kit_api.
 			if err != nil {
 				log.Error().Msgf("Invalid status code '%s'", code)
 				return nil, &action_kit_api.ActionKitError{
-					Title: fmt.Sprintf("Invalid status code '%s'. Please use '-' for ranges, ';' for enumerations and one of %s for requests without a response. Example: '200-399;429;reset'", code, strings.Join(errorClassTokens, ", ")),
+					Title: invalidCodeTitle(code),
 				}
 			}
 			if parsed < 100 || parsed > 599 {
