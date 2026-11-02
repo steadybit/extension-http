@@ -137,7 +137,7 @@ var (
 	statusCode = action_kit_api.ActionParameter{
 		Name:         "statusCode",
 		Label:        "Required Response Status Codes",
-		Description:  new("Which HTTP-Status codes should be considered as success? This field supports ranges with '-' and multiple codes delimited by ';' for example '200-399;429'. To expect requests that yield no HTTP status, use one of these tokens: 'refused' (connection refused), 'timeout' (connect or read timeout), 'reset' (connection reset / closed before any response), 'dns' (name resolution failed), 'tls' (handshake or certificate error), 'unreachable' (no route to host, network unreachable) or 'error' (any of the above plus all other errors, e.g. protocol errors or redirect loops). Example: '503;reset;timeout'."),
+		Description:  new("Which HTTP-Status codes should be considered as success? This field supports ranges with '-' and multiple codes delimited by ';' for example '200-399;429'. For requests without a response, use 'refused', 'timeout', 'reset', 'dns', 'tls', 'unreachable' or 'error' (any failure). Example: '503;reset;timeout'."),
 		Type:         action_kit_api.ActionParameterTypeString,
 		DefaultValue: new("200-299"),
 		Required:     new(true),
