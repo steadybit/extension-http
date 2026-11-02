@@ -258,10 +258,16 @@ func createHttpClient(state *HTTPCheckState) http.Client {
 }
 
 func (c *httpChecker) onError(req *http.Request, err error, errorType string, responseTime float64, responseStatusWasExpected bool) {
+	// An error that matched the expected status codes is reported under "expected_error" instead of "error",
+	// so the widget's "Failure" group (keyed on "error" being set) does not match it and it shows as successful.
+	errorKey := "error"
+	if responseStatusWasExpected {
+		errorKey = "expected_error"
+	}
 	c.metrics <- action_kit_api.Metric{
 		Metric: map[string]string{
 			"url":                  req.URL.String(),
-			"error":                err.Error(),
+			errorKey:               err.Error(),
 			"error_type":           errorType,
 			"expected_http_status": strconv.FormatBool(responseStatusWasExpected),
 		},

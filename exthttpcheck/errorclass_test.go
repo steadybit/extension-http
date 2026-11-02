@@ -96,12 +96,11 @@ func runSingleRequest(t *testing.T, target string, expected []string, readTimeou
 	return checker
 }
 
-func singleErrorType(t *testing.T, c *httpChecker) string {
+func singleErrorMetric(t *testing.T, c *httpChecker) map[string]string {
 	t.Helper()
 	metrics := c.getLatestMetrics()
 	require.Len(t, metrics, 1)
-	require.NotEmpty(t, metrics[0].Metric["error"])
-	return metrics[0].Metric["error_type"]
+	return metrics[0].Metric
 }
 
 func closedPortURL(t *testing.T) string {
@@ -152,14 +151,22 @@ func TestHttpChecker_TransportErrorClasses(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			expectedMatch := runSingleRequest(t, tt.url, []string{"200", tt.want}, 500*time.Millisecond)
-			assert.Equal(t, tt.want, singleErrorType(t, expectedMatch))
 			assert.Equal(t, uint64(1), expectedMatch.counters.success.Load(), "%s should be accepted when %q is expected", tt.name, tt.want)
+			metric := singleErrorMetric(t, expectedMatch)
+			assert.Equal(t, tt.want, metric["error_type"])
+			// expected errors must not land in the widget's "Failure" group
+			assert.NotContains(t, metric, "error")
+			assert.NotEmpty(t, metric["expected_error"])
 
 			catchAll := runSingleRequest(t, tt.url, []string{"error"}, 500*time.Millisecond)
 			assert.Equal(t, uint64(1), catchAll.counters.success.Load(), "%s should be accepted by the 'error' token", tt.name)
 
 			notExpected := runSingleRequest(t, tt.url, []string{"200-299"}, 500*time.Millisecond)
 			assert.Equal(t, uint64(1), notExpected.counters.failed.Load(), "%s should fail when only HTTP statuses are expected", tt.name)
+			metric = singleErrorMetric(t, notExpected)
+			assert.Equal(t, tt.want, metric["error_type"])
+			assert.NotEmpty(t, metric["error"])
+			assert.NotContains(t, metric, "expected_error")
 		})
 	}
 }

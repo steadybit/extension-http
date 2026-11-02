@@ -281,28 +281,35 @@ func runHTTPCheckTests(actionID string, buildConfig func(tt testcase) map[string
 
 				var failures, successes int
 				for _, metric := range metrics {
-					if _, ok := metric.Metric["error"]; ok {
+					// expected errors are reported under "expected_error" instead of "error"
+					errMsg := metric.Metric["error"] + metric.Metric["expected_error"]
+					if errMsg != "" {
 						failures++
 					} else {
 						successes++
 					}
 
 					if tt.wantedFailure == "" {
-						assert.Empty(t, metric.Metric["error"], "expected no error")
+						assert.Empty(t, errMsg, "expected no error")
 						assert.Equal(t, "200", metric.Metric["http_status"])
 					} else if tt.wantedFailure == "<timeout>" {
-						assert.True(t, strings.Contains(metric.Metric["error"], "i/o timeout") || strings.Contains(metric.Metric["error"], "context deadline exceeded"),
-							"unexpected timeout error %q", metric.Metric["error"])
+						assert.True(t, strings.Contains(errMsg, "i/o timeout") || strings.Contains(errMsg, "context deadline exceeded"),
+							"unexpected timeout error %q", errMsg)
 					} else if tt.wantedFailure == "<reset>" {
-						assert.True(t, strings.Contains(metric.Metric["error"], "connection reset by peer") || strings.HasSuffix(metric.Metric["error"], ": EOF"),
-							"unexpected reset error %q", metric.Metric["error"])
+						assert.True(t, strings.Contains(errMsg, "connection reset by peer") || strings.HasSuffix(errMsg, ": EOF"),
+							"unexpected reset error %q", errMsg)
 					} else {
-						assert.Contains(t, metric.Metric["error"], tt.wantedFailure)
+						assert.Contains(t, errMsg, tt.wantedFailure)
 					}
 
 					if tt.wantedErrorType != "" {
-						assert.Equal(t, tt.wantedErrorType, metric.Metric["error_type"], "unexpected error type for %q", metric.Metric["error"])
+						assert.Equal(t, tt.wantedErrorType, metric.Metric["error_type"], "unexpected error type for %q", errMsg)
 						assert.Equal(t, strconv.FormatBool(!tt.wantedRejected), metric.Metric["expected_http_status"], "expectation of error by %q", tt.statusCode)
+						if tt.wantedRejected {
+							assert.NotEmpty(t, metric.Metric["error"], "unexpected errors must be reported under 'error'")
+						} else {
+							assert.Empty(t, metric.Metric["error"], "expected errors must not be reported under 'error' (widget 'Failure' group)")
+						}
 					}
 				}
 

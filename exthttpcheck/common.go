@@ -329,6 +329,10 @@ var (
 						Title: "Error",
 					},
 					{
+						From:  "expected_error",
+						Title: "Expected Error",
+					},
+					{
 						From:  "error_type",
 						Title: "Error Type",
 					},
