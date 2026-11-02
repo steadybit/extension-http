@@ -178,11 +178,12 @@ var httpCheckTests = []testcase{
 		wantedFailureCount: 20,
 	},
 	{
-		name:               "should accept connection reset with 'reset'",
-		url:                "http://host.minikube.internal:8445",
-		timeout:            5000,
-		statusCode:         "reset",
-		wantedFailure:      "connection reset by peer",
+		name:       "should accept connection reset with 'reset'",
+		url:        "http://host.minikube.internal:8445",
+		timeout:    5000,
+		statusCode: "reset",
+		// Docker Desktop's host port-forward may turn the RST into a plain close (EOF); both are 'reset'.
+		wantedFailure:      "<reset>",
 		wantedErrorType:    "reset",
 		wantedFailureCount: 20,
 		countDelta:         2,
@@ -292,6 +293,9 @@ func runHTTPCheckTests(actionID string, buildConfig func(tt testcase) map[string
 					} else if tt.wantedFailure == "<timeout>" {
 						assert.True(t, strings.Contains(metric.Metric["error"], "i/o timeout") || strings.Contains(metric.Metric["error"], "context deadline exceeded"),
 							"unexpected timeout error %q", metric.Metric["error"])
+					} else if tt.wantedFailure == "<reset>" {
+						assert.True(t, strings.Contains(metric.Metric["error"], "connection reset by peer") || strings.HasSuffix(metric.Metric["error"], ": EOF"),
+							"unexpected reset error %q", metric.Metric["error"])
 					} else {
 						assert.Contains(t, metric.Metric["error"], tt.wantedFailure)
 					}
