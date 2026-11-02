@@ -33,6 +33,46 @@ func Test_resolveStatusCodeExpression(t *testing.T) {
 			error: nil,
 		},
 		{
+			name: "Should accept transport error tokens",
+			args: args{
+				statusCodes: "503;refused;timeout;reset;dns;tls;unreachable;error",
+			},
+			want:  []string{"503", "refused", "timeout", "reset", "dns", "tls", "unreachable", "error"},
+			error: nil,
+		},
+		{
+			name: "Should accept tokens case-insensitively and with surrounding spaces",
+			args: args{
+				statusCodes: "200-201; Reset ;TIMEOUT",
+			},
+			want:  []string{"200", "201", "reset", "timeout"},
+			error: nil,
+		},
+		{
+			name: "Should accept a token alone",
+			args: args{
+				statusCodes: "reset",
+			},
+			want:  []string{"reset"},
+			error: nil,
+		},
+		{
+			name: "Should reject unknown tokens",
+			args: args{
+				statusCodes: "200;connection-reset",
+			},
+			want:  nil,
+			error: &action_kit_api.ActionKitError{Title: "Invalid status code range 'connection-reset'. Please use '-' for ranges and ';' for enumerations. Example: '200-399;429'"},
+		},
+		{
+			name: "Should reject unknown words",
+			args: args{
+				statusCodes: "200;closed",
+			},
+			want:  nil,
+			error: &action_kit_api.ActionKitError{Title: "Invalid status code 'closed'. Please use '-' for ranges, ';' for enumerations and one of refused, timeout, reset, dns, tls, unreachable, error for requests without a response. Example: '200-399;429;reset'"},
+		},
+		{
 			name: "Should return error if invalid status code",
 			args: args{
 				statusCodes: "600",

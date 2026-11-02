@@ -7,6 +7,7 @@ package exthttpcheck
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -18,7 +19,10 @@ import (
 func resolveStatusCodeExpression(statusCodes string) ([]string, *action_kit_api.ActionKitError) {
 	result := make([]string, 0)
 	for code := range strings.SplitSeq(strings.Trim(statusCodes, " "), ";") {
-		if strings.Contains(code, "-") {
+		code = strings.TrimSpace(code)
+		if token := strings.ToLower(code); slices.Contains(errorClassTokens, token) {
+			result = append(result, token)
+		} else if strings.Contains(code, "-") {
 			rangeParts := strings.Split(code, "-")
 			if len(rangeParts) != 2 {
 				log.Warn().Msgf("Invalid status code range '%s'", code)
@@ -56,25 +60,20 @@ func resolveStatusCodeExpression(statusCodes string) ([]string, *action_kit_api.
 					Title: "Status code is required.",
 				}
 			}
-			if code == "error" {
-				result = append(result, "error")
-			} else {
-
-				parsed, err := strconv.Atoi(code)
-				if err != nil {
-					log.Error().Msgf("Invalid status code '%s'", code)
-					return nil, &action_kit_api.ActionKitError{
-						Title: fmt.Sprintf("Invalid status code '%s'. Please use '-' for ranges and ';' for enumerations. Example: '200-399;429'", code),
-					}
+			parsed, err := strconv.Atoi(code)
+			if err != nil {
+				log.Error().Msgf("Invalid status code '%s'", code)
+				return nil, &action_kit_api.ActionKitError{
+					Title: fmt.Sprintf("Invalid status code '%s'. Please use '-' for ranges, ';' for enumerations and one of %s for requests without a response. Example: '200-399;429;reset'", code, strings.Join(errorClassTokens, ", ")),
 				}
-				if parsed < 100 || parsed > 599 {
-					log.Error().Msgf("Invalid status code '%d'", parsed)
-					return nil, &action_kit_api.ActionKitError{
-						Title: fmt.Sprintf("Invalid status code '%d'. Status code should be between 100 and 599.", parsed),
-					}
-				}
-				result = append(result, strconv.Itoa(parsed))
 			}
+			if parsed < 100 || parsed > 599 {
+				log.Error().Msgf("Invalid status code '%d'", parsed)
+				return nil, &action_kit_api.ActionKitError{
+					Title: fmt.Sprintf("Invalid status code '%d'. Status code should be between 100 and 599.", parsed),
+				}
+			}
+			result = append(result, strconv.Itoa(parsed))
 		}
 	}
 	return result, nil

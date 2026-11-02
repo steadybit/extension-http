@@ -15,6 +15,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -45,6 +46,10 @@ func TestWithMinikube(t *testing.T) {
 
 	untrustedServer := startLocalServerWithSelfSignedCertificate(t, ":8444", untrustedCertPath, untrustedKeyPath)
 	defer closeSilent(untrustedServer)
+
+	// Accepts connections and resets them before sending any response, to verify the 'reset' token.
+	resettingServer := startLocalResettingServer(t, ":8445")
+	defer closeSilent(resettingServer)
 
 	// Started before the extension is installed, so the OTLP endpoint the
 	// extension is configured with is already accepting traces at startup.
@@ -101,6 +106,14 @@ type testcase struct {
 	wantedFailure      string
 	wantedSuccessCount int
 	wantedFailureCount int
+	// statusCode overrides the default expected status codes ("200").
+	statusCode string
+	// wantedErrorType is the expected "error_type" label of every metric. When set, the step is run
+	// with a 100% success rate and every errored request must be counted as expected.
+	wantedErrorType string
+	// wantedRejected inverts the wantedErrorType expectation: the errors must NOT match the given
+	// statusCode, so the step (run with a 100% success rate) must fail.
+	wantedRejected bool
 }
 
 var httpCheckTests = []testcase{
@@ -154,20 +167,96 @@ var httpCheckTests = []testcase{
 		wantedSuccessCount: 20,
 		wantedFailureCount: 0,
 	},
+	// Requests that yield no HTTP status, expected through the status code tokens.
+	{
+		name:               "should accept connection refused with 'refused'",
+		url:                "http://127.0.0.1:1",
+		timeout:            5000,
+		statusCode:         "200;refused",
+		wantedFailure:      "connection refused",
+		wantedErrorType:    "refused",
+		wantedFailureCount: 20,
+	},
+	{
+		name:               "should accept connection reset with 'reset'",
+		url:                "http://host.minikube.internal:8445",
+		timeout:            5000,
+		statusCode:         "reset",
+		wantedFailure:      "connection reset by peer",
+		wantedErrorType:    "reset",
+		wantedFailureCount: 20,
+		countDelta:         2,
+	},
+	{
+		name:               "should accept timeouts with 'timeout'",
+		url:                "https://steadybit.com",
+		timeout:            1,
+		statusCode:         "200-299;timeout",
+		wantedFailure:      "<timeout>",
+		wantedErrorType:    "timeout",
+		wantedFailureCount: 20,
+	},
+	{
+		name:               "should accept name resolution failures with 'dns'",
+		url:                "http://does-not-exist.invalid",
+		timeout:            5000,
+		statusCode:         "dns",
+		wantedFailure:      "no such host",
+		wantedErrorType:    "dns",
+		wantedFailureCount: 20,
+	},
+	{
+		name:               "should accept certificate errors with 'tls'",
+		url:                "https://host.minikube.internal:8444",
+		timeout:            30000,
+		statusCode:         "tls",
+		wantedFailure:      "failed to verify certificate",
+		wantedErrorType:    "tls",
+		wantedFailureCount: 20,
+		countDelta:         2,
+	},
+	{
+		name:               "should accept any transport error with 'error'",
+		url:                "http://127.0.0.1:1",
+		timeout:            5000,
+		statusCode:         "error",
+		wantedFailure:      "connection refused",
+		wantedErrorType:    "refused",
+		wantedFailureCount: 20,
+	},
+	{
+		name:               "should fail on connection refused when only 'timeout' is expected",
+		url:                "http://127.0.0.1:1",
+		timeout:            5000,
+		statusCode:         "200;timeout",
+		wantedFailure:      "connection refused",
+		wantedErrorType:    "refused",
+		wantedRejected:     true,
+		wantedFailureCount: 20,
+	},
 }
 
 func httpCheckConfig(tt testcase) map[string]any {
-	return map[string]any{
+	statusCode := "200"
+	if tt.statusCode != "" {
+		statusCode = tt.statusCode
+	}
+	config := map[string]any{
 		"duration":           10000,
 		"url":                tt.url,
 		"connectTimeout":     tt.timeout,
 		"method":             "GET",
 		"maxConcurrent":      1.0,
-		"statusCode":         "200",
+		"statusCode":         statusCode,
 		"readTimeout":        tt.timeout,
 		"headers":            []any{map[string]any{"key": "test", "value": "test"}},
 		"insecureSkipVerify": tt.insecureSkipVerify,
 	}
+	if tt.wantedErrorType != "" {
+		// The step only succeeds if every errored request is counted as expected.
+		config["successRate"] = 100.0
+	}
+	return config
 }
 
 func runHTTPCheckTests(actionID string, buildConfig func(tt testcase) map[string]any) func(*testing.T, *e2e.Minikube, *e2e.Extension) {
@@ -180,7 +269,11 @@ func runHTTPCheckTests(actionID string, buildConfig func(tt testcase) map[string
 				defer func() { _ = action.Cancel() }()
 				require.NoError(t, err)
 
-				require.NoError(t, action.Wait())
+				if tt.wantedRejected {
+					require.ErrorContains(t, action.Wait(), "Success Rate")
+				} else {
+					require.NoError(t, action.Wait())
+				}
 
 				metrics := action.Metrics()
 				assert.NotEmpty(t, metrics)
@@ -201,6 +294,11 @@ func runHTTPCheckTests(actionID string, buildConfig func(tt testcase) map[string
 							"unexpected timeout error %q", metric.Metric["error"])
 					} else {
 						assert.Contains(t, metric.Metric["error"], tt.wantedFailure)
+					}
+
+					if tt.wantedErrorType != "" {
+						assert.Equal(t, tt.wantedErrorType, metric.Metric["error_type"], "unexpected error type for %q", metric.Metric["error"])
+						assert.Equal(t, strconv.FormatBool(!tt.wantedRejected), metric.Metric["expected_http_status"], "expectation of error by %q", tt.statusCode)
 					}
 				}
 
@@ -349,6 +447,29 @@ func startLocalServerWithSelfSignedCertificate(t *testing.T, addr, certPath, key
 	waitForServerReady(t, "https://localhost"+addr, readyCh)
 
 	return server
+}
+
+// startLocalResettingServer accepts TCP connections and resets them (RST) without sending any response.
+func startLocalResettingServer(t *testing.T, addr string) net.Listener {
+	listener, err := net.Listen("tcp", addr)
+	require.NoError(t, err)
+	go func() {
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			go func() {
+				// Wait for the request to arrive so the client sees the reset while reading the response.
+				_, _ = conn.Read(make([]byte, 1024))
+				if tcp, ok := conn.(*net.TCPConn); ok {
+					_ = tcp.SetLinger(0)
+				}
+				_ = conn.Close()
+			}()
+		}
+	}()
+	return listener
 }
 
 func waitForServerReady(t *testing.T, url string, readyCh chan struct{}) {

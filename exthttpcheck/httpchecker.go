@@ -154,8 +154,9 @@ func (c *httpChecker) performRequest(req *http.Request, state *HTTPCheckState) {
 		c.logger.Warn().Err(err).Msg("Failed to execute request")
 		now := time.Now()
 
-		responseStatusWasExpected := slices.Contains(state.ExpectedStatusCodes, "error")
-		c.onError(req, err, float64(now.Sub(started).Milliseconds()), responseStatusWasExpected)
+		errorType := classifyError(err)
+		responseStatusWasExpected := errorWasExpected(state.ExpectedStatusCodes, errorType)
+		c.onError(req, err, errorType, float64(now.Sub(started).Milliseconds()), responseStatusWasExpected)
 	} else {
 		var bodyBytes []byte
 		var bodyErr error
@@ -256,11 +257,12 @@ func createHttpClient(state *HTTPCheckState) http.Client {
 	return client
 }
 
-func (c *httpChecker) onError(req *http.Request, err error, responseTime float64, responseStatusWasExpected bool) {
+func (c *httpChecker) onError(req *http.Request, err error, errorType string, responseTime float64, responseStatusWasExpected bool) {
 	c.metrics <- action_kit_api.Metric{
 		Metric: map[string]string{
 			"url":                  req.URL.String(),
 			"error":                err.Error(),
+			"error_type":           errorType,
 			"expected_http_status": strconv.FormatBool(responseStatusWasExpected),
 		},
 		Name:      new("response_time"),

@@ -1,0 +1,161 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2026 Steadybit GmbH
+
+package exthttpcheck
+
+import (
+	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"errors"
+	"fmt"
+	"io"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"os"
+	"syscall"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func Test_classifyError(t *testing.T) {
+	opErr := func(op string, err error) error {
+		return &url.Error{Op: "Get", URL: "http://example.com", Err: &net.OpError{Op: op, Net: "tcp", Err: &os.SyscallError{Syscall: op, Err: err}}}
+	}
+	tests := []struct {
+		name string
+		err  error
+		want string
+	}{
+		{"refused", opErr("dial", syscall.ECONNREFUSED), errorClassRefused},
+		{"reset", opErr("read", syscall.ECONNRESET), errorClassReset},
+		{"broken pipe", opErr("write", syscall.EPIPE), errorClassReset},
+		{"eof before response", &url.Error{Op: "Get", URL: "http://example.com", Err: io.EOF}, errorClassReset},
+		{"host unreachable", opErr("dial", syscall.EHOSTUNREACH), errorClassUnreachable},
+		{"network unreachable", opErr("dial", syscall.ENETUNREACH), errorClassUnreachable},
+		{"context deadline", &url.Error{Op: "Get", URL: "http://example.com", Err: context.DeadlineExceeded}, errorClassTimeout},
+		{"dial i/o timeout", &url.Error{Op: "Get", URL: "http://example.com", Err: &net.OpError{Op: "dial", Net: "tcp", Err: os.ErrDeadlineExceeded}}, errorClassTimeout},
+		{"dns not found", &url.Error{Op: "Get", URL: "http://example.com", Err: &net.OpError{Op: "dial", Err: &net.DNSError{Err: "no such host", Name: "example.com", IsNotFound: true}}}, errorClassDNS},
+		{"dns timeout is dns", &url.Error{Op: "Get", URL: "http://example.com", Err: &net.DNSError{Err: "i/o timeout", IsTimeout: true}}, errorClassDNS},
+		{"tls unknown authority", &url.Error{Op: "Get", URL: "https://example.com", Err: &tls.CertificateVerificationError{Err: x509.UnknownAuthorityError{}}}, errorClassTLS},
+		{"tls hostname", &url.Error{Op: "Get", URL: "https://example.com", Err: x509.HostnameError{Certificate: &x509.Certificate{}, Host: "example.com"}}, errorClassTLS},
+		{"tls record header", &url.Error{Op: "Get", URL: "https://example.com", Err: tls.RecordHeaderError{Msg: "first record does not look like a TLS handshake"}}, errorClassTLS},
+		{"tls alert", &url.Error{Op: "Get", URL: "https://example.com", Err: fmt.Errorf("remote error: %w", tls.AlertError(40))}, errorClassTLS},
+		{"tls plain handshake error", &url.Error{Op: "Get", URL: "https://example.com", Err: errors.New("tls: handshake failure")}, errorClassTLS},
+		{"redirect loop", &url.Error{Op: "Get", URL: "http://example.com", Err: errors.New("stopped after 10 redirects")}, errorClassAny},
+		{"malformed response", &url.Error{Op: "Get", URL: "http://example.com", Err: errors.New("net/http: HTTP/1.x transport connection broken: malformed HTTP response")}, errorClassAny},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, classifyError(tt.err))
+		})
+	}
+}
+
+func Test_errorWasExpected(t *testing.T) {
+	assert.True(t, errorWasExpected([]string{"200", "reset"}, errorClassReset))
+	assert.False(t, errorWasExpected([]string{"200", "reset"}, errorClassTimeout))
+	assert.True(t, errorWasExpected([]string{"error"}, errorClassTimeout))
+	assert.True(t, errorWasExpected([]string{"error"}, errorClassAny))
+	assert.False(t, errorWasExpected([]string{"timeout"}, errorClassAny))
+	assert.False(t, errorWasExpected([]string{"200-299"}, errorClassRefused))
+}
+
+// The following tests produce real transport errors through the http client used by the check, so the
+// classification is verified against what net/http actually returns, not only against synthetic errors.
+
+func runSingleRequest(t *testing.T, target string, expected []string, readTimeout time.Duration) *httpChecker {
+	t.Helper()
+	u, err := url.Parse(target)
+	require.NoError(t, err)
+	state := &HTTPCheckState{
+		MaxConcurrent:        1,
+		NumberOfRequests:     1,
+		DelayBetweenRequests: time.Second,
+		ExpectedStatusCodes:  expected,
+		URL:                  *u,
+		Method:               "GET",
+		ReadTimeout:          readTimeout,
+		ConnectionTimeout:    readTimeout,
+	}
+	checker := newHttpChecker(context.Background(), state)
+	checker.start()
+	require.Eventually(t, func() bool {
+		return checker.counters.success.Load()+checker.counters.failed.Load() >= 1
+	}, 10*time.Second, 10*time.Millisecond)
+	checker.shutdown()
+	return checker
+}
+
+func singleErrorType(t *testing.T, c *httpChecker) string {
+	t.Helper()
+	metrics := c.getLatestMetrics()
+	require.Len(t, metrics, 1)
+	require.NotEmpty(t, metrics[0].Metric["error"])
+	return metrics[0].Metric["error_type"]
+}
+
+func closedPortURL(t *testing.T) string {
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	addr := l.Addr().String()
+	require.NoError(t, l.Close())
+	return "http://" + addr
+}
+
+func resettingServer(t *testing.T) string {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, _, err := w.(http.Hijacker).Hijack()
+		if err != nil {
+			return
+		}
+		if tcp, ok := conn.(*net.TCPConn); ok {
+			_ = tcp.SetLinger(0) // send RST instead of FIN
+		}
+		_ = conn.Close()
+	}))
+	t.Cleanup(server.Close)
+	return server.URL
+}
+
+func TestHttpChecker_TransportErrorClasses(t *testing.T) {
+	slow := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-r.Context().Done():
+		case <-time.After(2 * time.Second):
+		}
+	}))
+	defer slow.Close()
+	untrusted := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	defer untrusted.Close()
+
+	tests := []struct {
+		name string
+		url  string
+		want string
+	}{
+		{"refused", closedPortURL(t), errorClassRefused},
+		{"reset", resettingServer(t), errorClassReset},
+		{"timeout", slow.URL, errorClassTimeout},
+		{"tls", untrusted.URL, errorClassTLS},
+		{"dns", "http://does-not-exist.invalid", errorClassDNS},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			expectedMatch := runSingleRequest(t, tt.url, []string{"200", tt.want}, 500*time.Millisecond)
+			assert.Equal(t, tt.want, singleErrorType(t, expectedMatch))
+			assert.Equal(t, uint64(1), expectedMatch.counters.success.Load(), "%s should be accepted when %q is expected", tt.name, tt.want)
+
+			catchAll := runSingleRequest(t, tt.url, []string{"error"}, 500*time.Millisecond)
+			assert.Equal(t, uint64(1), catchAll.counters.success.Load(), "%s should be accepted by the 'error' token", tt.name)
+
+			notExpected := runSingleRequest(t, tt.url, []string{"200-299"}, 500*time.Millisecond)
+			assert.Equal(t, uint64(1), notExpected.counters.failed.Load(), "%s should fail when only HTTP statuses are expected", tt.name)
+		})
+	}
+}
