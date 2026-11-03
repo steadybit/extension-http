@@ -83,5 +83,15 @@ func TestBandwidthAction_ParameterGroups(t *testing.T) {
 	assert.Equal(t, map[string][]string{
 		groupHTTPClientBehavior: {"followRedirects", "connectTimeout", "readTimeout", "insecureSkipVerify"},
 	}, groupMembers(desc))
-	assert.ElementsMatch(t, []string{"followRedirects", "connectTimeout", "readTimeout", "insecureSkipVerify", "failEarly"}, advancedParameters(desc))
+	assert.ElementsMatch(t, []string{"followRedirects", "connectTimeout", "readTimeout", "insecureSkipVerify"}, advancedParameters(desc))
+
+	// Fail early is the last bandwidth verification setting, not alone in "Additional Settings".
+	failEarlyOrder := *parameterByName(t, desc, "failEarly").Order
+	assert.Greater(t, failEarlyOrder, *parameterByName(t, desc, "maxBandwidth").Order)
+	for _, p := range desc.Parameters {
+		if p.Type == action_kit_api.ActionParameterTypeSeparator && *p.Order > *parameterByName(t, desc, "maxBandwidth").Order {
+			assert.Greater(t, *p.Order, failEarlyOrder, "the separator after the verification settings follows fail early")
+			break
+		}
+	}
 }
