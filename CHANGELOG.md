@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- feat: HTTP checks show their parameters in the groups "Request Content", "Expected Response" and "HTTP Client Behavior" on platforms that support parameter groups, with a few parameters slightly reordered
+
 ## v1.0.60
 
 - build(deps): bump github.com/KimMachineGun/automemlimit
