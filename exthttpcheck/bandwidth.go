@@ -40,6 +40,14 @@ var bandwidthFailEarly = func() action_kit_api.ActionParameter {
 	return p
 }()
 
+// bandwidthFollowRedirects describes the shared parameter in terms of what is measured,
+// as the bandwidth check has no required status codes.
+var bandwidthFollowRedirects = func() action_kit_api.ActionParameter {
+	p := followRedirects
+	p.Description = new("Follow redirects and measure the final response. If disabled, the redirect response itself is measured.")
+	return p
+}()
+
 type httpCheckActionBandwidth struct{}
 
 type BandwidthCheckState struct {
@@ -235,7 +243,7 @@ func (a *httpCheckActionBandwidth) Describe() action_kit_api.ActionDescription {
 			//------------------------
 			// Client Settings
 			//------------------------
-			followRedirects,
+			bandwidthFollowRedirects,
 			connectTimeout,
 			readTimeout,
 			insecureSkipVerify,

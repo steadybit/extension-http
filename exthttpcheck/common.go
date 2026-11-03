@@ -232,14 +232,15 @@ var (
 		Order:        new(19),
 	}
 	followRedirects = action_kit_api.ActionParameter{
-		Name:        "followRedirects",
-		Label:       "Follow Redirects",
-		Description: new("Should Redirects be followed?"),
-		Type:        action_kit_api.ActionParameterTypeBoolean,
-		Required:    new(true),
-		Advanced:    new(true),
-		Group:       new(groupHTTPClientBehavior),
-		Order:       new(21),
+		Name:         "followRedirects",
+		Label:        "Follow Redirects",
+		Description:  new("Follow redirects and check the final response. If disabled, the redirect itself (e.g. 301) is checked against the required status codes."),
+		Type:         action_kit_api.ActionParameterTypeBoolean,
+		DefaultValue: new("false"),
+		Required:     new(true),
+		Advanced:     new(true),
+		Group:        new(groupHTTPClientBehavior),
+		Order:        new(21),
 	}
 	connectTimeout = action_kit_api.ActionParameter{
 		Name:         "connectTimeout",
