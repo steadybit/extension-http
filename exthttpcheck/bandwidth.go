@@ -172,7 +172,7 @@ func (a *httpCheckActionBandwidth) Describe() action_kit_api.ActionDescription {
 			//------------------------
 			requestDefinition,
 			urlParameter,
-			headers,
+			withoutGroup(headers),
 			separator(5),
 			//------------------------
 			// Repetition Control
@@ -225,7 +225,6 @@ func (a *httpCheckActionBandwidth) Describe() action_kit_api.ActionDescription {
 			//------------------------
 			// Client Settings
 			//------------------------
-			clientSettings,
 			followRedirects,
 			connectTimeout,
 			readTimeout,

@@ -47,6 +47,7 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 		Icon:            new(actionIconFixedAmount),
 		TargetSelection: targetSelection,
 		Widgets:         widgetToUse,
+		ParameterGroups: new([]action_kit_api.ParameterGroup{responseGroup}),
 		Technology:      new("HTTP"),
 		Kind:            action_kit_api.Check,
 		TimeControl:     action_kit_api.TimeControlInternal,
@@ -63,8 +64,8 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 			requestDefinition,
 			method,
 			urlParameter,
-			body,
 			headers,
+			body,
 			separator(5),
 			//------------------------
 			// Repetitions
@@ -109,12 +110,11 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 			// Additional Settings
 			//------------------------
 			maxConcurrent,
-			clientSettings,
 			followRedirects,
 			connectTimeout,
 			readTimeout,
 			insecureSkipVerify,
-			failEarly,
+			withGroup(failEarly, groupResponse),
 		},
 		Status: new(action_kit_api.MutatingEndpointReferenceWithCallInterval{
 			CallInterval: new("1s"),

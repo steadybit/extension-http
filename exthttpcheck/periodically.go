@@ -46,6 +46,7 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 		Icon:            new(actionIconPeriodically),
 		TargetSelection: targetSelection,
 		Widgets:         widgetToUse,
+		ParameterGroups: new([]action_kit_api.ParameterGroup{responseGroup}),
 		Technology:      new("HTTP"),
 		Kind:            action_kit_api.Check,
 		TimeControl:     action_kit_api.TimeControlExternal,
@@ -56,8 +57,8 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 			requestDefinition,
 			method,
 			urlParameter,
-			body,
 			headers,
+			body,
 			separator(5),
 			//------------------------
 			// Repetitions
@@ -97,12 +98,11 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 			//------------------------
 
 			maxConcurrent,
-			clientSettings,
 			followRedirects,
 			connectTimeout,
 			readTimeout,
 			insecureSkipVerify,
-			failEarly,
+			withGroup(failEarly, groupResponse),
 		},
 		Status: new(action_kit_api.MutatingEndpointReferenceWithCallInterval{
 			CallInterval: new("1s"),
