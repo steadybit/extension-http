@@ -150,7 +150,7 @@ var (
 	statusCode = action_kit_api.ActionParameter{
 		Name:         "statusCode",
 		Label:        "Required Response Status Codes",
-		Description:  new("Which HTTP-Status codes should be considered as success? This field supports ranges with '-' and multiple codes delimited by ';' for example '200-399;429'."),
+		Description:  new("HTTP status codes considered successful. Use '-' for ranges and ';' to combine, e.g. '200-399;429'. For requests without a response, use refused, timeout, reset, dns, tls, unreachable or error (any), e.g. '503;reset'."),
 		Type:         action_kit_api.ActionParameterTypeString,
 		DefaultValue: new("200-299"),
 		Required:     new(true),
@@ -344,6 +344,14 @@ var (
 					{
 						From:  "error",
 						Title: "Error",
+					},
+					{
+						From:  "expected_error",
+						Title: "Expected Error",
+					},
+					{
+						From:  "error_type",
+						Title: "Error Type",
 					},
 					{
 						From:  "http_status",

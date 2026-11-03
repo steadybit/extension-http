@@ -154,14 +154,15 @@ func (c *httpChecker) performRequest(req *http.Request, state *HTTPCheckState) {
 		c.logger.Warn().Err(err).Msg("Failed to execute request")
 		now := time.Now()
 
-		responseStatusWasExpected := slices.Contains(state.ExpectedStatusCodes, "error")
-		c.onError(req, err, float64(now.Sub(started).Milliseconds()), responseStatusWasExpected)
+		errorClasses := classifyError(err)
+		responseStatusWasExpected := errorWasExpected(state.ExpectedStatusCodes, errorClasses)
+		c.onError(req, err, errorClasses[0], float64(now.Sub(started).Milliseconds()), responseStatusWasExpected)
 	} else {
 		var bodyBytes []byte
 		var bodyErr error
 		if response.Body != nil {
 			if bodyBytes, bodyErr = io.ReadAll(response.Body); bodyErr != nil {
-				c.logger.Error().Err(err).Msg("Failed to read response body")
+				c.logger.Error().Err(bodyErr).Msg("Failed to read response body")
 			}
 		}
 		// The full response has now been read — mark the last byte for the
@@ -256,11 +257,18 @@ func createHttpClient(state *HTTPCheckState) http.Client {
 	return client
 }
 
-func (c *httpChecker) onError(req *http.Request, err error, responseTime float64, responseStatusWasExpected bool) {
+func (c *httpChecker) onError(req *http.Request, err error, errorType string, responseTime float64, responseStatusWasExpected bool) {
+	// An error that matched the expected status codes is reported under "expected_error" instead of "error",
+	// so the widget's "Failure" group (keyed on "error" being set) does not match it and it shows as successful.
+	errorKey := "error"
+	if responseStatusWasExpected {
+		errorKey = "expected_error"
+	}
 	c.metrics <- action_kit_api.Metric{
 		Metric: map[string]string{
 			"url":                  req.URL.String(),
-			"error":                err.Error(),
+			errorKey:               err.Error(),
+			"error_type":           errorType,
 			"expected_http_status": strconv.FormatBool(responseStatusWasExpected),
 		},
 		Name:      new("response_time"),
