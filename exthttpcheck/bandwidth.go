@@ -31,6 +31,23 @@ var bandwidthSuccessRate = func() action_kit_api.ActionParameter {
 	return p
 }()
 
+// bandwidthFailEarly shows the shared fail-early parameter with the other bandwidth
+// verification settings instead of alone in "Additional Settings".
+var bandwidthFailEarly = func() action_kit_api.ActionParameter {
+	p := failEarly
+	p.Advanced = nil
+	p.Order = new(14)
+	return p
+}()
+
+// bandwidthFollowRedirects describes the shared parameter in terms of what is measured,
+// as the bandwidth check has no required status codes.
+var bandwidthFollowRedirects = func() action_kit_api.ActionParameter {
+	p := followRedirects
+	p.Description = new("Follow redirects and measure the final response. If disabled, the redirect response itself is measured.")
+	return p
+}()
+
 type httpCheckActionBandwidth struct{}
 
 type BandwidthCheckState struct {
@@ -172,7 +189,7 @@ func (a *httpCheckActionBandwidth) Describe() action_kit_api.ActionDescription {
 			//------------------------
 			requestDefinition,
 			urlParameter,
-			headers,
+			withoutGroup(headers),
 			separator(5),
 			//------------------------
 			// Repetition Control
@@ -217,7 +234,8 @@ func (a *httpCheckActionBandwidth) Describe() action_kit_api.ActionDescription {
 				Required:    new(false),
 				Order:       new(13),
 			},
-			separator(14),
+			bandwidthFailEarly,
+			separator(15),
 			//------------------------
 			// Target Selection
 			//------------------------
@@ -225,12 +243,10 @@ func (a *httpCheckActionBandwidth) Describe() action_kit_api.ActionDescription {
 			//------------------------
 			// Client Settings
 			//------------------------
-			clientSettings,
-			followRedirects,
+			bandwidthFollowRedirects,
 			connectTimeout,
 			readTimeout,
 			insecureSkipVerify,
-			failEarly,
 		},
 		Status: new(action_kit_api.MutatingEndpointReferenceWithCallInterval{
 			CallInterval: new("1s"),

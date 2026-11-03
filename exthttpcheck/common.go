@@ -19,7 +19,18 @@ const (
 	actionIconFixedAmount  = "data:image/svg+xml,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Cpath%20d%3D%22M4.38098%2013C4.17057%2013%204%2012.8294%204%2012.619V9.38098C4%209.17057%204.17057%209%204.38098%209V9C4.59139%209%204.76196%209.17057%204.76196%209.38098V10.6934H6.71103V9.38201C6.71103%209.17103%206.88206%209%207.09304%209V9C7.30402%209%207.47505%209.17103%207.47505%209.38201V12.618C7.47505%2012.829%207.30402%2013%207.09304%2013V13C6.88206%2013%206.71103%2012.829%206.71103%2012.618V11.3008H4.76196V12.619C4.76196%2012.8294%204.59139%2013%204.38098%2013V13Z%22%20fill%3D%22%231D2632%22%2F%3E%0A%3Cpath%20d%3D%22M8.42263%209.60742C8.25489%209.60742%208.11892%209.47145%208.11892%209.30371V9.30371C8.11892%209.13598%208.25489%209%208.42263%209H11.1711C11.3389%209%2011.4748%209.13598%2011.4748%209.30371V9.30371C11.4748%209.47145%2011.3389%209.60742%2011.1711%209.60742H10.1748V12.6221C10.1748%2012.8308%2010.0056%2013%209.79688%2013V13C9.58817%2013%209.41898%2012.8308%209.41898%2012.6221V9.60742H8.42263Z%22%20fill%3D%22%231D2632%22%2F%3E%0A%3Cpath%20d%3D%22M12.2407%209.60742C12.0729%209.60742%2011.9369%209.47145%2011.9369%209.30371V9.30371C11.9369%209.13598%2012.0729%209%2012.2407%209H14.9892C15.1569%209%2015.2929%209.13598%2015.2929%209.30371V9.30371C15.2929%209.47145%2015.1569%209.60742%2014.9892%209.60742H13.9928V12.6221C13.9928%2012.8308%2013.8236%2013%2013.6149%2013V13C13.4062%2013%2013.237%2012.8308%2013.237%2012.6221V9.60742H12.2407Z%22%20fill%3D%22%231D2632%22%2F%3E%0A%3Cpath%20d%3D%22M16.3208%2013C16.1104%2013%2015.9398%2012.8294%2015.9398%2012.619V9.5C15.9398%209.22386%2016.1637%209%2016.4398%209H17.5171C17.8403%209%2018.1114%209.05729%2018.3305%209.17187C18.5509%209.28646%2018.7173%209.44401%2018.8295%209.64453C18.9432%209.84375%2019%2010.0703%2019%2010.3242C19%2010.5807%2018.9432%2010.8086%2018.8295%2011.0078C18.7159%2011.207%2018.5482%2011.3639%2018.3263%2011.4785C18.1045%2011.5918%2017.8314%2011.6484%2017.5069%2011.6484H16.4615V11.0527H17.4042C17.5931%2011.0527%2017.7479%2011.0215%2017.8684%2010.959C17.9888%2010.8965%2018.0778%2010.8105%2018.1353%2010.7012C18.1942%2010.5918%2018.2237%2010.4661%2018.2237%2010.3242C18.2237%2010.1823%2018.1942%2010.0573%2018.1353%209.94922C18.0778%209.84115%2017.9882%209.75716%2017.8663%209.69727C17.7458%209.63607%2017.5904%209.60547%2017.4001%209.60547H16.7018V12.619C16.7018%2012.8294%2016.5312%2013%2016.3208%2013V13Z%22%20fill%3D%22%231D2632%22%2F%3E%0A%3Cpath%20d%3D%22M4.38098%2013C4.17057%2013%204%2012.8294%204%2012.619V9.38098C4%209.17057%204.17057%209%204.38098%209V9C4.59139%209%204.76196%209.17057%204.76196%209.38098V10.6934H6.71103V9.38201C6.71103%209.17103%206.88206%209%207.09304%209V9C7.30402%209%207.47505%209.17103%207.47505%209.38201V12.618C7.47505%2012.829%207.30402%2013%207.09304%2013V13C6.88206%2013%206.71103%2012.829%206.71103%2012.618V11.3008H4.76196V12.619C4.76196%2012.8294%204.59139%2013%204.38098%2013V13Z%22%20stroke%3D%22%231D2632%22%20stroke-width%3D%220.3%22%2F%3E%0A%3Cpath%20d%3D%22M8.42263%209.60742C8.25489%209.60742%208.11892%209.47145%208.11892%209.30371V9.30371C8.11892%209.13598%208.25489%209%208.42263%209H11.1711C11.3389%209%2011.4748%209.13598%2011.4748%209.30371V9.30371C11.4748%209.47145%2011.3389%209.60742%2011.1711%209.60742H10.1748V12.6221C10.1748%2012.8308%2010.0056%2013%209.79688%2013V13C9.58817%2013%209.41898%2012.8308%209.41898%2012.6221V9.60742H8.42263Z%22%20stroke%3D%22%231D2632%22%20stroke-width%3D%220.3%22%2F%3E%0A%3Cpath%20d%3D%22M12.2407%209.60742C12.0729%209.60742%2011.9369%209.47145%2011.9369%209.30371V9.30371C11.9369%209.13598%2012.0729%209%2012.2407%209H14.9892C15.1569%209%2015.2929%209.13598%2015.2929%209.30371V9.30371C15.2929%209.47145%2015.1569%209.60742%2014.9892%209.60742H13.9928V12.6221C13.9928%2012.8308%2013.8236%2013%2013.6149%2013V13C13.4062%2013%2013.237%2012.8308%2013.237%2012.6221V9.60742H12.2407Z%22%20stroke%3D%22%231D2632%22%20stroke-width%3D%220.3%22%2F%3E%0A%3Cpath%20d%3D%22M16.3208%2013C16.1104%2013%2015.9398%2012.8294%2015.9398%2012.619V9.5C15.9398%209.22386%2016.1637%209%2016.4398%209H17.5171C17.8403%209%2018.1114%209.05729%2018.3305%209.17187C18.5509%209.28646%2018.7173%209.44401%2018.8295%209.64453C18.9432%209.84375%2019%2010.0703%2019%2010.3242C19%2010.5807%2018.9432%2010.8086%2018.8295%2011.0078C18.7159%2011.207%2018.5482%2011.3639%2018.3263%2011.4785C18.1045%2011.5918%2017.8314%2011.6484%2017.5069%2011.6484H16.4615V11.0527H17.4042C17.5931%2011.0527%2017.7479%2011.0215%2017.8684%2010.959C17.9888%2010.8965%2018.0778%2010.8105%2018.1353%2010.7012C18.1942%2010.5918%2018.2237%2010.4661%2018.2237%2010.3242C18.2237%2010.1823%2018.1942%2010.0573%2018.1353%209.94922C18.0778%209.84115%2017.9882%209.75716%2017.8663%209.69727C17.7458%209.63607%2017.5904%209.60547%2017.4001%209.60547H16.7018V12.619C16.7018%2012.8294%2016.5312%2013%2016.3208%2013V13Z%22%20stroke%3D%22%231D2632%22%20stroke-width%3D%220.3%22%2F%3E%0A%3Ccircle%20cx%3D%224.5%22%20cy%3D%224.5%22%20r%3D%220.5%22%20fill%3D%22%231D2632%22%2F%3E%0A%3Ccircle%20cx%3D%226.5%22%20cy%3D%224.5%22%20r%3D%220.5%22%20fill%3D%22%231D2632%22%2F%3E%0A%3Ccircle%20cx%3D%228.5%22%20cy%3D%224.5%22%20r%3D%220.5%22%20fill%3D%22%231D2632%22%2F%3E%0A%3Cpath%20d%3D%22M10%2022H4C2.89543%2022%202%2021.1046%202%2020V7M22%2012V7M2%207V4C2%202.89543%202.89543%202%204%202H20C21.1046%202%2022%202.89543%2022%204V7M2%207H22%22%20stroke%3D%22%231D2632%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%2F%3E%0A%3Cpath%20fill-rule%3D%22evenodd%22%20clip-rule%3D%22evenodd%22%20d%3D%22M18.5006%2015C16.5673%2015%2015.0001%2016.567%2015.0001%2018.5C15.0001%2020.433%2016.5673%2022%2018.5006%2022C20.4338%2022%2022.001%2020.433%2022.001%2018.5C22.001%2016.567%2020.4338%2015%2018.5006%2015ZM14%2018.5C14%2016.0147%2016.015%2014%2018.5006%2014C20.9862%2014%2023.0011%2016.0147%2023.0011%2018.5C23.0011%2020.9853%2020.9862%2023%2018.5006%2023C16.015%2023%2014%2020.9853%2014%2018.5Z%22%20fill%3D%22%231D2632%22%20stroke%3D%22%231D2632%22%20stroke-width%3D%220.2%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%3Cpath%20d%3D%22M18.6508%2021L19.6157%2016H20.4199L19.4549%2021H18.6508ZM16%2019.7109L16.135%2019.0273H20.6611L20.5261%2019.7109H16ZM16.583%2021L17.548%2016H18.3521L17.3871%2021H16.583ZM16.3418%2017.9727L16.4739%2017.2891H21L20.8679%2017.9727H16.3418Z%22%20fill%3D%22%231D2632%22%20stroke%3D%22%231D2632%22%20stroke-width%3D%220.2%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%3C%2Fsvg%3E%0A"
 )
 
+const (
+	groupRequestContent     = "Request Content"
+	groupResponse           = "Expected Response"
+	groupHTTPClientBehavior = "HTTP Client Behavior"
+)
+
 var (
+	responseGroup = action_kit_api.ParameterGroup{
+		Name:        groupResponse,
+		Description: "What a response must look like to count as a success.",
+	}
+
 	targetSelection = new(action_kit_api.TargetSelection{
 		TargetType: targetType,
 		DefaultBlastRadius: new(action_kit_api.DefaultBlastRadius{
@@ -83,14 +94,16 @@ var (
 		Label:       "HTTP Body",
 		Description: new("The HTTP Body."),
 		Type:        action_kit_api.ActionParameterTypeTextarea,
-		Order:       new(3),
+		Group:       new(groupRequestContent),
+		Order:       new(4),
 	}
 	headers = action_kit_api.ActionParameter{
 		Name:        "headers",
 		Label:       "HTTP Headers",
 		Description: new("The HTTP Headers."),
 		Type:        action_kit_api.ActionParameterTypeKeyValue,
-		Order:       new(4),
+		Group:       new(groupRequestContent),
+		Order:       new(3),
 	}
 	repetitionControl = action_kit_api.ActionParameter{
 		Name:  "repetitionControl",
@@ -141,6 +154,7 @@ var (
 		Type:         action_kit_api.ActionParameterTypeString,
 		DefaultValue: new("200-299"),
 		Required:     new(true),
+		Group:        new(groupResponse),
 		Order:        new(12),
 	}
 	responsesContains = action_kit_api.ActionParameter{
@@ -149,6 +163,7 @@ var (
 		Description: new("The responses must contain the given string, otherwise the step will fail."),
 		Type:        action_kit_api.ActionParameterTypeTextarea,
 		Required:    new(false),
+		Group:       new(groupResponse),
 		Order:       new(13),
 	}
 	responseTimeMode = action_kit_api.ActionParameter{
@@ -157,6 +172,7 @@ var (
 		Description:  new("How should the response time be verified against the required response time?"),
 		Type:         action_kit_api.ActionParameterTypeString,
 		Required:     new(true),
+		Group:        new(groupResponse),
 		Order:        new(14),
 		DefaultValue: new("NO_VERIFICATION"),
 		Options: new([]action_kit_api.ParameterOption{
@@ -180,15 +196,17 @@ var (
 		Description:  new("The response time to verify against (see 'Response Time Measurement' for what is measured). Only used when 'Verify Response Time' is not set to 'don't verify'."),
 		Type:         action_kit_api.ActionParameterTypeDuration,
 		Required:     new(true),
+		Group:        new(groupResponse),
 		Order:        new(15),
 		DefaultValue: new("500ms"),
 	}
 	responseTimeMeasurement = action_kit_api.ActionParameter{
-		Name:        "responseTimeMeasurement",
-		Label:       "Response Time Measurement",
+		Name:         "responseTimeMeasurement",
+		Label:        "Response Time Measurement",
 		Description:  new("What the reported/verified response time measures. 'Time to first byte' is the server's processing time (request written until the first response byte), excluding connection setup. 'Time to last byte' is the full end-to-end time (connection start — DNS, TCP connect and TLS handshake included — until the last response byte), so connection-level faults such as added latency and slow body downloads are reflected."),
 		Type:         action_kit_api.ActionParameterTypeString,
 		Required:     new(false),
+		Group:        new(groupResponse),
 		Order:        new(16),
 		DefaultValue: new("TIME_TO_FIRST_BYTE"),
 		Options: new([]action_kit_api.ParameterOption{
@@ -210,23 +228,19 @@ var (
 		DefaultValue: new("5"),
 		Required:     new(true),
 		Advanced:     new(true),
+		Group:        new(groupHTTPClientBehavior),
 		Order:        new(19),
 	}
-	clientSettings = action_kit_api.ActionParameter{
-		Name:     "clientSettings",
-		Label:    "HTTP Client Settings",
-		Type:     action_kit_api.ActionParameterTypeHeader,
-		Advanced: new(true),
-		Order:    new(20),
-	}
 	followRedirects = action_kit_api.ActionParameter{
-		Name:        "followRedirects",
-		Label:       "Follow Redirects",
-		Description: new("Should Redirects be followed?"),
-		Type:        action_kit_api.ActionParameterTypeBoolean,
-		Required:    new(true),
-		Advanced:    new(true),
-		Order:       new(21),
+		Name:         "followRedirects",
+		Label:        "Follow Redirects",
+		Description:  new("Follow redirects and check the final response. If disabled, the redirect itself (e.g. 301) is checked against the required status codes."),
+		Type:         action_kit_api.ActionParameterTypeBoolean,
+		DefaultValue: new("false"),
+		Required:     new(true),
+		Advanced:     new(true),
+		Group:        new(groupHTTPClientBehavior),
+		Order:        new(21),
 	}
 	connectTimeout = action_kit_api.ActionParameter{
 		Name:         "connectTimeout",
@@ -236,6 +250,7 @@ var (
 		DefaultValue: new("5s"),
 		Required:     new(true),
 		Advanced:     new(true),
+		Group:        new(groupHTTPClientBehavior),
 		Order:        new(22),
 	}
 	readTimeout = action_kit_api.ActionParameter{
@@ -246,6 +261,7 @@ var (
 		DefaultValue: new("5s"),
 		Required:     new(true),
 		Advanced:     new(true),
+		Group:        new(groupHTTPClientBehavior),
 		Order:        new(23),
 	}
 	insecureSkipVerify = action_kit_api.ActionParameter{
@@ -256,6 +272,7 @@ var (
 		DefaultValue: new("false"),
 		Required:     new(false),
 		Advanced:     new(true),
+		Group:        new(groupHTTPClientBehavior),
 		Order:        new(24),
 	}
 	widgetsBackwardCompatiblity = new([]action_kit_api.Widget{
@@ -337,6 +354,18 @@ var (
 		},
 	})
 )
+
+// withGroup returns a copy of the parameter that is shown in the given group.
+func withGroup(p action_kit_api.ActionParameter, group string) action_kit_api.ActionParameter {
+	p.Group = new(group)
+	return p
+}
+
+// withoutGroup returns a copy of the parameter that isn't shown in a group.
+func withoutGroup(p action_kit_api.ActionParameter) action_kit_api.ActionParameter {
+	p.Group = nil
+	return p
+}
 
 func separator(order int) action_kit_api.ActionParameter {
 	return action_kit_api.ActionParameter{
