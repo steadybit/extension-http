@@ -105,63 +105,20 @@ func (a *httpCheckActionBandwidth) Describe() action_kit_api.ActionDescription {
 				Grouping: new(action_kit_api.LineChartWidgetGroupingConfig{
 					ShowSummary: new(true),
 					Groups: []action_kit_api.LineChartWidgetGroup{
-						{
-							Title: "Within Threshold",
-							Color: "success",
-							Matcher: action_kit_api.LineChartWidgetGroupMatcherKeyEqualsValue{
-								Type:  action_kit_api.ComSteadybitWidgetLineChartGroupMatcherKeyEqualsValue,
-								Key:   "within_threshold",
-								Value: "true",
-							},
-						},
-						{
-							Title: "Failure",
-							Color: "warn",
-							Matcher: action_kit_api.LineChartWidgetGroupMatcherNotEmpty{
-								Type: action_kit_api.ComSteadybitWidgetLineChartGroupMatcherNotEmpty,
-								Key:  "error",
-							},
-						},
-						{
-							Title: "Unexpected Status",
-							Color: "warn",
-							Matcher: action_kit_api.LineChartWidgetGroupMatcherKeyEqualsValue{
-								Type:  action_kit_api.ComSteadybitWidgetLineChartGroupMatcherKeyEqualsValue,
-								Key:   "expected_http_status",
-								Value: "false",
-							},
-						},
-						{
-							Title: "Outside Threshold",
-							Color: "warn",
-							Matcher: action_kit_api.LineChartWidgetGroupMatcherKeyEqualsValue{
-								Type:  action_kit_api.ComSteadybitWidgetLineChartGroupMatcherKeyEqualsValue,
-								Key:   "within_threshold",
-								Value: "false",
-							},
-						},
+						keyEqualsGroup("Within Threshold", "success", "within_threshold", "true"),
+						failureGroup,
+						unexpectedStatusGroup,
+						keyEqualsGroup("Outside Threshold", "warn", "within_threshold", "false"),
 					},
 				}),
 				Tooltip: new(action_kit_api.LineChartWidgetTooltipConfig{
 					MetricValueTitle: new("Bandwidth"),
 					MetricValueUnit:  new("Mbps"),
 					AdditionalContent: []action_kit_api.LineChartWidgetTooltipContent{
-						{
-							From:  "bytes_downloaded",
-							Title: "Bytes Downloaded",
-						},
-						{
-							From:  "duration_ms",
-							Title: "Window Duration (ms)",
-						},
-						{
-							From:  "error",
-							Title: "Error",
-						},
-						{
-							From:  "http_status",
-							Title: "HTTP Status",
-						},
+						tooltipEntry("bytes_downloaded", "Bytes Downloaded"),
+						tooltipEntry("duration_ms", "Window Duration (ms)"),
+						errorTooltip,
+						httpStatusTooltip,
 					},
 				}),
 			},

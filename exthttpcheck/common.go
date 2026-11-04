@@ -293,75 +293,62 @@ var (
 			Grouping: new(action_kit_api.LineChartWidgetGroupingConfig{
 				ShowSummary: new(true),
 				Groups: []action_kit_api.LineChartWidgetGroup{
-					{
-						Title: "Successul",
-						Color: "success",
-						Matcher: action_kit_api.LineChartWidgetGroupMatcherFallback{
-							Type: action_kit_api.ComSteadybitWidgetLineChartGroupMatcherFallback,
-						},
-					},
-					{
-						Title: "Failure",
-						Color: "warn",
-						Matcher: action_kit_api.LineChartWidgetGroupMatcherNotEmpty{
-							Type: action_kit_api.ComSteadybitWidgetLineChartGroupMatcherNotEmpty,
-							Key:  "error",
-						},
-					},
-					{
-						Title: "Unexpected Status",
-						Color: "warn",
-						Matcher: action_kit_api.LineChartWidgetGroupMatcherKeyEqualsValue{
-							Type:  action_kit_api.ComSteadybitWidgetLineChartGroupMatcherKeyEqualsValue,
-							Key:   "expected_http_status",
-							Value: "false",
-						},
-					},
-					{
-						Title: "Body Constraint Violated",
-						Color: "warn",
-						Matcher: action_kit_api.LineChartWidgetGroupMatcherKeyEqualsValue{
-							Type:  action_kit_api.ComSteadybitWidgetLineChartGroupMatcherKeyEqualsValue,
-							Key:   "response_constraints_fulfilled",
-							Value: "false",
-						},
-					},
-					{
-						Title: "Response Time Constraint Violated",
-						Color: "warn",
-						Matcher: action_kit_api.LineChartWidgetGroupMatcherKeyEqualsValue{
-							Type:  action_kit_api.ComSteadybitWidgetLineChartGroupMatcherKeyEqualsValue,
-							Key:   "response_time_constraints_fulfilled",
-							Value: "false",
-						},
-					},
+					fallbackGroup("Successul", "success"),
+					failureGroup,
+					unexpectedStatusGroup,
+					keyEqualsGroup("Body Constraint Violated", "warn", "response_constraints_fulfilled", "false"),
+					keyEqualsGroup("Response Time Constraint Violated", "warn", "response_time_constraints_fulfilled", "false"),
 				},
 			}),
 			Tooltip: new(action_kit_api.LineChartWidgetTooltipConfig{
 				MetricValueTitle: new("Response Time"),
 				MetricValueUnit:  new("ms"),
 				AdditionalContent: []action_kit_api.LineChartWidgetTooltipContent{
-					{
-						From:  "error",
-						Title: "Error",
-					},
-					{
-						From:  "expected_error",
-						Title: "Expected Error",
-					},
-					{
-						From:  "error_type",
-						Title: "Error Type",
-					},
-					{
-						From:  "http_status",
-						Title: "HTTP Status",
-					},
+					errorTooltip,
+					tooltipEntry("expected_error", "Expected Error"),
+					tooltipEntry("error_type", "Error Type"),
+					httpStatusTooltip,
 				},
 			}),
 		},
 	})
 )
+
+// Widget building blocks shared by the HTTP check widgets (periodically, fixed amount, bandwidth).
+var (
+	failureGroup          = notEmptyGroup("Failure", "warn", "error")
+	unexpectedStatusGroup = keyEqualsGroup("Unexpected Status", "warn", "expected_http_status", "false")
+	errorTooltip          = tooltipEntry("error", "Error")
+	httpStatusTooltip     = tooltipEntry("http_status", "HTTP Status")
+)
+
+func fallbackGroup(title, color string) action_kit_api.LineChartWidgetGroup {
+	return action_kit_api.LineChartWidgetGroup{
+		Title:   title,
+		Color:   color,
+		Matcher: action_kit_api.LineChartWidgetGroupMatcherFallback{Type: action_kit_api.ComSteadybitWidgetLineChartGroupMatcherFallback},
+	}
+}
+
+func notEmptyGroup(title, color, key string) action_kit_api.LineChartWidgetGroup {
+	return action_kit_api.LineChartWidgetGroup{
+		Title:   title,
+		Color:   color,
+		Matcher: action_kit_api.LineChartWidgetGroupMatcherNotEmpty{Type: action_kit_api.ComSteadybitWidgetLineChartGroupMatcherNotEmpty, Key: key},
+	}
+}
+
+func keyEqualsGroup(title, color, key, value string) action_kit_api.LineChartWidgetGroup {
+	return action_kit_api.LineChartWidgetGroup{
+		Title:   title,
+		Color:   color,
+		Matcher: action_kit_api.LineChartWidgetGroupMatcherKeyEqualsValue{Type: action_kit_api.ComSteadybitWidgetLineChartGroupMatcherKeyEqualsValue, Key: key, Value: value},
+	}
+}
+
+func tooltipEntry(from, title string) action_kit_api.LineChartWidgetTooltipContent {
+	return action_kit_api.LineChartWidgetTooltipContent{From: from, Title: title}
+}
 
 // withGroup returns a copy of the parameter that is shown in the given group.
 func withGroup(p action_kit_api.ActionParameter, group string) action_kit_api.ActionParameter {
