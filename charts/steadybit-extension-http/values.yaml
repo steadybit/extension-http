@@ -9,6 +9,9 @@ kubernetes:
 # enableLocationSelection -- Specifies whether the extension should allow the user to select a location for the http checks.
 enableLocationSelection: false
 
+# keepAlive -- Specifies whether the HTTP client used by the checks should reuse connections (HTTP keep-alive). If disabled, every request opens a new connection.
+keepAlive: false
+
 image:
   # image.registry -- The container registry to use. Defaults to global.image.registry or ghcr.io.
   registry: null
