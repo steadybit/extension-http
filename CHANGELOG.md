@@ -3,6 +3,7 @@
 ## Unreleased
 
 - feat: HTTP checks show their parameters in the groups "Request Content", "Expected Response" and "HTTP Client Behavior" on platforms that support parameter groups, with a few parameters slightly reordered
+- feat: HTTP keep-alive of the check client can be enabled via `STEADYBIT_EXTENSION_KEEP_ALIVE` / helm value `keepAlive` (disabled by default)
 
 ## v1.0.60
 
