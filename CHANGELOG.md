@@ -1,8 +1,13 @@
 # Changelog
 
-## Unreleased
+## v1.0.61
 
+- build(deps): bump github.com/steadybit/action-kit/go/action_kit_api/v2
+- chore(deps): bump golang.org/x/net to v0.62.0
+- feat(check): allow expecting requests without HTTP status (refused, timeout, reset, dns, tls, unreachable) (#206)
 - feat: HTTP checks show their parameters in the groups "Request Content", "Expected Response" and "HTTP Client Behavior" on platforms that support parameter groups, with a few parameters slightly reordered
+- feat: show HTTP check parameters in named groups (#207)
+- refactor(check): share widget group and tooltip definitions (#208)
 
 ## v1.0.60
 
