@@ -115,6 +115,7 @@ func (c *bandwidthChecker) performBandwidthRequests() {
 		MaxIdleConns:        1,
 		MaxIdleConnsPerHost: 1,
 		DisableKeepAlives:   !config.Config.KeepAlive,
+		IdleConnTimeout:     idleConnTimeout,
 		DialContext:         (&net.Dialer{Timeout: c.state.ConnectionTimeout}).DialContext,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: c.state.InsecureSkipVerify,
@@ -123,6 +124,9 @@ func (c *bandwidthChecker) performBandwidthRequests() {
 		// ResponseHeaderTimeout controls time to wait for response headers
 		ResponseHeaderTimeout: c.state.ReadTimeout,
 	}
+	// The worker owns this transport, so release its kept-alive connection when the worker
+	// exits on stop. Called on the transport itself: otelhttp's wrapper does not forward it.
+	defer transport.CloseIdleConnections()
 	// Don't set client.Timeout - it would limit the entire request including body read
 	// For bandwidth testing, we want to allow large downloads to complete.
 	// otelhttp.NewTransport creates a client span per probe. Bandwidth workers loop without a delay, so

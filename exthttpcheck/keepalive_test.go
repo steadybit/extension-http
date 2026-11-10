@@ -13,10 +13,46 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/steadybit/extension-http/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// connTrackingServer counts the connections a test server accepts and closes.
+type connTrackingServer struct {
+	*httptest.Server
+	opened atomic.Int32
+	closed atomic.Int32
+}
+
+func newConnTrackingServer(t *testing.T) *connTrackingServer {
+	t.Helper()
+	s := &connTrackingServer{}
+	s.Server = httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	}))
+	s.Config.ConnState = func(_ net.Conn, state http.ConnState) {
+		switch state {
+		case http.StateNew:
+			s.opened.Add(1)
+		case http.StateClosed, http.StateHijacked:
+			s.closed.Add(1)
+		default:
+		}
+	}
+	s.Start()
+	t.Cleanup(s.Close)
+	return s
+}
+
+func setKeepAlive(t *testing.T, enabled bool) {
+	t.Helper()
+	previous := config.Config.KeepAlive
+	config.Config.KeepAlive = enabled
+	t.Cleanup(func() { config.Config.KeepAlive = previous })
+}
 
 func TestCreateHttpClient_KeepAlive(t *testing.T) {
 	tests := []struct {
@@ -30,22 +66,8 @@ func TestCreateHttpClient_KeepAlive(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			previous := config.Config.KeepAlive
-			config.Config.KeepAlive = tt.keepAlive
-			t.Cleanup(func() { config.Config.KeepAlive = previous })
-
-			var connections atomic.Int32
-			server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte("ok"))
-			}))
-			server.Config.ConnState = func(_ net.Conn, state http.ConnState) {
-				if state == http.StateNew {
-					connections.Add(1)
-				}
-			}
-			server.Start()
-			t.Cleanup(server.Close)
+			setKeepAlive(t, tt.keepAlive)
+			server := newConnTrackingServer(t)
 
 			target, err := url.Parse(server.URL)
 			require.NoError(t, err)
@@ -56,7 +78,7 @@ func TestCreateHttpClient_KeepAlive(t *testing.T) {
 				ConnectionTimeout: 5 * time.Second,
 			}
 
-			client := createHttpClient(state)
+			client, _ := createHttpClient(state)
 			for range 3 {
 				req, err := createRequest(context.Background(), state)
 				require.NoError(t, err)
@@ -66,7 +88,59 @@ func TestCreateHttpClient_KeepAlive(t *testing.T) {
 				require.NoError(t, resp.Body.Close())
 			}
 
-			assert.Equal(t, tt.wantConnections, connections.Load())
+			assert.Equal(t, tt.wantConnections, server.opened.Load())
 		})
 	}
+}
+
+func TestHttpChecker_ShutdownReleasesKeptAliveConnection(t *testing.T) {
+	setKeepAlive(t, true)
+	server := newConnTrackingServer(t)
+
+	target, err := url.Parse(server.URL)
+	require.NoError(t, err)
+	state := &HTTPCheckState{
+		ExecutionID:          uuid.New(),
+		URL:                  *target,
+		Method:               http.MethodGet,
+		ReadTimeout:          5 * time.Second,
+		ConnectionTimeout:    5 * time.Second,
+		DelayBetweenRequests: time.Hour, // only the immediately scheduled first request runs
+		MaxConcurrent:        1,
+		ExpectedStatusCodes:  []string{"200"},
+	}
+
+	checker := newHttpChecker(context.Background(), state)
+	checker.start()
+	require.Eventually(t, func() bool {
+		return checker.counters.success.Load()+checker.counters.failed.Load() == 1
+	}, 5*time.Second, 10*time.Millisecond)
+	require.Equal(t, int32(0), server.closed.Load(), "the kept-alive connection should still be open before shutdown")
+
+	checker.shutdown()
+
+	assert.Eventually(t, func() bool { return server.closed.Load() == server.opened.Load() }, 5*time.Second, 10*time.Millisecond,
+		"shutdown must close the kept-alive connection")
+}
+
+func TestBandwidthChecker_StopReleasesKeptAliveConnections(t *testing.T) {
+	setKeepAlive(t, true)
+	server := newConnTrackingServer(t)
+
+	target, err := url.Parse(server.URL)
+	require.NoError(t, err)
+	checker := newBandwidthChecker(context.Background(), &BandwidthCheckState{
+		ExecutionID:       uuid.New(),
+		URL:               *target,
+		ReadTimeout:       5 * time.Second,
+		ConnectionTimeout: 5 * time.Second,
+		MaxConcurrent:     2,
+	})
+	checker.start()
+	require.Eventually(t, func() bool { return server.opened.Load() > 0 }, 5*time.Second, 10*time.Millisecond)
+
+	checker.stop()
+
+	assert.Eventually(t, func() bool { return server.closed.Load() == server.opened.Load() }, 5*time.Second, 10*time.Millisecond,
+		"stop must close the workers' kept-alive connections")
 }
