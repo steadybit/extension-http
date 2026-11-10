@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -143,4 +144,45 @@ func TestBandwidthChecker_StopReleasesKeptAliveConnections(t *testing.T) {
 
 	assert.Eventually(t, func() bool { return server.closed.Load() == server.opened.Load() }, 5*time.Second, 10*time.Millisecond,
 		"stop must close the workers' kept-alive connections")
+}
+
+func TestHttpChecker_KeepAliveReusesOneConnectionPerWorker(t *testing.T) {
+	setKeepAlive(t, true)
+	server := newConnTrackingServer(t)
+
+	target, err := url.Parse(server.URL)
+	require.NoError(t, err)
+	const concurrency = 3
+	state := &HTTPCheckState{
+		URL:               *target,
+		Method:            http.MethodGet,
+		ReadTimeout:       5 * time.Second,
+		ConnectionTimeout: 5 * time.Second,
+		MaxConcurrent:     concurrency,
+	}
+	client, _ := createHttpClient(state)
+
+	// Several rounds of fully concurrent requests: each round needs `concurrency` connections
+	// at once, and with an idle pool smaller than that, every round would open new ones.
+	for range 5 {
+		var wg sync.WaitGroup
+		for range concurrency {
+			wg.Go(func() {
+				req, err := createRequest(context.Background(), state)
+				if !assert.NoError(t, err) {
+					return
+				}
+				resp, err := client.Do(req)
+				if !assert.NoError(t, err) {
+					return
+				}
+				_, _ = io.Copy(io.Discard, resp.Body)
+				_ = resp.Body.Close()
+			})
+		}
+		wg.Wait()
+	}
+
+	assert.LessOrEqual(t, server.opened.Load(), int32(concurrency),
+		"with keep-alive, connections must be reused up to the configured concurrency")
 }

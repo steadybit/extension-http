@@ -215,10 +215,13 @@ func (c *httpChecker) performRequest(req *http.Request, state *HTTPCheckState) {
 const idleConnTimeout = 30 * time.Second
 
 func createHttpClient(state *HTTPCheckState) (http.Client, *http.Transport) {
-	// restrict idle connections, as all will point to one target
+	// All workers share this transport and point to one target, so keep at most one idle
+	// connection per worker: with keep-alive enabled every worker can reuse its connection,
+	// and no more connections are held open than the check runs concurrently.
+	maxIdle := int(max(state.MaxConcurrent, 1))
 	transport := &http.Transport{
-		MaxIdleConns:        1,
-		MaxIdleConnsPerHost: 1,
+		MaxIdleConns:        maxIdle,
+		MaxIdleConnsPerHost: maxIdle,
 		DisableKeepAlives:   !config.Config.KeepAlive,
 		IdleConnTimeout:     idleConnTimeout,
 		DialContext:         (&net.Dialer{Timeout: state.ConnectionTimeout}).DialContext,

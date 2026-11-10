@@ -111,6 +111,8 @@ func (c *bandwidthChecker) stop() {
 }
 
 func (c *bandwidthChecker) performBandwidthRequests() {
+	// Each worker owns its transport and sends one request at a time, so one idle connection
+	// per worker already matches the configured concurrency.
 	transport := &http.Transport{
 		MaxIdleConns:        1,
 		MaxIdleConnsPerHost: 1,
