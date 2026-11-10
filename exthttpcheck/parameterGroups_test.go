@@ -62,11 +62,11 @@ func TestCheckActions_ParameterGroups(t *testing.T) {
 			assert.Equal(t, map[string][]string{
 				groupRequestContent:     {"headers", "body"},
 				groupResponse:           {"statusCode", "responsesContains", "responseTimeMode", "responseTime", "responseTimeMeasurement", "failEarly"},
-				groupHTTPClientBehavior: {"maxConcurrent", "followRedirects", "connectTimeout", "readTimeout", "insecureSkipVerify"},
+				groupHTTPClientBehavior: {"maxConcurrent", "keepAlive", "followRedirects", "connectTimeout", "readTimeout", "insecureSkipVerify"},
 			}, groupMembers(desc))
 
 			// Platforms without groups keep showing exactly these in "Additional Settings".
-			assert.ElementsMatch(t, []string{"maxConcurrent", "followRedirects", "connectTimeout", "readTimeout", "insecureSkipVerify", "failEarly"}, advancedParameters(desc))
+			assert.ElementsMatch(t, []string{"maxConcurrent", "keepAlive", "followRedirects", "connectTimeout", "readTimeout", "insecureSkipVerify", "failEarly"}, advancedParameters(desc))
 
 			assert.Less(t, *parameterByName(t, desc, "headers").Order, *parameterByName(t, desc, "body").Order, "headers come before the body")
 			for _, p := range desc.Parameters {
@@ -81,9 +81,9 @@ func TestBandwidthAction_ParameterGroups(t *testing.T) {
 
 	assert.Empty(t, definedGroups(desc))
 	assert.Equal(t, map[string][]string{
-		groupHTTPClientBehavior: {"followRedirects", "connectTimeout", "readTimeout", "insecureSkipVerify"},
+		groupHTTPClientBehavior: {"keepAlive", "followRedirects", "connectTimeout", "readTimeout", "insecureSkipVerify"},
 	}, groupMembers(desc))
-	assert.ElementsMatch(t, []string{"followRedirects", "connectTimeout", "readTimeout", "insecureSkipVerify"}, advancedParameters(desc))
+	assert.ElementsMatch(t, []string{"keepAlive", "followRedirects", "connectTimeout", "readTimeout", "insecureSkipVerify"}, advancedParameters(desc))
 
 	// Fail early is the last bandwidth verification setting, not alone in "Additional Settings".
 	failEarlyOrder := *parameterByName(t, desc, "failEarly").Order

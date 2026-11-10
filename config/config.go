@@ -19,9 +19,6 @@ type Specification struct {
 	KubernetesNamespace               string `json:"kubernetesNamespace" split_words:"true" required:"false"`
 	EnableLocationSelection           bool   `json:"enableLocationSelection" split_words:"true" required:"false"`
 	EnableWidgetBackwardCompatibility bool   `json:"enableWidgetBackwardCompatibility" split_words:"true" required:"false" default:"true"`
-	// KeepAlive enables HTTP keep-alive (connection reuse) for the requests performed by the checks.
-	// Disabled by default, so every request opens a new connection.
-	KeepAlive bool `json:"keepAlive" split_words:"true" required:"false" default:"false"`
 }
 
 var (

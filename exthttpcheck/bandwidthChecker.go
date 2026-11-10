@@ -23,7 +23,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	"github.com/steadybit/extension-http/config"
 	"github.com/steadybit/extension-kit/extbuild"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
@@ -116,7 +115,7 @@ func (c *bandwidthChecker) performBandwidthRequests() {
 	transport := &http.Transport{
 		MaxIdleConns:        1,
 		MaxIdleConnsPerHost: 1,
-		DisableKeepAlives:   !config.Config.KeepAlive,
+		DisableKeepAlives:   !c.state.KeepAlive,
 		IdleConnTimeout:     idleConnTimeout,
 		DialContext:         (&net.Dialer{Timeout: c.state.ConnectionTimeout}).DialContext,
 		TLSClientConfig: &tls.Config{
@@ -300,7 +299,7 @@ func formatCounts[K cmp.Ordered](counts map[K]int64) string {
 }
 
 // transportErrorKey collapses a *net.OpError's connection-specific address (which differs
-// on every new connection (and keep-alives are disabled by default), so every retry would otherwise get its
+// on every new connection (and keep-alive is disabled by default), so every retry would otherwise get its
 // own map entry) down to its operation and underlying error, e.g. "read tcp: i/o timeout".
 // Other error kinds (e.g. context.DeadlineExceeded) are already stable and are used as-is.
 func transportErrorKey(err error) string {

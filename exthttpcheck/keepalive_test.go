@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/steadybit/extension-http/config"
+	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -48,13 +48,6 @@ func newConnTrackingServer(t *testing.T) *connTrackingServer {
 	return s
 }
 
-func setKeepAlive(t *testing.T, enabled bool) {
-	t.Helper()
-	previous := config.Config.KeepAlive
-	config.Config.KeepAlive = enabled
-	t.Cleanup(func() { config.Config.KeepAlive = previous })
-}
-
 func TestCreateHttpClient_KeepAlive(t *testing.T) {
 	tests := []struct {
 		name            string
@@ -67,7 +60,6 @@ func TestCreateHttpClient_KeepAlive(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			setKeepAlive(t, tt.keepAlive)
 			server := newConnTrackingServer(t)
 
 			target, err := url.Parse(server.URL)
@@ -77,6 +69,7 @@ func TestCreateHttpClient_KeepAlive(t *testing.T) {
 				Method:            http.MethodGet,
 				ReadTimeout:       5 * time.Second,
 				ConnectionTimeout: 5 * time.Second,
+				KeepAlive:         tt.keepAlive,
 			}
 
 			client, _ := createHttpClient(state)
@@ -95,7 +88,6 @@ func TestCreateHttpClient_KeepAlive(t *testing.T) {
 }
 
 func TestHttpChecker_ShutdownReleasesKeptAliveConnection(t *testing.T) {
-	setKeepAlive(t, true)
 	server := newConnTrackingServer(t)
 
 	target, err := url.Parse(server.URL)
@@ -109,6 +101,7 @@ func TestHttpChecker_ShutdownReleasesKeptAliveConnection(t *testing.T) {
 		DelayBetweenRequests: time.Hour, // only the immediately scheduled first request runs
 		MaxConcurrent:        1,
 		ExpectedStatusCodes:  []string{"200"},
+		KeepAlive:            true,
 	}
 
 	checker := newHttpChecker(context.Background(), state)
@@ -125,7 +118,6 @@ func TestHttpChecker_ShutdownReleasesKeptAliveConnection(t *testing.T) {
 }
 
 func TestBandwidthChecker_StopReleasesKeptAliveConnections(t *testing.T) {
-	setKeepAlive(t, true)
 	server := newConnTrackingServer(t)
 
 	target, err := url.Parse(server.URL)
@@ -136,6 +128,7 @@ func TestBandwidthChecker_StopReleasesKeptAliveConnections(t *testing.T) {
 		ReadTimeout:       5 * time.Second,
 		ConnectionTimeout: 5 * time.Second,
 		MaxConcurrent:     2,
+		KeepAlive:         true,
 	})
 	checker.start()
 	require.Eventually(t, func() bool { return server.opened.Load() > 0 }, 5*time.Second, 10*time.Millisecond)
@@ -147,7 +140,6 @@ func TestBandwidthChecker_StopReleasesKeptAliveConnections(t *testing.T) {
 }
 
 func TestHttpChecker_KeepAliveReusesOneConnectionPerWorker(t *testing.T) {
-	setKeepAlive(t, true)
 	server := newConnTrackingServer(t)
 
 	target, err := url.Parse(server.URL)
@@ -159,6 +151,7 @@ func TestHttpChecker_KeepAliveReusesOneConnectionPerWorker(t *testing.T) {
 		ReadTimeout:       5 * time.Second,
 		ConnectionTimeout: 5 * time.Second,
 		MaxConcurrent:     concurrency,
+		KeepAlive:         true,
 	}
 	client, _ := createHttpClient(state)
 
@@ -185,4 +178,68 @@ func TestHttpChecker_KeepAliveReusesOneConnectionPerWorker(t *testing.T) {
 
 	assert.LessOrEqual(t, server.opened.Load(), int32(concurrency),
 		"with keep-alive, connections must be reused up to the configured concurrency")
+}
+
+func TestPrepare_KeepAliveParameter(t *testing.T) {
+	tests := []struct {
+		name   string
+		config map[string]any
+		want   bool
+	}{
+		{name: "enabled", config: map[string]any{"keepAlive": true}, want: true},
+		{name: "disabled", config: map[string]any{"keepAlive": false}, want: false},
+		// Experiments created before the parameter existed don't send it.
+		{name: "missing defaults to disabled", config: map[string]any{}, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run("http check "+tt.name, func(t *testing.T) {
+			config := map[string]any{
+				"url":            "http://example.com",
+				"method":         "GET",
+				"statusCode":     "200",
+				"maxConcurrent":  1,
+				"readTimeout":    5000,
+				"connectTimeout": 5000,
+				"headers":        []any{},
+			}
+			for k, v := range tt.config {
+				config[k] = v
+			}
+			execID := uuid.New()
+			state := HTTPCheckState{}
+			_, err := prepare(context.Background(), action_kit_api.PrepareActionRequestBody{Config: config, ExecutionId: execID}, &state)
+			require.NoError(t, err)
+			t.Cleanup(func() {
+				if checker, err := loadAndDeleteHttpChecker(execID); err == nil {
+					checker.shutdown()
+				}
+			})
+
+			assert.Equal(t, tt.want, state.KeepAlive)
+		})
+
+		t.Run("bandwidth check "+tt.name, func(t *testing.T) {
+			config := map[string]any{
+				"url":            "http://example.com",
+				"minBandwidth":   "1mbit",
+				"successRate":    80,
+				"connectTimeout": 5000,
+				"readTimeout":    5000,
+				"maxConcurrent":  1,
+				"headers":        []any{},
+			}
+			for k, v := range tt.config {
+				config[k] = v
+			}
+			action := &httpCheckActionBandwidth{}
+			state := action.NewEmptyState()
+			execID := uuid.New()
+			_, err := action.Prepare(context.Background(), &state, action_kit_api.PrepareActionRequestBody{Config: config, ExecutionId: execID})
+			require.NoError(t, err)
+			t.Cleanup(func() { bandwidthCheckers.Delete(execID) })
+
+			assert.Equal(t, tt.want, state.KeepAlive)
+		})
+	}
 }

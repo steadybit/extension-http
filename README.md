@@ -9,7 +9,6 @@ Learn about the capabilities of this extension in our [Reliability Hub](https://
 | Environment Variable                            | Helm value                | Meaning                                                                                                                                                                                              | required | default |
 |-------------------------------------------------|---------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|
 | `STEADYBIT_EXTENSION_ENABLE_LOCATION_SELECTION` | `enableLocationSelection` | By default, the platform will select a random instance when executing actions from this extension. If you enable location selection, users can optionally specify the location via target selection. | no       | false   |
-| `STEADYBIT_EXTENSION_KEEP_ALIVE`                | `keepAlive`               | Enables HTTP keep-alive (connection reuse) for the requests performed by the checks. By default, every request opens a new connection. With keep-alive, reused connections skip DNS, TCP connect and TLS, so connection-level faults only affect requests that open a new connection. | no       | false   |
 
 Beyond the settings above, this extension supports the configuration common to all Steadybit
 extensions:

@@ -152,9 +152,3 @@ tests:
             - global-pull-secret
     asserts:
       - matchSnapshot: {}
-
-  - it: manifest should match snapshot with keep-alive enabled
-    set:
-      keepAlive: true
-    asserts:
-      - matchSnapshot: {}

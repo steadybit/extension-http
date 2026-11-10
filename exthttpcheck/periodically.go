@@ -98,6 +98,7 @@ func (l *httpCheckActionPeriodically) Describe() action_kit_api.ActionDescriptio
 			//------------------------
 
 			maxConcurrent,
+			keepAlive,
 			followRedirects,
 			connectTimeout,
 			readTimeout,

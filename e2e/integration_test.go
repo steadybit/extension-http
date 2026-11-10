@@ -51,6 +51,10 @@ func TestWithMinikube(t *testing.T) {
 	resettingServer := startLocalResettingServer(t, ":8445")
 	defer closeSilent(resettingServer)
 
+	// Counts the connections the extension opens, to verify the keepAlive parameter.
+	connCountingServer := startConnCountingServer(t, ":8446")
+	defer closeSilent(connCountingServer)
+
 	// Started before the extension is installed, so the OTLP endpoint the
 	// extension is configured with is already accepting traces at startup.
 	collector := startOtlpCollector(t, ":0")
@@ -89,6 +93,10 @@ func TestWithMinikube(t *testing.T) {
 				config["numberOfRequests"] = 20.0
 				return config
 			}),
+		},
+		{
+			Name: "keepAlive",
+			Test: testKeepAlive(connCountingServer, "http://host.minikube.internal:8446"),
 		},
 		{
 			Name: "otelTracing",

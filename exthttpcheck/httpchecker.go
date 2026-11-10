@@ -20,7 +20,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	"github.com/steadybit/extension-http/config"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -222,7 +221,7 @@ func createHttpClient(state *HTTPCheckState) (http.Client, *http.Transport) {
 	transport := &http.Transport{
 		MaxIdleConns:        maxIdle,
 		MaxIdleConnsPerHost: maxIdle,
-		DisableKeepAlives:   !config.Config.KeepAlive,
+		DisableKeepAlives:   !state.KeepAlive,
 		IdleConnTimeout:     idleConnTimeout,
 		DialContext:         (&net.Dialer{Timeout: state.ConnectionTimeout}).DialContext,
 		TLSClientConfig: &tls.Config{

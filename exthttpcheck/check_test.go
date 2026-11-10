@@ -43,6 +43,7 @@ func TestAction_Prepare(t *testing.T) {
 					"method":            "GET",
 					"connectTimeout":    5000,
 					"followRedirects":   true,
+					"keepAlive":         true,
 					"headers": []any{
 						map[string]any{"key": "test", "value": "test"},
 					},
@@ -66,6 +67,7 @@ func TestAction_Prepare(t *testing.T) {
 				Headers:              map[string]string{"test": "test"},
 				ConnectionTimeout:    time.Second * 5,
 				FollowRedirects:      true,
+				KeepAlive:            true,
 			},
 		}, {
 			name: "Should return error for headers",
@@ -120,7 +122,7 @@ func TestAction_Prepare(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.wantedState.FollowRedirects, state.FollowRedirects)
 				assert.Equal(t, tt.wantedState.ReadTimeout, state.ReadTimeout)
-				assert.Equal(t, tt.wantedState.FollowRedirects, state.FollowRedirects)
+				assert.Equal(t, tt.wantedState.KeepAlive, state.KeepAlive)
 				assert.Equal(t, tt.wantedState.ConnectionTimeout, state.ConnectionTimeout)
 				assert.Equal(t, tt.wantedState.ExpectedStatusCodes, state.ExpectedStatusCodes)
 				assert.Equal(t, tt.wantedState.Headers, state.Headers)

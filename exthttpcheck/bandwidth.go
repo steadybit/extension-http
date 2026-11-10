@@ -60,6 +60,7 @@ type BandwidthCheckState struct {
 	ConnectionTimeout  time.Duration
 	ReadTimeout        time.Duration
 	FollowRedirects    bool
+	KeepAlive          bool
 	InsecureSkipVerify bool
 	MaxConcurrent      int
 	FailEarly          bool
@@ -200,6 +201,7 @@ func (a *httpCheckActionBandwidth) Describe() action_kit_api.ActionDescription {
 			//------------------------
 			// Client Settings
 			//------------------------
+			keepAlive,
 			bandwidthFollowRedirects,
 			connectTimeout,
 			readTimeout,
@@ -293,6 +295,8 @@ func (a *httpCheckActionBandwidth) Prepare(ctx context.Context, state *Bandwidth
 	state.ConnectionTimeout = time.Duration(extutil.ToInt64(request.Config["connectTimeout"])) * time.Millisecond
 	state.ReadTimeout = time.Duration(extutil.ToInt64(request.Config["readTimeout"])) * time.Millisecond
 	state.FollowRedirects = extutil.ToBool(request.Config["followRedirects"])
+	// Missing in experiments created before the parameter existed: false keeps their behavior.
+	state.KeepAlive = extutil.ToBool(request.Config["keepAlive"])
 	state.InsecureSkipVerify = extutil.ToBool(request.Config["insecureSkipVerify"])
 	state.MaxConcurrent = extutil.ToInt(request.Config["maxConcurrent"])
 	if state.MaxConcurrent < 1 {
