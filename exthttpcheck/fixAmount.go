@@ -110,6 +110,7 @@ func (l *httpCheckActionFixedAmount) Describe() action_kit_api.ActionDescription
 			// Additional Settings
 			//------------------------
 			maxConcurrent,
+			keepAlive,
 			followRedirects,
 			connectTimeout,
 			readTimeout,

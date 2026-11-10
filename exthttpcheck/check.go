@@ -40,6 +40,7 @@ type HTTPCheckState struct {
 	Headers                 map[string]string
 	ConnectionTimeout       time.Duration
 	FollowRedirects         bool
+	KeepAlive               bool
 	InsecureSkipVerify      bool
 	FailEarly               bool
 	// ExpectedRequests is the number of requests expected over the whole step. When FailEarly is
@@ -69,6 +70,8 @@ func prepare(ctx context.Context, request action_kit_api.PrepareActionRequestBod
 	state.Method = extutil.ToString(request.Config["method"])
 	state.ConnectionTimeout = time.Duration(extutil.ToInt64(request.Config["connectTimeout"])) * time.Millisecond
 	state.FollowRedirects = extutil.ToBool(request.Config["followRedirects"])
+	// Missing in experiments created before the parameter existed: false keeps their behavior.
+	state.KeepAlive = extutil.ToBool(request.Config["keepAlive"])
 	state.InsecureSkipVerify = extutil.ToBool(request.Config["insecureSkipVerify"])
 	// Defaults to false to preserve the previous behavior (success rate evaluated only at the end).
 	state.FailEarly = extutil.ToBool(request.Config["failEarly"])

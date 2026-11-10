@@ -110,10 +110,13 @@ func (c *bandwidthChecker) stop() {
 }
 
 func (c *bandwidthChecker) performBandwidthRequests() {
+	// Each worker owns its transport and sends one request at a time, so one idle connection
+	// per worker already matches the configured concurrency.
 	transport := &http.Transport{
 		MaxIdleConns:        1,
 		MaxIdleConnsPerHost: 1,
-		DisableKeepAlives:   true,
+		DisableKeepAlives:   !c.state.KeepAlive,
+		IdleConnTimeout:     idleConnTimeout,
 		DialContext:         (&net.Dialer{Timeout: c.state.ConnectionTimeout}).DialContext,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: c.state.InsecureSkipVerify,
@@ -122,6 +125,9 @@ func (c *bandwidthChecker) performBandwidthRequests() {
 		// ResponseHeaderTimeout controls time to wait for response headers
 		ResponseHeaderTimeout: c.state.ReadTimeout,
 	}
+	// The worker owns this transport, so release its kept-alive connection when the worker
+	// exits on stop. Called on the transport itself: otelhttp's wrapper does not forward it.
+	defer transport.CloseIdleConnections()
 	// Don't set client.Timeout - it would limit the entire request including body read
 	// For bandwidth testing, we want to allow large downloads to complete.
 	// otelhttp.NewTransport creates a client span per probe. Bandwidth workers loop without a delay, so
@@ -293,7 +299,7 @@ func formatCounts[K cmp.Ordered](counts map[K]int64) string {
 }
 
 // transportErrorKey collapses a *net.OpError's connection-specific address (which differs
-// on every request since keep-alives are disabled, so every retry would otherwise get its
+// on every new connection (and keep-alive is disabled by default), so every retry would otherwise get its
 // own map entry) down to its operation and underlying error, e.g. "read tcp: i/o timeout".
 // Other error kinds (e.g. context.DeadlineExceeded) are already stable and are used as-is.
 func transportErrorKey(err error) string {

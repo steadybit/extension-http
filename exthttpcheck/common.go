@@ -231,6 +231,17 @@ var (
 		Group:        new(groupHTTPClientBehavior),
 		Order:        new(19),
 	}
+	keepAlive = action_kit_api.ActionParameter{
+		Name:         "keepAlive",
+		Label:        "Keep-Alive",
+		Description:  new("Reuse connections between requests (HTTP keep-alive). If disabled, every request opens a new connection, so DNS lookup, TCP connect and TLS handshake are part of every request. If enabled, they only happen for new connections, so connection-level faults only affect those requests."),
+		Type:         action_kit_api.ActionParameterTypeBoolean,
+		DefaultValue: new("false"),
+		Required:     new(false),
+		Advanced:     new(true),
+		Group:        new(groupHTTPClientBehavior),
+		Order:        new(20),
+	}
 	followRedirects = action_kit_api.ActionParameter{
 		Name:         "followRedirects",
 		Label:        "Follow Redirects",

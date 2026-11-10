@@ -81,7 +81,7 @@ func TestProbeRequestsEmitClientSpansOnTheActionTrace(t *testing.T) {
 	wantTrace := trace.SpanContextFromContext(actionCtx).TraceID()
 	probeCtx := trace.ContextWithSpanContext(context.Background(), trace.SpanContextFromContext(actionCtx))
 
-	client := createHttpClient(state)
+	client, _ := createHttpClient(state)
 	req, err := createRequest(probeCtx, state)
 	require.NoError(t, err)
 
@@ -139,7 +139,7 @@ func TestProbeRequestsDoNotPropagateTraceContext(t *testing.T) {
 	actionCtx, actionSpan := tp.Tracer("test").Start(context.Background(), "action")
 	probeCtx := trace.ContextWithSpanContext(context.Background(), trace.SpanContextFromContext(actionCtx))
 
-	client := createHttpClient(state)
+	client, _ := createHttpClient(state)
 	req, err := createRequest(probeCtx, state)
 	require.NoError(t, err)
 

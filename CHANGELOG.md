@@ -6,6 +6,7 @@
 - chore(deps): bump golang.org/x/net to v0.62.0
 - feat(check): allow expecting requests without HTTP status (refused, timeout, reset, dns, tls, unreachable) (#206)
 - feat: HTTP checks show their parameters in the groups "Request Content", "Expected Response" and "HTTP Client Behavior" on platforms that support parameter groups, with a few parameters slightly reordered
+- feat: HTTP checks have a "Keep-Alive" parameter (HTTP Client Behavior, disabled by default) to reuse connections between requests
 - feat: show HTTP check parameters in named groups (#207)
 - refactor(check): share widget group and tooltip definitions (#208)
 

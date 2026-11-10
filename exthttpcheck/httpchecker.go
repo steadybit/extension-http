@@ -44,6 +44,9 @@ type httpChecker struct {
 	maxRequests uint64
 	logger      zerolog.Logger
 	httpClient  http.Client
+	// transport is the client's underlying transport. otelhttp's wrapping transport does not
+	// forward CloseIdleConnections, so shutdown needs it directly to release kept-alive connections.
+	transport *http.Transport
 }
 
 func newHttpChecker(parentCtx context.Context, state *HTTPCheckState) *httpChecker {
@@ -51,6 +54,7 @@ func newHttpChecker(parentCtx context.Context, state *HTTPCheckState) *httpCheck
 	// decouple from parentCtx's lifetime (it is cancelled when Prepare returns).
 	ctx, cancel := context.WithCancel(context.Background())
 	ctx = trace.ContextWithSpanContext(ctx, trace.SpanContextFromContext(parentCtx))
+	httpClient, transport := createHttpClient(state)
 	checker := &httpChecker{
 		work:        make(chan struct{}, state.MaxConcurrent),
 		ctx:         ctx,
@@ -60,7 +64,8 @@ func newHttpChecker(parentCtx context.Context, state *HTTPCheckState) *httpCheck
 		tickerDelay: state.DelayBetweenRequests,
 		maxRequests: state.NumberOfRequests,
 		logger:      log.With().Str("executionId", state.ExecutionID.String()).Logger(),
-		httpClient:  createHttpClient(state),
+		httpClient:  httpClient,
+		transport:   transport,
 	}
 
 	checker.startWorkers(state)
@@ -204,12 +209,20 @@ func (c *httpChecker) performRequest(req *http.Request, state *HTTPCheckState) {
 	}
 }
 
-func createHttpClient(state *HTTPCheckState) http.Client {
-	// restrict idle connections, as all will point to one target
+// idleConnTimeout bounds how long a kept-alive connection stays open unused. Checkers close their
+// idle connections on stop; this is the backstop for a checker that is never stopped.
+const idleConnTimeout = 30 * time.Second
+
+func createHttpClient(state *HTTPCheckState) (http.Client, *http.Transport) {
+	// All workers share this transport and point to one target, so keep at most one idle
+	// connection per worker: with keep-alive enabled every worker can reuse its connection,
+	// and no more connections are held open than the check runs concurrently.
+	maxIdle := int(max(state.MaxConcurrent, 1))
 	transport := &http.Transport{
-		MaxIdleConns:        1,
-		MaxIdleConnsPerHost: 1,
-		DisableKeepAlives:   true,
+		MaxIdleConns:        maxIdle,
+		MaxIdleConnsPerHost: maxIdle,
+		DisableKeepAlives:   !state.KeepAlive,
+		IdleConnTimeout:     idleConnTimeout,
 		DialContext:         (&net.Dialer{Timeout: state.ConnectionTimeout}).DialContext,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: state.InsecureSkipVerify,
@@ -254,7 +267,7 @@ func createHttpClient(state *HTTPCheckState) http.Client {
 			return http.ErrUseLastResponse
 		}
 	}
-	return client
+	return client, transport
 }
 
 func (c *httpChecker) onError(req *http.Request, err error, errorType string, responseTime float64, responseStatusWasExpected bool) {
@@ -308,6 +321,11 @@ func (c *httpChecker) shutdown() {
 	c.logger.Trace().Msg("Shutting down httpChecker")
 	c.ctxCancel()
 	c.wg.Wait()
+	// Release the kept-alive connection (and its read/write goroutines) instead of leaving it
+	// open until the target closes it. No-op when keep-alive is disabled.
+	if c.transport != nil {
+		c.transport.CloseIdleConnections()
+	}
 	c.logger.Trace().Msg("Shutdown httpChecker")
 }
 
