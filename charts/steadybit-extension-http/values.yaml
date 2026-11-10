@@ -10,6 +10,7 @@ kubernetes:
 enableLocationSelection: false
 
 # keepAlive -- Specifies whether the HTTP client used by the checks should reuse connections (HTTP keep-alive). If disabled, every request opens a new connection.
+#  With keep-alive, reused connections skip DNS, TCP connect and TLS, so connection-level faults only affect requests that open a new connection.
 keepAlive: false
 
 image:
