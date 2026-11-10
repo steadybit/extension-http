@@ -7,11 +7,11 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/rs/zerolog v1.35.1
-	github.com/steadybit/action-kit/go/action_kit_api/v2 v2.11.0
+	github.com/steadybit/action-kit/go/action_kit_api/v2 v2.11.2
 	github.com/steadybit/action-kit/go/action_kit_sdk v1.4.1
 	github.com/steadybit/action-kit/go/action_kit_test v1.4.13
 	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.7.2
-	github.com/steadybit/discovery-kit/go/discovery_kit_sdk v1.4.2
+	github.com/steadybit/discovery-kit/go/discovery_kit_sdk v1.5.0
 	github.com/steadybit/extension-kit v1.12.2
 	github.com/stretchr/testify v1.12.1
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.72.0
@@ -83,7 +83,7 @@ require (
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba // indirect
-	golang.org/x/net v0.61.0 // indirect
+	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
