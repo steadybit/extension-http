@@ -237,7 +237,7 @@ var (
 		Description:  new("Reuse connections between requests (HTTP keep-alive)."),
 		Type:         action_kit_api.ActionParameterTypeBoolean,
 		DefaultValue: new("false"),
-		Required:     new(true),
+		Required:     new(false),
 		Advanced:     new(true),
 		Group:        new(groupHTTPClientBehavior),
 		Order:        new(20),
