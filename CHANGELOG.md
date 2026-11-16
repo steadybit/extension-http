@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.1.0
+
+- build(deps): bump github.com/steadybit/discovery-kit/go/discovery_kit_sdk
+- chore: mark 'Keep-Alive' parameter as optional again (#215)
+- chore: mark 'Keep-Alive' parameter as required (#214)
+- feat: Keep-Alive parameter for HTTP checks (#209)
+- fix: shorten Keep-Alive parameter tooltip (#213)
+
 ## v1.0.61
 
 - build(deps): bump github.com/steadybit/action-kit/go/action_kit_api/v2
